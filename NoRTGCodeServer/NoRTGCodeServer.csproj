@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{32504A71-97E5-4566-B7A5-5E32E4E20A03}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>NoRTGCodeServer</RootNamespace>
+    <AssemblyName>NoRTGCodeServer</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Gnu.Getopt, Version=0.9.1.0, Culture=neutral, PublicKeyToken=d014b4ccdc53511a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Gnu.Getopt.0.9.2\lib\net20\Gnu.Getopt.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj">
+      <Project>{871eb47c-cd39-41e0-b8a5-372f6d4d03bc}</Project>
+      <Name>ActionsProgram</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Actions\Actions.csproj">
+      <Project>{3aa370a2-06f8-4704-bce5-8c2a7a2430ae}</Project>
+      <Name>Actions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CNCState\CNCState.csproj">
+      <Project>{c926e477-0916-4ff0-90cb-95426e2233a7}</Project>
+      <Name>CNCState</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Config\Config.csproj">
+      <Project>{4ea75574-8497-403b-b19b-687b90ef2fcf}</Project>
+      <Name>Config</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ControlConnection\ControlConnection.csproj">
+      <Project>{a5baa0f5-1b82-4446-a09d-0b41dee0497a}</Project>
+      <Name>ControlConnection</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GCodeMachine\GCodeMachine.csproj">
+      <Project>{d5bb1359-54c6-498e-bef4-6039ed669ee0}</Project>
+      <Name>GCodeMachine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GCodeServer\GCodeServer.csproj">
+      <Project>{8c196422-db7c-4bea-92f1-a043fb370f93}</Project>
+      <Name>GCodeServer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Machine\Machine.csproj">
+      <Project>{d916aee5-fe4e-40f3-8715-ecceea8bc0ce}</Project>
+      <Name>Machine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ModbusSender\ModbusSender.csproj">
+      <Project>{b64b4289-2825-469e-bad9-5d8dee1b2747}</Project>
+      <Name>ModbusSender</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Processor\Processor.csproj">
+      <Project>{81c1f125-745d-4aaa-a126-403b16359c8e}</Project>
+      <Name>Processor</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RTSender\RTSender.csproj">
+      <Project>{dfafed0f-c31a-4194-b0bc-86cce50499d7}</Project>
+      <Name>RTSender</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A6F532D2-28A0-4434-A014-36B3B56F719D}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GcodeServer.Tests</RootNamespace>
+    <AssemblyName>GcodeServer.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ExternalConsole>true</ExternalConsole>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ExternalConsole>true</ExternalConsole>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Test.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Actions\Actions.csproj">
+      <Project>{3AA370A2-06F8-4704-BCE5-8C2A7A2430AE}</Project>
+      <Name>Actions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CNCState\CNCState.csproj">
+      <Project>{C926E477-0916-4FF0-90CB-95426E2233A7}</Project>
+      <Name>CNCState</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Config\Config.csproj">
+      <Project>{4EA75574-8497-403B-B19B-687B90EF2FCF}</Project>
+      <Name>Config</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ControlConnection\ControlConnection.csproj">
+      <Project>{A5BAA0F5-1B82-4446-A09D-0B41DEE0497A}</Project>
+      <Name>ControlConnection</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\GCodeMachine\GCodeMachine.csproj">
+      <Project>{d5bb1359-54c6-498e-bef4-6039ed669ee0}</Project>
+      <Name>GCodeMachine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\GCodeServer\GCodeServer.csproj">
+      <Project>{8c196422-db7c-4bea-92f1-a043fb370f93}</Project>
+      <Name>GCodeServer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Machine\Machine.csproj">
+      <Project>{D916AEE5-FE4E-40F3-8715-ECCEEA8BC0CE}</Project>
+      <Name>Machine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ModbusSender\ModbusSender.csproj">
+      <Project>{B64B4289-2825-469E-BAD9-5D8DEE1B2747}</Project>
+      <Name>ModbusSender</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RTSender\RTSender.csproj">
+      <Project>{DFAFED0F-C31A-4194-B0BC-86CCE50499D7}</Project>
+      <Name>RTSender</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>

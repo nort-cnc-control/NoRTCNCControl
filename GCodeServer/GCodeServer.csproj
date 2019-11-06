@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Processor\Processor.csproj" />
+    <ProjectReference Include="..\Actions\Actions.csproj" />
+    <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj" />
+    <ProjectReference Include="..\CNCState\CNCState.csproj" />
+    <ProjectReference Include="..\Config\Config.csproj" />
+    <ProjectReference Include="..\ControlConnection\ControlConnection.csproj" />
+    <ProjectReference Include="..\GCodeMachine\GCodeMachine.csproj" />
+    <ProjectReference Include="..\ModbusSender\ModbusSender.csproj" />
+    <ProjectReference Include="..\RTSender\RTSender.csproj" />
+    <ProjectReference Include="..\Machine\Machine.csproj" />
+  </ItemGroup>
+</Project>

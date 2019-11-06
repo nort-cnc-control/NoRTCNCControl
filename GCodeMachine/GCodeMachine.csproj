@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Class1.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\Actions\Actions.csproj" />
+    <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj" />
+    <ProjectReference Include="..\RTSender\RTSender.csproj" />
+    <ProjectReference Include="..\ModbusSender\ModbusSender.csproj" />
+    <ProjectReference Include="..\Config\Config.csproj" />
+    <ProjectReference Include="..\CNCState\CNCState.csproj" />
+    <ProjectReference Include="..\Processor\Processor.csproj" />
+  </ItemGroup>
+</Project>

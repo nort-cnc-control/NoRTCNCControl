@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{995CBE6D-1BE1-43AE-AE0B-DDC76C49D351}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GcodeMachine.Tests</RootNamespace>
+    <AssemblyName>GcodeMachine.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Test.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ActionsProgram\ActionsProgram.csproj">
+      <Project>{871eb47c-cd39-41e0-b8a5-372f6d4d03bc}</Project>
+      <Name>ActionsProgram</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\GCodeMachine\GCodeMachine.csproj">
+      <Project>{d5bb1359-54c6-498e-bef4-6039ed669ee0}</Project>
+      <Name>GCodeMachine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RTSender\RTSender.csproj">
+      <Project>{E62066B1-FA92-48AF-A51E-F21447AD28EF}</Project>
+      <Name>RTSender</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Config\Config.csproj">
+      <Project>{EB1C2AE7-B9CC-41D4-B71E-41FD8B3C0396}</Project>
+      <Name>Config</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CNCState\CNCState.csproj">
+      <Project>{5B0572EE-CD53-47B6-9C2D-6E689249F824}</Project>
+      <Name>CNCState</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Actions\Actions.csproj">
+      <Project>{08860E88-3E05-4CD1-A2BB-DD8DA6C79AAA}</Project>
+      <Name>Actions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Machine\Machine.csproj">
+      <Project>{B94FF345-22D9-443F-908F-76C8308DD3DC}</Project>
+      <Name>Machine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ModbusSender\ModbusSender.csproj">
+      <Project>{259D8FA6-D35E-42B2-8D01-C2EFF1668A7B}</Project>
+      <Name>ModbusSender</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>
