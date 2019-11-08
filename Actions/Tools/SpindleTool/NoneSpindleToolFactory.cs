@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Actions.ModbusTool;
 
-namespace Actions.ModbusTool.SpindleTool
+namespace Actions.Tools.SpindleTool
 {
     public class N700ESpindleToolFactory : ISpindleToolFactory
     {

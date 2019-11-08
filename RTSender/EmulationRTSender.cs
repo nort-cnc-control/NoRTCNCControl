@@ -24,14 +24,17 @@ namespace RTSender
 
         public event Action<int> Started;
 
-        public event Action<int, IReadOnlyDictionary<String, String>> Completed;
+        public event Action Reseted
+        { add { } remove { } }
+
+        public event Action<int, IReadOnlyDictionary<Char, String>> Completed;
 
         public event Action<int, String> Failed
         { add { } remove { } }
 
         private int index;
         public bool HasSlots { get { return true; } }
-        private IReadOnlyDictionary<String, String> opts = new Dictionary<String, String>();
+        private IReadOnlyDictionary<Char, String> opts = new Dictionary<Char, String>();
         private Stream output;
 
         private object lockObj = new object();

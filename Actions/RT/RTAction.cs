@@ -22,7 +22,7 @@ namespace Actions
         #region Parameters
         public int CommandId { get; private set; }
 
-        public IReadOnlyDictionary<String, String> ActionResult { get; private set; }
+        public IReadOnlyDictionary<Char, String> ActionResult { get; private set; }
         #endregion
 
         public IRTCommand Command { get; private set; }
@@ -60,7 +60,7 @@ namespace Actions
             ReadyToRun.Reset();
         }
 
-        private void OnCompletedHdl(int nid, IReadOnlyDictionary<String, String> result)
+        private void OnCompletedHdl(int nid, IReadOnlyDictionary<Char, String> result)
         {
             if (nid != CommandId)
                 return;
@@ -88,7 +88,7 @@ namespace Actions
         {
             if (nid != CommandId)
                 return;
-            
+                
             ContiniousBlockCompleted.Set();
             Started.Set();
             Finished.Set();
@@ -113,6 +113,7 @@ namespace Actions
 
         public void Abort()
         {
+            Aborted = true;
         }
 
         public void Dispose()

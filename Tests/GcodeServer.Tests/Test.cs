@@ -5,7 +5,7 @@ using RTSender;
 using ModbusSender;
 using ControlConnection;
 using Config;
-using Actions.ModbusTool.SpindleTool;
+using Actions.Tools.SpindleTool;
 
 namespace GCodeServer.Tests
 {

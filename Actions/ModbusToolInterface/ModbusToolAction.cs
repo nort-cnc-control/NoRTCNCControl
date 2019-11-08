@@ -42,12 +42,13 @@ namespace Actions.ModbusTool
 
         public EventWaitHandle Finished { get; private set; }
 
-        public bool Aborted => false;
+        public bool Aborted { get; private set; }
 
         public bool Failed => false;
 
         public void Abort()
         {
+            Aborted = true;
         }
 
         public void Dispose()

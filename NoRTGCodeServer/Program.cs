@@ -5,11 +5,11 @@ using RTSender;
 using ModbusSender;
 using System.IO;
 using System;
-using Actions.ModbusTool.SpindleTool;
+using Actions.Tools.SpindleTool;
 using Newtonsoft.Json;
 using Gnu.Getopt;
 
-namespace NoRTGCodeServer
+namespace NoRTServer
 {
     class Program
     {
@@ -31,7 +31,7 @@ namespace NoRTGCodeServer
         private static void Usage()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("NoRTGCodeServer.exe -m machineConfig.json [-r runConfig.json] [-p port]");
+            Console.WriteLine("NoRTServer.exe -m machineConfig.json [-r runConfig.json] [-p port]");
             Console.WriteLine("");
             Console.WriteLine("Detailed options:");
 
@@ -62,6 +62,7 @@ namespace NoRTGCodeServer
             Console.WriteLine("\trt_sender - realtime part connection driver");
             Console.WriteLine("\tAvailable values:");
             Console.WriteLine("\t\tEmulationRTSender");
+            Console.WriteLine("\t\tPackedRTSender");
 
             Console.WriteLine("");
 
@@ -74,15 +75,17 @@ namespace NoRTGCodeServer
             Console.WriteLine("\tspindle_driver - variable-frequency drive (VFD)");
             Console.WriteLine("\tAvailable values:");
             Console.WriteLine("\t\tN700E");
+            Console.WriteLine("\t\tNone");
         }
 
         static void Main(string[] args)
         {
-            var opts = new Getopt("NoRTGCodeServer.exe", args, "m:p:hr:");
+            var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:");
 
             string machineConfigName = "";
             string runConfigName = "";
-            int port = 8888;
+            int controlPort = 8888;
+            int proxyPort = 8889;
 
             int arg;
             while ((arg = opts.getopt()) != -1)
@@ -96,7 +99,7 @@ namespace NoRTGCodeServer
                         }
                     case 'p':
                         {
-                            port = int.Parse(opts.Optarg);
+                            controlPort = int.Parse(opts.Optarg);
                             break;
                         }
                     case 'r':
@@ -161,7 +164,7 @@ namespace NoRTGCodeServer
             }
 
             var localAddr = IPAddress.Parse("0.0.0.0");
-            TcpListener tcpServer = new TcpListener(localAddr, port);
+            TcpListener tcpServer = new TcpListener(localAddr, controlPort);
             tcpServer.Start();
 
             var emulationOutputStream = new MemoryStream();
@@ -183,6 +186,17 @@ namespace NoRTGCodeServer
                 case "EmulationRTSender":
                     rtSender = new EmulationRTSender(emulationOutputStream);
                     break;
+                case "PackedRTSender":
+                    {
+                        var proxy = IPAddress.Parse("127.0.0.1");
+                        TcpClient tcpClient = new TcpClient();
+                        tcpClient.Connect(proxy, proxyPort);
+                        var stream = tcpClient.GetStream();
+                        var reader = new StreamReader(stream);
+                        var writer = new StreamWriter(stream);
+                        rtSender = new PacketRTSender(writer, reader);
+                    }
+                    break;
                 default:
                     Console.WriteLine("Invalid RT sender: {0}", runConfig.rt_sender);
                     return;
@@ -193,6 +207,9 @@ namespace NoRTGCodeServer
             {
                 case "N700E":
                     spindleCommandFactory = new N700ESpindleToolFactory();
+                    break;
+                case "None":
+                    spindleCommandFactory = new NoneSpindleToolFactory();
                     break;
                 default:
                     Console.WriteLine("Invalid spindle driver: {0}", runConfig.spindle_driver);

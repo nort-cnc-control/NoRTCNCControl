@@ -7,7 +7,7 @@ using ControlConnection;
 using System.Net;
 using System.Net.Sockets;
 
-namespace NoRTGCodeServer.Tests
+namespace NoRTServer.Tests
 {
     class Program
     {

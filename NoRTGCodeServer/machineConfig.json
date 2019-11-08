@@ -1,0 +1,20 @@
+﻿{
+    "maxfeed" : 800,
+    "fastfeed" : 800,
+    "slowfeed" : 60,
+
+    "size_x" : 224,
+    "step_back_x" : 1.5,
+    "invert_x" : False,
+
+    "size_y" : 330,
+    "step_back_y" : 1.5,
+    "invert_y" : True,
+
+    "size_z" : 105,
+    "step_back_z" : 1.5,
+    "invert_z" : True,
+
+    "max_movement_leap" : 40,
+    "max_acceleration" : 40
+}

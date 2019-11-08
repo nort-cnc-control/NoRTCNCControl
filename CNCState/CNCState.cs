@@ -2,7 +2,7 @@
 using Machine;
 using Actions;
 using Actions.ModbusTool;
-using Actions.ModbusTool.SpindleTool;
+using Actions.Tools.SpindleTool;
 
 namespace CNCState
 {

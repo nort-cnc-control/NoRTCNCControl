@@ -1,7 +1,7 @@
 using System;
 using Actions;
 using Actions.ModbusTool;
-using Actions.ModbusTool.SpindleTool;
+using Actions.Tools.SpindleTool;
 using RTSender;
 using ModbusSender;
 using Config;
@@ -227,7 +227,7 @@ namespace GCodeMachine
             }
             if (spindleChange)
             {
-                var command = spindleToolFactory.CreateSpindleToolCommand(spindleState.RotationState, spindleState.SpindleSpeed);
+                ModbusToolCommand command = spindleToolFactory.CreateSpindleToolCommand(spindleState.RotationState, spindleState.SpindleSpeed);
                 program.AddModbusToolCommand(command);
             }
         }

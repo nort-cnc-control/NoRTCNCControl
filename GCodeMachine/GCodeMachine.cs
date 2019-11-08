@@ -2,7 +2,7 @@ using System;
 using Machine;
 using ActionProgram;
 using Actions;
-using System.Threading.Tasks;
+using System.Threading;
 using RTSender;
 
 namespace GCodeMachine
@@ -20,27 +20,62 @@ namespace GCodeMachine
             Pause,
             End,
             Error,
+            Aborted,
         }
 
         public MachineState StateMachine { get; private set; }
         private ActionProgram.ActionProgram program;
         private int index;
         private IAction currentAction;
+        private IAction previousAction;
+        private EventWaitHandle currentWait;
         public State RunState { get; private set; }
 
-        private IRTSender sender;
+        private IRTSender rtSender;
 
         public GCodeMachine(IRTSender sender)
         {
-            this.sender = sender;
+            this.rtSender = sender;
+            this.rtSender.Reseted += OnReseted;
+        }
+
+        private void SwitchToState(MachineState state, bool force=false)
+        {
+            if (StateMachine != MachineState.Aborted || force)
+                StateMachine = state;
+        }
+
+        private void OnReseted()
+        {
+            SwitchToState(MachineState.Aborted);
+            if (previousAction != null)
+            {
+                previousAction.Abort();
+            }
+
+            if (currentAction != null)
+            {
+                currentAction.Abort();
+            }
+
+            if (currentWait != null)
+            {
+                currentWait.Set();
+            }
+        }
+
+        private void Wait(EventWaitHandle waitHandle)
+        {
+            currentWait = waitHandle;
+            waitHandle.WaitOne();
         }
 
         public void Activate()
         {
-            var disableBreakOnProbe = new RTAction(sender, new RTBreakOnProbeCommand(false));
-            disableBreakOnProbe.ReadyToRun.WaitOne();
+            var disableBreakOnProbe = new RTAction(rtSender, new RTBreakOnProbeCommand(false));
+            Wait(disableBreakOnProbe.ReadyToRun);
             disableBreakOnProbe.Run();
-            disableBreakOnProbe.Finished.WaitOne();
+            Wait(disableBreakOnProbe.Finished);
         }
 
         public void Start()
@@ -51,14 +86,14 @@ namespace GCodeMachine
                 return;
             }
             index = 0;
-            StateMachine = MachineState.Ready;
+            SwitchToState(MachineState.Ready, true);
             Continue();
         }
 
         public void Continue()
         {
             RunState = State.Running;
-            IAction previousAction = null;
+            previousAction = null;
             while (StateMachine != MachineState.End &&
                    StateMachine != MachineState.Error &&
                    StateMachine != MachineState.Pause)
@@ -66,35 +101,38 @@ namespace GCodeMachine
                 switch (StateMachine)
                 {
                     case MachineState.Idle:
-                        StateMachine = MachineState.Ready;
+                        SwitchToState(MachineState.Ready);
                         break;
                     case MachineState.Ready:
                         previousAction = currentAction;
                         currentAction = PopAction();
                         if (currentAction == null)
-                            StateMachine = MachineState.End;
+                            SwitchToState(MachineState.End);
                         else
-                            StateMachine = MachineState.WaitActionCanRun;
+                            SwitchToState(MachineState.WaitActionCanRun);
                         break;
                     case MachineState.WaitActionCanRun:
-                        currentAction.ReadyToRun.WaitOne();
+                        Wait(currentAction.ReadyToRun);
                         if (currentAction.RequireFinish)
-                            StateMachine = MachineState.WaitPreviousActionFinished;
+                            SwitchToState(MachineState.WaitPreviousActionFinished);
                         else
-                            StateMachine = MachineState.ActionRun;
+                            SwitchToState(MachineState.ActionRun);
                         break;
                     case MachineState.WaitPreviousActionFinished:
                         if (previousAction != null)
-                            previousAction.Finished.WaitOne();
-                        StateMachine = MachineState.ActionRun;
+                            Wait(previousAction.Finished);
+                        SwitchToState(MachineState.ActionRun);
                         break;
                     case MachineState.ActionRun:
-                        StateMachine = MachineState.WaitActionContiniousBlockCompleted;
+                        SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
                         currentAction.Run();
                         break;
                     case MachineState.WaitActionContiniousBlockCompleted:
-                        currentAction.ContiniousBlockCompleted.WaitOne();
-                        StateMachine = MachineState.Ready;
+                        Wait(currentAction.ContiniousBlockCompleted);
+                        SwitchToState(MachineState.Ready);
+                        break;
+                    case MachineState.Aborted:
+                        Stop();
                         break;
                     case MachineState.End:
                         break;
@@ -106,24 +144,24 @@ namespace GCodeMachine
 
         public void Stop()
         {
-            StateMachine = MachineState.End;
+            SwitchToState(MachineState.End);
             RunState = State.Stopped;
         }
 
         public void Pause()
         {
-            StateMachine = MachineState.Pause;
+            SwitchToState(MachineState.Pause);
             RunState = State.Paused;
         }
 
         public void Reboot()
         {
-            sender.SendCommand("M999");
+            rtSender.SendCommand("M999");
         }
 
         public void Abort()
         {
-            
+            rtSender.SendCommand("M999");
         }
 
         private IAction PopAction()

@@ -1,6 +1,7 @@
 ﻿using System;
+using Actions.ModbusTool;
 
-namespace Actions.ModbusTool.SpindleTool
+namespace Actions.Tools.SpindleTool
 {
     public enum SpindleRotationState
     {

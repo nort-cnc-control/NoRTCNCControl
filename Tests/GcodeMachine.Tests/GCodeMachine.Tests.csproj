@@ -40,27 +40,27 @@
       <Name>GCodeMachine</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\RTSender\RTSender.csproj">
-      <Project>{E62066B1-FA92-48AF-A51E-F21447AD28EF}</Project>
+      <Project>{DFAFED0F-C31A-4194-B0BC-86CCE50499D7}</Project>
       <Name>RTSender</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Config\Config.csproj">
-      <Project>{EB1C2AE7-B9CC-41D4-B71E-41FD8B3C0396}</Project>
+      <Project>{4EA75574-8497-403B-B19B-687B90EF2FCF}</Project>
       <Name>Config</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\CNCState\CNCState.csproj">
-      <Project>{5B0572EE-CD53-47B6-9C2D-6E689249F824}</Project>
+      <Project>{C926E477-0916-4FF0-90CB-95426E2233A7}</Project>
       <Name>CNCState</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Actions\Actions.csproj">
-      <Project>{08860E88-3E05-4CD1-A2BB-DD8DA6C79AAA}</Project>
+      <Project>{3AA370A2-06F8-4704-BCE5-8C2A7A2430AE}</Project>
       <Name>Actions</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Machine\Machine.csproj">
-      <Project>{B94FF345-22D9-443F-908F-76C8308DD3DC}</Project>
+      <Project>{D916AEE5-FE4E-40F3-8715-ECCEEA8BC0CE}</Project>
       <Name>Machine</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ModbusSender\ModbusSender.csproj">
-      <Project>{259D8FA6-D35E-42B2-8D01-C2EFF1668A7B}</Project>
+      <Project>{B64B4289-2825-469E-BAD9-5D8DEE1B2747}</Project>
       <Name>ModbusSender</Name>
     </ProjectReference>
   </ItemGroup>

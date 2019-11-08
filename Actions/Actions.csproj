@@ -10,4 +10,10 @@
     <ProjectReference Include="..\RTSender\RTSender.csproj" />
     <ProjectReference Include="..\Config\Config.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Tools\ISpindleToolCommand.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Tools\" />
+  </ItemGroup>
 </Project>

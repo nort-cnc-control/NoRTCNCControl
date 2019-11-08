@@ -4,7 +4,7 @@ using Machine;
 using Config;
 using ActionProgram;
 using Actions;
-using Actions.ModbusTool.SpindleTool;
+using Actions.Tools.SpindleTool;
 using CNCState;
 using RTSender;
 using ModbusSender;

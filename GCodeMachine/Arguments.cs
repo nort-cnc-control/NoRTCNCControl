@@ -69,6 +69,47 @@ namespace GCodeMachine
             return new Tuple<Option, String>(opt, s.Substring(i));
         }
 
+        private string CutComments(string line)
+        {
+            string result = "";
+            int brackets = 0;
+            bool escape = false;
+            foreach (char c in line)
+            {
+                if (!escape)
+                {
+                    if (c == ';')
+                    {
+                        break;
+                    }
+                    else if (c == '%')
+                    {
+                    }
+                    else if (c == '(')
+                    {
+                        brackets++;
+                    }
+                    else if (c == ')')
+                    {
+                        if (brackets > 0)
+                            brackets--;
+                    }
+                    else
+                    {
+                        if (brackets == 0)
+                        {
+                            result += c;
+                        }
+                    }
+                }
+                if (brackets > 0)
+                    escape = (c == '\\');
+                else
+                    escape = false;
+            }
+            return result;
+        }
+
         public Arguments(String line)
         {
             options = new List<Option>();
