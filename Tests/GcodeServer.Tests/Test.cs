@@ -29,15 +29,15 @@ namespace GCodeServer.Tests
                 slowfeed = 100,
                 maxfeed = 800
             };
-            var stream = new MemoryStream();
-            var rtSender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+
+            var rtSender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new N700ESpindleToolFactory();
             Console.WriteLine("Begin server test 1");
 
+            var stream = new MemoryStream();
             var builder = new MessageSender(stream);
             builder.MessageSend("{\"command\":\"exit\", \"args\":{} }");
-            stream.Seek(0, SeekOrigin.Begin);
 
             Console.WriteLine("Creating server");
             var server = new GCodeServer(rtSender, modbusSender, spindleCmdFactory, config, stream, stream);
@@ -49,14 +49,12 @@ namespace GCodeServer.Tests
             {
                 Console.WriteLine("Exception: {0}", e.ToString());
                 server.Dispose();
-                stream.Dispose();
                 rtSender.Dispose();
                 return;
             }
 
             rtSender.Dispose();
             server.Dispose();
-            stream.Dispose();
             PrintStream(output);
         }
 
@@ -74,8 +72,8 @@ namespace GCodeServer.Tests
             };
             var stream = new MemoryStream();
             var output = new MemoryStream();
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new N700ESpindleToolFactory();
 
             Console.WriteLine("Begin server test 2");
@@ -120,8 +118,8 @@ namespace GCodeServer.Tests
             };
             var stream = new MemoryStream();
             var output = new MemoryStream();
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new N700ESpindleToolFactory();
 
             Console.WriteLine("Begin server test 3");

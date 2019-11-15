@@ -84,7 +84,16 @@ namespace Actions
             return v.x*w.x + v.y*w.y + v.z*w.z;
         }
 
-        
+        public static Vector3 operator +(Vector3 v, Vector3 w)
+        {
+            return new Vector3(v.x + w.x, v.y + w.y, v.z + w.z);
+        }
+
+        public static Vector3 operator -(Vector3 v, Vector3 w)
+        {
+            return new Vector3(v.x - w.x, v.y - w.y, v.z - w.z);
+        }
+
         public double Length()
         {
             return Math.Sqrt(x*x + y*y + z*z);

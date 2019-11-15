@@ -167,13 +167,13 @@ namespace NoRTServer
             TcpListener tcpServer = new TcpListener(localAddr, controlPort);
             tcpServer.Start();
 
-            var emulationOutputStream = new MemoryStream();
+
 
             IModbusSender modbusSender;
             switch (runConfig.modbus_sender)
             {
                 case "EmulationModbusSender":
-                    modbusSender = new EmulationModbusSender(emulationOutputStream);
+                    modbusSender = new EmulationModbusSender(Console.Out);
                     break;
                 default:
                     Console.WriteLine("Invalid modbus sender: {0}", runConfig.modbus_sender);
@@ -184,7 +184,7 @@ namespace NoRTServer
             switch (runConfig.rt_sender)
             {
                 case "EmulationRTSender":
-                    rtSender = new EmulationRTSender(emulationOutputStream);
+                    rtSender = new EmulationRTSender(Console.Out);
                     break;
                 case "PackedRTSender":
                     {
@@ -235,10 +235,6 @@ namespace NoRTServer
                 machineServer.Dispose();
                 stream.Close();
                 tcpClient.Close();
-
-                PrintStream(emulationOutputStream);
-                emulationOutputStream.Seek(0, SeekOrigin.Begin);
-                emulationOutputStream.SetLength(0);
             } while (run);
             rtSender.Dispose();
             tcpServer.Stop();

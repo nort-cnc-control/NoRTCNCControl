@@ -35,7 +35,7 @@ namespace RTSender
         private int index;
         public bool HasSlots { get { return true; } }
         private IReadOnlyDictionary<Char, String> opts = new Dictionary<Char, String>();
-        private Stream output;
+        private TextWriter output;
 
         private object lockObj = new object();
         private Thread queueThread;
@@ -48,8 +48,8 @@ namespace RTSender
         {
             lock (lockObj)
             {
-                var commandbytes = System.Text.Encoding.UTF8.GetBytes("RT: " + String.Format("N{0} {1}\n", index, command));
-                output.Write(commandbytes, 0, commandbytes.Length);
+                var msg = "RT: " + String.Format("N{0} {1}", index, command);
+                output.WriteLine(msg);
                 Indexed?.Invoke(index);
                 commandsQueue.Enqueue(index);
                 index++;
@@ -66,7 +66,7 @@ namespace RTSender
                     Queued?.Invoke(cmd);
                     commandsRun.Enqueue(cmd);
                 }
-                Task.Delay(10);
+                Thread.Sleep(10);
             }
         }
 
@@ -79,16 +79,12 @@ namespace RTSender
                     Started?.Invoke(cmd);
                     Completed?.Invoke(cmd, opts);
                 }
-                Task.Delay(10);
+                Thread.Sleep(10);
             }
         }
 
-        public EmulationRTSender(Stream output)
+        public EmulationRTSender(TextWriter output)
         {
-            if (!output.CanWrite)
-            {
-                throw new ArgumentException("Stream is not writeable");
-            }
             this.output = output;
             running = true;
             queueThread = new Thread(new ThreadStart(QueueThreadProc));

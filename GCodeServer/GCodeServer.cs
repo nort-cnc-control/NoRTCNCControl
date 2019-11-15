@@ -12,16 +12,10 @@ using ControlConnection;
 using System.IO;
 using System.Linq;
 using GCodeMachine;
-using Newtonsoft.Json;
+using System.Json;
 
 namespace GCodeServer
 {
-    internal struct ServerCommand
-    {
-        public String command {get;set;}
-        public Dictionary<String, String> args {get;set;}
-    }
-
     public class GCodeServer : IDisposable
     {
         public MachineParameters Config { get; private set; }
@@ -69,7 +63,17 @@ namespace GCodeServer
 
         private void RunGcode(String cmd)
         {
-            var program = this.programBuilder.BuildProgram(cmd, this.axisState, this.spindleState);
+            ActionProgram.ActionProgram program;
+
+            try
+            {
+                program = programBuilder.BuildProgram(cmd, this.axisState, this.spindleState);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: {0}", e.ToString());
+                return;
+            }
             this.Machine.LoadProgram(program);
             this.Machine.Start();
         }
@@ -84,80 +88,66 @@ namespace GCodeServer
             do
             {
                 var cmd = cmdReceiver.MessageReceive();
-                ServerCommand command;
+                JsonValue message;
                 try
                 {
-
-                    command = JsonConvert.DeserializeObject<ServerCommand>(cmd);
+                    message = JsonValue.Parse(cmd);
                 }
                 catch
                 {
                     Console.WriteLine("Cannot parse command \"{0}\"", cmd);
                     return true;
                 }
-
-                Console.WriteLine("Command = {0}", command.command);
-                switch (command.command)
+                var type = message["type"];
+                if (type == "command")
                 {
-                    case "exit":
+                    var command = message["command"];
+                    if (command == "exit")
                     {
                         return false;
                     }
-                    case "disconnect":
+                    else if (command == "disconnect")
                     {
                         return true;
                     }
-                    case "reboot":
+                    else if (command == "reboot")
                     {
                         Machine.Reboot();
-                        break;
                     }
-                    case "reset":
+                    else if (command == "reset")
                     {
                         Machine.Abort();
-                        break;
                     }
-                    case "start":
+                    else if (command == "start")
                     {
                         RunGcode(gcodeprogram);
-                        break;
                     }
-                    case "stop":
+                    else if (command == "stop")
                     {
                         Machine.Stop();
-                        break;
                     }
-                    case "pause":
+                    else if (command == "pause")
                     {
-                        // TODO: implement
-                        break;
+                        //TODO
                     }
-                    case "home":
+                    else if (command == "load")
                     {
-                        RunGcode("G28");
-                        break;
+                        List<string> program = new List<string>();
+                        foreach (string line in message["program"])
+                            program.Add(line);
+                        gcodeprogram = program.ToArray();
                     }
-                    case "zprobe":
+                    else if (command == "execute")
                     {
-                        RunGcode("G30");
-                        break;
+                        string program = message["program"];
+                        RunGcode(program);
                     }
-                    case "load":
+                    else
                     {
-                        String prg = command.args["program"];
-                        gcodeprogram = prg.Split('\n');
-                        break;
-                    }
-                    case "execute":
-                    {
-                        RunGcode(command.args["command"]);
-                        break;
-                    }
-                    default:
-                    {
-                        throw new ArgumentException(String.Format("Invalid command \"{0}\"", command.command));
+                        throw new ArgumentException(String.Format("Invalid command \"{0}\"", message.ToString()));
                     }
                 }
+
             } while (true);
         }
 

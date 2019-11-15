@@ -120,7 +120,7 @@ namespace ControlConnection
                 }
                 else
                 {
-                    Task.Delay(20);
+                    Thread.Sleep(10);
                 }
             }
         }

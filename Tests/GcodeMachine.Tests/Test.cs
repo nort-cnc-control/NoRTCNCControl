@@ -34,8 +34,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(sender);
@@ -66,8 +66,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(sender);
@@ -98,8 +98,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(sender);
@@ -134,8 +134,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(sender);
@@ -170,8 +170,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(sender);
@@ -206,8 +206,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var sender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var sender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(sender);
@@ -242,8 +242,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var rtSender = new EmulationRTSender(output);
-            var modbusSender = new EmulationModbusSender(output);
+            var rtSender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(rtSender);
@@ -278,8 +278,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var rtSender = new EmulationRTSender(output);
-            var modbusSender = new ModbusSender.EmulationModbusSender(output);
+            var rtSender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(rtSender);
@@ -314,8 +314,8 @@ namespace GCodeMachine.Tests
             var axisState = new AxisState();
             var spindleState = new SpindleState();
 
-            var rtSender = new EmulationRTSender(output);
-            var modbusSender = new ModbusSender.EmulationModbusSender(output);
+            var rtSender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
             var machine = new GCodeMachine(rtSender);

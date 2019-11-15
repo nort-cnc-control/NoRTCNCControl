@@ -63,7 +63,7 @@ namespace Actions.ModbusTool
                 sender.WriteRegister(reg.RegisterId, reg.RegisterValue);
             }
             if (toolCommand.Delay > 0)
-                Task.Delay(toolCommand.Delay);
+                Thread.Sleep(toolCommand.Delay);
             Finished.Set();
             ContiniousBlockCompleted.Set();
         }
