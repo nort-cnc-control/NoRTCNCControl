@@ -27,7 +27,7 @@ namespace NoRTServer.Tests
             tcpClient.Connect(addr, port);
 
             var stream = tcpClient.GetStream();
-            var builder = new MessageSender(stream);
+            var builder = new MessageSender(stream, (s) => true);
             foreach (var cmd in commands)
                 builder.MessageSend(cmd);
 

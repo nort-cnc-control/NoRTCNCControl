@@ -107,6 +107,7 @@ namespace ControlConnection
         private Thread streamReader;
         private MessageReader reader;
         private bool run;
+        private bool end;
         private void ReadingThread()
         {
             byte[] buffer = new byte[1000];
@@ -115,12 +116,16 @@ namespace ControlConnection
                 int len = stream.Read(buffer, 0, 1000);
                 if (len > 0)
                 {
+                    end = false;
                     var chunk = System.Text.Encoding.UTF8.GetString(buffer, 0, len);
                     reader.AddChunk(chunk);
                 }
                 else
                 {
                     Thread.Sleep(10);
+                    end = true;
+                    waiter.Set();
+                    continue;
                 }
             }
         }
@@ -145,6 +150,7 @@ namespace ControlConnection
 
         public void Run()
         {
+            end = false;
             run = true;
             streamReader.Start();
         }
@@ -169,6 +175,8 @@ namespace ControlConnection
                 waiter.Reset();
                 waiter.WaitOne();
             }
+            if (end)
+                return null;
             String rcvd = receivedStrings[0];
             receivedStrings.RemoveAt(0);
             return rcvd;

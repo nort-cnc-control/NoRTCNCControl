@@ -16,6 +16,7 @@ using System.Json;
 
 namespace GCodeServer
 {
+
     public class GCodeServer : IDisposable
     {
         public MachineParameters Config { get; private set; }
@@ -88,6 +89,11 @@ namespace GCodeServer
             do
             {
                 var cmd = cmdReceiver.MessageReceive();
+                if (cmd == null)
+                {
+                    // broken connection
+                    return true;
+                }
                 JsonValue message;
                 try
                 {
@@ -132,10 +138,17 @@ namespace GCodeServer
                     }
                     else if (command == "load")
                     {
+                        var response = new JsonObject( );
                         List<string> program = new List<string>();
-                        foreach (string line in message["program"])
-                            program.Add(line);
+                        foreach (JsonValue line in message["program"])
+                        {
+                            var str = line.ToString();
+                            program.Add(str);
+                        }
                         gcodeprogram = program.ToArray();
+                        response["type"] = "loadlines";
+                        response["lines"] = message["program"];
+                        responseSender.MessageSend(response.ToString());
                     }
                     else if (command == "execute")
                     {

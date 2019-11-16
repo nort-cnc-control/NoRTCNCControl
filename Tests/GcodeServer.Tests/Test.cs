@@ -36,11 +36,11 @@ namespace GCodeServer.Tests
             Console.WriteLine("Begin server test 1");
 
             var stream = new MemoryStream();
-            var builder = new MessageSender(stream);
+            var builder = new MessageSender(stream, (s) => true);
             builder.MessageSend("{\"command\":\"exit\", \"args\":{} }");
 
             Console.WriteLine("Creating server");
-            var server = new GCodeServer(rtSender, modbusSender, spindleCmdFactory, config, stream, stream);
+            var server = new GCodeServer(rtSender, modbusSender, spindleCmdFactory, config, stream, stream, (s) => true);
             try
             {
                 server.Run();
@@ -78,14 +78,14 @@ namespace GCodeServer.Tests
 
             Console.WriteLine("Begin server test 2");
 
-            var builder = new MessageSender(stream);
+            var builder = new MessageSender(stream, (s) => true);
             builder.MessageSend(loadCommand);
             builder.MessageSend("{\"command\":\"start\", \"args\":{} }");
             builder.MessageSend("{\"command\":\"exit\", \"args\":{} }");
             stream.Seek(0, SeekOrigin.Begin);
 
             Console.WriteLine("Creating server");
-            var server = new GCodeServer(sender, modbusSender, spindleCmdFactory, config, stream, stream);
+            var server = new GCodeServer(sender, modbusSender, spindleCmdFactory, config, stream, stream, (s) => true);
             try
             {
                 server.Run();
@@ -124,14 +124,14 @@ namespace GCodeServer.Tests
 
             Console.WriteLine("Begin server test 3");
 
-            var builder = new MessageSender(stream);
+            var builder = new MessageSender(stream, (s) => true);
             builder.MessageSend(loadCommand);
             builder.MessageSend("{\"command\":\"start\", \"args\":{} }");
             builder.MessageSend("{\"command\":\"exit\", \"args\":{} }");
             stream.Seek(0, SeekOrigin.Begin);
 
             Console.WriteLine("Creating server");
-            var server = new GCodeServer(sender, modbusSender, spindleCmdFactory, config, stream, stream);
+            var server = new GCodeServer(sender, modbusSender, spindleCmdFactory, config, stream, stream, (s) => true);
             try
             {
                 server.Run();

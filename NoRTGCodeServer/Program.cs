@@ -78,6 +78,53 @@ namespace NoRTServer
             Console.WriteLine("\t\tNone");
         }
 
+        class SocketStream : Stream
+        {
+            public override bool CanRead => true;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => true;
+
+            public override long Length => throw new NotImplementedException();
+
+            public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+            private Socket socket;
+
+            public SocketStream(Socket socket)
+            {
+                this.socket = socket;
+                this.socket.Blocking = true;
+            }
+
+            public override void Flush()
+            {
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                // TODO: implement offset
+                return socket.Receive(buffer, count, 0);
+            }
+
+            public override long Seek(long offset, SeekOrigin origin)
+            {
+                throw new InvalidOperationException();
+            }
+
+            public override void SetLength(long value)
+            {
+                throw new InvalidOperationException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                socket.Send(buffer, count, 0);
+            }
+        }
+
+
         static void Main(string[] args)
         {
             var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:");
@@ -220,9 +267,12 @@ namespace NoRTServer
             bool run = true;
             do
             {
-                TcpClient tcpClient = tcpServer.AcceptTcpClient();
-                NetworkStream stream = tcpClient.GetStream();
-                var machineServer = new GCodeServer.GCodeServer(rtSender, modbusSender, spindleCommandFactory, machineConfig, stream, stream);
+
+                Socket tcpClient = tcpServer.AcceptSocket();
+                Stream stream = new SocketStream(tcpClient);
+
+                var machineServer = new GCodeServer.GCodeServer(rtSender, modbusSender, spindleCommandFactory,
+                                                                machineConfig, stream, stream);
                 try
                 {
                     run = machineServer.Run();
