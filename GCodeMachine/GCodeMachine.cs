@@ -4,6 +4,7 @@ using ActionProgram;
 using Actions;
 using System.Threading;
 using RTSender;
+using System.Collections.Generic;
 
 namespace GCodeMachine
 {
@@ -28,6 +29,7 @@ namespace GCodeMachine
         private int index;
         private IAction currentAction;
         private IAction previousAction;
+
         private EventWaitHandle currentWait;
         public State RunState { get; private set; }
 
@@ -140,6 +142,29 @@ namespace GCodeMachine
                         break;
                 }
             }
+        }
+
+        public Vector3 ReadCurrentCoordinates()
+        {
+            RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
+            // action.ReadyToRun.WaitOne();
+            action.Run();
+            action.Finished.WaitOne();
+            return new Vector3(double.Parse(action.ActionResult["X"]),
+                               double.Parse(action.ActionResult["Y"]),
+                               double.Parse(action.ActionResult["Z"]));
+        }
+
+        public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
+        {
+            RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
+            // action.ReadyToRun.WaitOne();
+            action.Run();
+            action.Finished.WaitOne();
+            return (action.ActionResult["EX"] == "1",
+                    action.ActionResult["EY"] == "1",
+                    action.ActionResult["EZ"] == "1",
+                    action.ActionResult["EP"] == "1");
         }
 
         public void Stop()

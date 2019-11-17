@@ -16,7 +16,7 @@ namespace RTSender
         public event Action<int> Queued;
         public event Action<int> Dropped;
         public event Action<int> Started;
-        public event Action<int, IReadOnlyDictionary<Char, String>> Completed;
+        public event Action<int, IReadOnlyDictionary<String, String>> Completed;
         public event Action<int, String> Failed;
 
         StreamReader input;
@@ -57,26 +57,26 @@ namespace RTSender
                             Reseted?.Invoke();
                             break;
                         case "dropped":
-                            Dropped?.Invoke(int.Parse(args.Values['N']));
+                            Dropped?.Invoke(int.Parse(args.Values["N"]));
                             break;
                         case "queued":
-                            Queued?.Invoke(int.Parse(args.Values['N']));
+                            Queued?.Invoke(int.Parse(args.Values["N"]));
                             break;
                         case "started":
-                            Started?.Invoke(int.Parse(args.Values['N']));
+                            Started?.Invoke(int.Parse(args.Values["N"]));
                             break;
                         case "completed":
-                            Completed?.Invoke(int.Parse(args.Values['N']), args.Values);
+                            Completed?.Invoke(int.Parse(args.Values["N"]), args.Values);
                             break;
                         case "failed":
-                            Failed?.Invoke(int.Parse(args.Values['N']), line);
+                            Failed?.Invoke(int.Parse(args.Values["N"]), line);
                             break;
                         default:
                             break;
                     }
-                    if (args.Values.ContainsKey('Q'))
+                    if (args.Values.ContainsKey("Q"))
                     {
-                        Q = int.Parse(args.Values['Q']);
+                        Q = int.Parse(args.Values["Q"]);
                     }
                 }
                 catch

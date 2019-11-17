@@ -164,6 +164,29 @@ namespace GCodeServer
             } while (true);
         }
 
+        public Vector3 ReadCurrentCoordinates()
+        {
+            RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
+            // action.ReadyToRun.WaitOne();
+            action.Run();
+            action.Finished.WaitOne();
+            return new Vector3(double.Parse(action.ActionResult["X"]),
+                               double.Parse(action.ActionResult["Y"]),
+                               double.Parse(action.ActionResult["Z"]));
+        }
+
+        public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
+        {
+            RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
+            // action.ReadyToRun.WaitOne();
+            action.Run();
+            action.Finished.WaitOne();
+            return (action.ActionResult["EX"] == "1",
+                    action.ActionResult["EY"] == "1",
+                    action.ActionResult["EZ"] == "1",
+                    action.ActionResult["EP"] == "1");
+        }
+
         public void Dispose()
         {
             if (cmdReceiver != null)

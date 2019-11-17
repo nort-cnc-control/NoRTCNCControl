@@ -24,7 +24,6 @@ namespace GCodeMachine
         private readonly GCodeMachine machine;
         private ArcMoveFeedLimiter arcMoveFeedLimiter;
         private MoveOptimizer optimizer;
-
         private Stack<AxisState.Parameters> axisStateStack;
 
         public ProgramBuilder(GCodeMachine machine,

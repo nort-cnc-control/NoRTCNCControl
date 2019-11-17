@@ -34,7 +34,7 @@ namespace RTSender
 
         private int index;
         public bool HasSlots { get { return true; } }
-        private IReadOnlyDictionary<Char, String> opts = new Dictionary<Char, String>();
+        private IReadOnlyDictionary<String, String> opts = new Dictionary<String, String>();
         private TextWriter output;
 
         private object lockObj = new object();

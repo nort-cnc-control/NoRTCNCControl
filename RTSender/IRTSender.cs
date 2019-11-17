@@ -12,7 +12,7 @@ namespace RTSender
         event Action<int> Started;
         event Action EmptySlotAppeared;
         event Action EmptySlotsEnded;
-        event Action<int, IReadOnlyDictionary<Char, String>> Completed;
+        event Action<int, IReadOnlyDictionary<String, String>> Completed;
         event Action<int, String> Failed;
 
         bool HasSlots { get; }
