@@ -69,6 +69,7 @@ namespace NoRTServer
             Console.WriteLine("\tmodbus_sender - modbus driver");
             Console.WriteLine("\tAvailable values:");
             Console.WriteLine("\t\tEmulationModbusSender");
+            Console.WriteLine("\t\tPacketModbusSender");
 
             Console.WriteLine("");
 
@@ -214,39 +215,48 @@ namespace NoRTServer
             TcpListener tcpServer = new TcpListener(localAddr, controlPort);
             tcpServer.Start();
 
-
-
-            IModbusSender modbusSender;
+            bool packetModbus = false;
+            IModbusSender modbusSender = null;
             switch (runConfig.modbus_sender)
             {
                 case "EmulationModbusSender":
                     modbusSender = new EmulationModbusSender(Console.Out);
+                    break;
+                case "PacketModbusSender":
+                    packetModbus = true;
                     break;
                 default:
                     Console.WriteLine("Invalid modbus sender: {0}", runConfig.modbus_sender);
                     return;
             }
 
-            IRTSender rtSender;
+            bool packetRT = false;
+            IRTSender rtSender = null;
             switch (runConfig.rt_sender)
             {
                 case "EmulationRTSender":
                     rtSender = new EmulationRTSender(Console.Out);
                     break;
                 case "PackedRTSender":
-                    {
-                        var proxy = IPAddress.Parse("127.0.0.1");
-                        TcpClient tcpClient = new TcpClient();
-                        tcpClient.Connect(proxy, proxyPort);
-                        var stream = tcpClient.GetStream();
-                        var reader = new StreamReader(stream);
-                        var writer = new StreamWriter(stream);
-                        rtSender = new PacketRTSender(writer, reader);
-                    }
+                    packetRT = true;
                     break;
                 default:
                     Console.WriteLine("Invalid RT sender: {0}", runConfig.rt_sender);
                     return;
+            }
+
+            if (packetModbus || packetRT)
+            {
+                var proxy = IPAddress.Parse("127.0.0.1");
+                TcpClient tcpClient = new TcpClient();
+                tcpClient.Connect(proxy, proxyPort);
+                var stream = tcpClient.GetStream();
+                var reader = new StreamReader(stream);
+                var writer = new StreamWriter(stream);
+                if (packetRT)
+                    rtSender = new PacketRTSender(writer, reader);
+                if (packetModbus)
+                    modbusSender = new PacketModbusSender(writer, reader);
             }
 
             ISpindleToolFactory spindleCommandFactory;
