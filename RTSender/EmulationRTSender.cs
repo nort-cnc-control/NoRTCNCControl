@@ -27,7 +27,7 @@ namespace RTSender
         public event Action Reseted
         { add { } remove { } }
 
-        public event Action<int, IReadOnlyDictionary<Char, String>> Completed;
+        public event Action<int, IReadOnlyDictionary<String, String>> Completed;
 
         public event Action<int, String> Failed
         { add { } remove { } }
