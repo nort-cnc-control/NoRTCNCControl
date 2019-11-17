@@ -5,15 +5,15 @@
 
     "size_x" : 224,
     "step_back_x" : 1.5,
-    "invert_x" : False,
+    "invert_x" : false,
 
     "size_y" : 330,
     "step_back_y" : 1.5,
-    "invert_y" : True,
+    "invert_y" : true,
 
     "size_z" : 105,
     "step_back_z" : 1.5,
-    "invert_z" : True,
+    "invert_z" : true,
 
     "max_movement_leap" : 40,
     "max_acceleration" : 40

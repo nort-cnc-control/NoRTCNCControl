@@ -33,10 +33,10 @@ namespace GCodeMachine
             Option opt = new Option();
             opt.letter = s[i];
             ++i;
-            if (i >= len || !Char.IsDigit(s[i]))
+            if (i >= len || !(Char.IsDigit(s[i]) || s[i] == '-'))
                 return null;
             String val = "";
-            while (i < len && Char.IsDigit(s[i]))
+            while (i < len && (Char.IsDigit(s[i]) || s[i] == '-'))
             {
                 val += s[i];
                 ++i;

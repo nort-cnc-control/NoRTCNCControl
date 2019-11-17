@@ -93,6 +93,8 @@ namespace RTSender
             index = 0;
             q = 1; // placeholder value > 0
             receiveThread = new Thread(new ThreadStart(ReceiveThreadProc));
+            running = true;
+            receiveThread.Start();
         }
 
         public void SendCommand(String command)
@@ -101,6 +103,7 @@ namespace RTSender
             {
                 var cmd = String.Format("RT:N{0} {1}", index, command);
                 output.WriteLine(cmd);
+                output.Flush();
                 Indexed?.Invoke(index);
                 index++;
             }

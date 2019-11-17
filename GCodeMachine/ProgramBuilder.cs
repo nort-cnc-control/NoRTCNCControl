@@ -211,6 +211,12 @@ namespace GCodeMachine
                         case 3:
                             axisState.MoveType = AxisState.MType.ArcCCW;
                             break;
+                        case 28:
+                            program.AddHoming();
+                            break;
+                        case 30:
+                            program.AddZProbe();
+                            break;
                         case 92:
                             has_move = false;
                             if (X != null)
@@ -225,6 +231,7 @@ namespace GCodeMachine
                             {
                                 axisState.Params.CurrentCoordinateSystem.Offset.z = axisState.Position.z - Z.value;
                             }
+                            program.AddRTForgetResidual();
                             break;
                     }
                 }

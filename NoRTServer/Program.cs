@@ -62,7 +62,7 @@ namespace NoRTServer
             Console.WriteLine("\trt_sender - realtime part connection driver");
             Console.WriteLine("\tAvailable values:");
             Console.WriteLine("\t\tEmulationRTSender");
-            Console.WriteLine("\t\tPackedRTSender");
+            Console.WriteLine("\t\tPacketRTSender");
 
             Console.WriteLine("");
 
@@ -180,13 +180,13 @@ namespace NoRTServer
             {
                 machineConfig = new MachineParameters
                 {
-                    max_acceleration = 40 * 60 * 60,
+                    max_acceleration = 40,
                     fastfeed = 600,
                     slowfeed = 100,
                     maxfeed = 800
                 };
             }
-
+            machineConfig.max_acceleration *= 3600; // to mm/min^2
             RunConfig runConfig;
             if (runConfigName != "")
             {
@@ -237,7 +237,7 @@ namespace NoRTServer
                 case "EmulationRTSender":
                     rtSender = new EmulationRTSender(Console.Out);
                     break;
-                case "PackedRTSender":
+                case "PacketRTSender":
                     packetRT = true;
                     break;
                 default:
