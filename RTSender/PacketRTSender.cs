@@ -99,7 +99,7 @@ namespace RTSender
         {
             lock (lockObj)
             {
-                var cmd = String.Format("CMD:N{0} {1}", index, command);
+                var cmd = String.Format("RT:N{0} {1}", index, command);
                 output.WriteLine(cmd);
                 Indexed?.Invoke(index);
                 index++;

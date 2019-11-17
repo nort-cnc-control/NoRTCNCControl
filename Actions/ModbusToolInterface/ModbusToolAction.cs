@@ -7,6 +7,7 @@ namespace Actions.ModbusTool
 {
     public class ModbusRegister
     {
+        public UInt16 DeviceId { get; set; }
         public UInt16 RegisterId { get; set; }
         public UInt16 RegisterValue { get; set; }
     }
@@ -60,7 +61,7 @@ namespace Actions.ModbusTool
             Started.Set();
             foreach (var reg in toolCommand.Registers)
             {
-                sender.WriteRegister(reg.RegisterId, reg.RegisterValue);
+                sender.WriteRegister(reg.DeviceId, reg.RegisterId, reg.RegisterValue);
             }
             if (toolCommand.Delay > 0)
                 Thread.Sleep(toolCommand.Delay);
