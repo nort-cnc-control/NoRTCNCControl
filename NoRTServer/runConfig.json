@@ -1,5 +1,5 @@
 ﻿{
     "rt_sender" : "PacketRTSender",
-    "modbus_sender" : "EmulationModbusSender",
+    "modbus_sender" : "PacketModbusSender",
     "spindle_driver" : "N700E"
 }
