@@ -54,7 +54,8 @@ namespace GCodeMachine
 
         private void ProcessPreMove(Arguments args,
                                     ActionProgram.ActionProgram program,
-                                    CNCState.CNCState state)
+                                    CNCState.CNCState state,
+                                    int index)
         {
             bool spindleChange = false;
             if (args.Feed != null)
@@ -140,7 +141,8 @@ namespace GCodeMachine
 
         private void ProcessMove(Arguments args,
                                  ActionProgram.ActionProgram program,
-                                 CNCState.CNCState state)
+                                 CNCState.CNCState state,
+                                 int index)
         {
             var X = args.X;
             var Y = args.Y;
@@ -287,7 +289,8 @@ namespace GCodeMachine
 
         private void ProcessPostMove(Arguments args,
                                      ActionProgram.ActionProgram program,
-                                     CNCState.CNCState state)
+                                     CNCState.CNCState state,
+                                     int index)
         {
             bool spindleChange = false;
             foreach (var cmd in args.Options)
@@ -326,9 +329,9 @@ namespace GCodeMachine
             Arguments args = new Arguments(frame);
             var line_number = args.LineNumber;
 
-            ProcessPreMove(args, program, state);
-            ProcessMove(args, program, state);
-            ProcessPostMove(args, program, state);
+            ProcessPreMove(args, program, state, index);
+            ProcessMove(args, program, state, index);
+            ProcessPostMove(args, program, state, index);
 
             return index + 1;
         }

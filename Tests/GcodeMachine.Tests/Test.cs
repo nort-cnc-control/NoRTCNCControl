@@ -38,7 +38,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(sender);
+            var machine = new GCodeMachine(sender, state, config);
             var programBuilder = new ProgramBuilder(machine, sender, modbusSender, spindleCmdFactory, config);
 
             Console.WriteLine("BUILDING");
@@ -69,7 +69,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(sender);
+            var machine = new GCodeMachine(sender, state, config);
             var programBuilder = new ProgramBuilder(machine, sender, modbusSender, spindleCmdFactory, config);
 
             Console.WriteLine("BUILDING");
@@ -100,7 +100,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(sender);
+            var machine = new GCodeMachine(sender, state, config);
             var programBuilder = new ProgramBuilder(machine, sender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);
@@ -135,7 +135,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(sender);
+            var machine = new GCodeMachine(sender, state, config);
             var programBuilder = new ProgramBuilder(machine, sender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);
@@ -170,7 +170,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(sender);
+            var machine = new GCodeMachine(sender, state, config);
             var programBuilder = new ProgramBuilder(machine, sender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);
@@ -205,7 +205,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(sender);
+            var machine = new GCodeMachine(sender, state, config);
             var programBuilder = new ProgramBuilder(machine, sender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);
@@ -240,7 +240,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(rtSender);
+            var machine = new GCodeMachine(rtSender, state, config);
             var programBuilder = new ProgramBuilder(machine, rtSender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);
@@ -275,7 +275,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(rtSender);
+            var machine = new GCodeMachine(rtSender, state, config);
             var programBuilder = new ProgramBuilder(machine, rtSender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);
@@ -310,7 +310,7 @@ namespace GCodeMachine.Tests
             var modbusSender = new EmulationModbusSender(Console.Out);
             var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
 
-            var machine = new GCodeMachine(rtSender);
+            var machine = new GCodeMachine(rtSender, state, config);
             var programBuilder = new ProgramBuilder(machine, rtSender, modbusSender, spindleCmdFactory, config);
 
             var program = programBuilder.BuildProgram(programGcode, state);

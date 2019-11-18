@@ -12,7 +12,7 @@ namespace ActionProgram
 {
     public class ActionProgram
     {
-        private List<(IAction, CNCState.CNCState)> actions;
+        private List<(IAction action, CNCState.CNCState state)> actions;
         public IReadOnlyList<(IAction action, CNCState.CNCState state)> Actions => actions;
         private int index;
         private IRTSender rtSender;
@@ -29,7 +29,7 @@ namespace ActionProgram
             this.config = config;
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
-            actions = new List<(IAction, CNCState.CNCState)>();
+            actions = new List<(IAction action, CNCState.CNCState state)>();
         }
 
         private void AddAction(IAction action, CNCState.CNCState currentState)

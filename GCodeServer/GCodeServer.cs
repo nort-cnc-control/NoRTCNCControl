@@ -204,9 +204,9 @@ namespace GCodeServer
                     {
                         var response = new JsonObject();
                         List<string> program = new List<string>();
-                        foreach (JsonValue line in message["program"])
+                        foreach (JsonPrimitive line in message["program"])
                         {
-                            var str = line.ToString();
+                            string str = line;
                             program.Add(str);
                         }
                         gcodeprogram = program.ToArray();
