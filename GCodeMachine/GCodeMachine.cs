@@ -5,6 +5,7 @@ using Actions;
 using System.Threading;
 using RTSender;
 using System.Collections.Generic;
+using CNCState;
 
 namespace GCodeMachine
 {
@@ -29,16 +30,37 @@ namespace GCodeMachine
         private int index;
         private IAction currentAction;
         private IAction previousAction;
+        public CNCState.CNCState LastState { get; set; }
+        private readonly Config.MachineParameters config;
+
+        private AxisState.CoordinateSystem CurrentCoordinateSystem =>
+                LastState.AxisState.Params.CurrentCoordinateSystem;
+
+        private AxisState.CoordinateSystem hwCoordinateSystem;
 
         private EventWaitHandle currentWait;
         public State RunState { get; private set; }
 
         private IRTSender rtSender;
 
-        public GCodeMachine(IRTSender sender)
+        public GCodeMachine(IRTSender sender, CNCState.CNCState state, Config.MachineParameters config)
         {
+            this.config = config;
+            LastState = state;
+            hwCoordinateSystem = null;
             this.rtSender = sender;
             this.rtSender.Reseted += OnReseted;
+
+            var crds = ReadHardwareCoordinates();
+            var pos = LastState.AxisState.Position;
+            var sign = new Vector3(config.invert_x ? -1 : 1, config.invert_y ? -1 : 1, config.invert_z ? -1 : 1);
+            hwCoordinateSystem = new AxisState.CoordinateSystem
+            {
+                Sign = sign,
+                Offset = new Vector3(crds.x - sign.x * pos.x,
+                                     crds.y - sign.y * pos.y,
+                                     crds.z - sign.z * pos.z)
+            };
         }
 
         private void SwitchToState(MachineState state, bool force=false)
@@ -88,6 +110,7 @@ namespace GCodeMachine
                 return;
             }
             index = 0;
+
             SwitchToState(MachineState.Ready, true);
             Continue();
         }
@@ -107,11 +130,17 @@ namespace GCodeMachine
                         break;
                     case MachineState.Ready:
                         previousAction = currentAction;
-                        currentAction = PopAction();
+                        CNCState.CNCState state;
+                        (currentAction, state) = PopAction();
                         if (currentAction == null)
+                        {
                             SwitchToState(MachineState.End);
+                        }
                         else
+                        {
+
                             SwitchToState(MachineState.WaitActionCanRun);
+                        }
                         break;
                     case MachineState.WaitActionCanRun:
                         Wait(currentAction.ReadyToRun);
@@ -144,15 +173,34 @@ namespace GCodeMachine
             }
         }
 
-        public Vector3 ReadCurrentCoordinates()
+        private Vector3 ReadHardwareCoordinates()
         {
             RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
             // action.ReadyToRun.WaitOne();
             action.Run();
-            action.Finished.WaitOne();
+            action.Finished.WaitOne(1000);
             return new Vector3(double.Parse(action.ActionResult["X"]),
                                double.Parse(action.ActionResult["Y"]),
                                double.Parse(action.ActionResult["Z"]));
+        }
+
+        public (Vector3 hw, Vector3 glob, Vector3 loc, String coordinate_system) ReadCurrentCoordinates()
+        {
+            Vector3 hw = ReadHardwareCoordinates();
+
+            Vector3 glob;
+            if (hwCoordinateSystem == null)
+                glob = new Vector3();
+            else
+                glob = hwCoordinateSystem.ToLocal(hw);
+
+            Vector3 loc;
+            if (CurrentCoordinateSystem == null)
+                loc = new Vector3();
+            else
+                loc = CurrentCoordinateSystem.ToLocal(glob);
+            var id = LastState.AxisState.Params.CurrentCoordinateSystemIndex;
+            return (hw, glob, loc, String.Format("G5{0}", 3 + id));
         }
 
         public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
@@ -189,12 +237,12 @@ namespace GCodeMachine
             rtSender.SendCommand("M999");
         }
 
-        private IAction PopAction()
+        private (IAction, CNCState.CNCState) PopAction()
         {
             if (program == null)
-                return null;
+                return (null, null);
             if (index >= program.Actions.Count)
-                return null;
+                return (null, null);
             return program.Actions[index++];
         }
 

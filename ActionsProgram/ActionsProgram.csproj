@@ -13,5 +13,6 @@
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\Config\Config.csproj" />
     <ProjectReference Include="..\Actions\Actions.csproj" />
+    <ProjectReference Include="..\CNCState\CNCState.csproj" />
   </ItemGroup>
 </Project>

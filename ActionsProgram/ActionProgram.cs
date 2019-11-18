@@ -6,13 +6,14 @@ using RTSender;
 using Config;
 using Machine;
 using ModbusSender;
+using CNCState;
 
 namespace ActionProgram
 {
     public class ActionProgram
     {
-        private List<IAction> actions;
-        public IReadOnlyList<IAction> Actions => actions;
+        private List<(IAction, CNCState.CNCState)> actions;
+        public IReadOnlyList<(IAction action, CNCState.CNCState state)> Actions => actions;
         private int index;
         private IRTSender rtSender;
         private IModbusSender modbusSender;
@@ -28,52 +29,55 @@ namespace ActionProgram
             this.config = config;
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
-            actions = new List<IAction>();
+            actions = new List<(IAction, CNCState.CNCState)>();
         }
 
-        private void AddAction(IAction action)
+        private void AddAction(IAction action, CNCState.CNCState currentState)
         {
-            actions.Add(action);
+            if (currentState != null)
+                actions.Add((action, currentState.BuildCopy()));
+            else
+                actions.Add((action, null));
         }
 
-        public void AddRTAction(String cmd)
+        public void AddRTAction(String cmd, CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new SimpleRTCommand(cmd)));
+            AddAction(new RTAction(rtSender, new SimpleRTCommand(cmd)), currentState);
         }
 
         #region control
-        public void AddRTUnlock()
+        public void AddRTUnlock(CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new RTLockCommand(false)));
+            AddAction(new RTAction(rtSender, new RTLockCommand(false)), currentState);
         }
 
-        public void AddRTLock()
+        public void AddRTLock(CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new RTLockCommand(true)));
+            AddAction(new RTAction(rtSender, new RTLockCommand(true)), currentState);
         }
 
-        public void AddRTForgetResidual()
+        public void AddRTForgetResidual(CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new RTForgetResidualCommand()));
+            AddAction(new RTAction(rtSender, new RTForgetResidualCommand()), currentState);
         }
 
-        public void AddRTSetZero()
+        public void AddRTSetZero(CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new RTSetZeroCommand()));
+            AddAction(new RTAction(rtSender, new RTSetZeroCommand()), currentState);
         }
-        public void AddRTEnableBreakOnProbe()
+        public void AddRTEnableBreakOnProbe(CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new RTBreakOnProbeCommand(true)));
+            AddAction(new RTAction(rtSender, new RTBreakOnProbeCommand(true)), currentState);
         }
-        public void AddRTDisableBreakOnProbe()
+        public void AddRTDisableBreakOnProbe(CNCState.CNCState currentState)
         {
-            AddAction(new RTAction(rtSender, new RTBreakOnProbeCommand(false)));
+            AddAction(new RTAction(rtSender, new RTBreakOnProbeCommand(false)), currentState);
         }
 
         #endregion
 
         #region Movements
-        public void AddHoming()
+        public void AddHoming(CNCState.CNCState currentState)
         {
             var gz1 = -config.size_z;
             var gz2 = config.step_back_z;
@@ -84,12 +88,12 @@ namespace ActionProgram
                 gz2 *= -1;
                 gz3 *= -1;
             }
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
 
             var gx1 = -config.size_x;
             var gx2 = config.step_back_x;
@@ -100,12 +104,12 @@ namespace ActionProgram
                 gx2 *= -1;
                 gx3 *= -1;
             }
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx1, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx2, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx3, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx1, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx2, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx3, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
 
             var gy1 = -config.size_x;
             var gy2 = config.step_back_y;
@@ -116,17 +120,17 @@ namespace ActionProgram
                 gy2 *= -1;
                 gy3 *= -1;
             }
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy1, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy2, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy3, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTSetZero();
-            AddRTForgetResidual();
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy1, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy2, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy3, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTSetZero(currentState);
+            AddRTForgetResidual(currentState);
         }
 
-        public void AddZProbe()
+        public void AddZProbe(CNCState.CNCState currentState)
         {
             var gz1 = -config.size_z;
             var gz2 = config.step_back_z;
@@ -138,16 +142,16 @@ namespace ActionProgram
                 gz2 *= -1;
                 gz3 *= -1;
             }
-            AddRTEnableBreakOnProbe();
+            AddRTEnableBreakOnProbe(currentState);
             
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)));
-            AddRTForgetResidual();
-            AddRTDisableBreakOnProbe();
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddRTForgetResidual(currentState);
+            AddRTDisableBreakOnProbe(currentState);
         }
 
         private (double feed, double acc) MaxLineFeedAcc(Vector3 dir)
@@ -173,7 +177,7 @@ namespace ActionProgram
             return (feed, acc);
         }
 
-        public void AddLineMovement(Vector3 delta, double feed)
+        public void AddLineMovement(Vector3 delta, double feed, CNCState.CNCState currentState)
         {
             if (Math.Abs(delta.x) < 1e-12 && Math.Abs(delta.y) < 1e-12 && Math.Abs(delta.z) < 1e-12)
                 return;
@@ -182,10 +186,10 @@ namespace ActionProgram
             var maxfeed = fa.feed;
             var acc = config.max_acceleration;
             feed = Math.Min(feed, maxfeed);
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(delta, new RTMovementOptions(0, feed, 0, acc), config)));
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(delta, new RTMovementOptions(0, feed, 0, acc), config)), currentState);
         }
 
-        public void AddFastLineMovement(Vector3 delta)
+        public void AddFastLineMovement(Vector3 delta, CNCState.CNCState currentState)
         {
             if (Math.Abs(delta.x) < 1e-12 && Math.Abs(delta.y) < 1e-12 && Math.Abs(delta.z) < 1e-12)
                 return;
@@ -193,7 +197,7 @@ namespace ActionProgram
             var fa = MaxLineFeedAcc(dir);
             var maxfeed = fa.feed;
             var acc = fa.acc;
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(delta, new RTMovementOptions(0, maxfeed, 0, acc), config)));
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(delta, new RTMovementOptions(0, maxfeed, 0, acc), config)), currentState);
         }
 
         private void MaxArcAcc(out double acc)
@@ -202,35 +206,35 @@ namespace ActionProgram
             acc = 40;
         }
 
-        public void AddArcMovement(Vector3 delta, double R, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed)
+        public void AddArcMovement(Vector3 delta, double R, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed, CNCState.CNCState currentState)
         {
             MaxArcAcc(out double acc);
-            AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)));
+            AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState);
         }
 
-        public void AddArcMovement(Vector3 delta, Vector3 center, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed)
+        public void AddArcMovement(Vector3 delta, Vector3 center, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed, CNCState.CNCState currentState)
         {
             double acc = 0;
-            AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)));
+            AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState);
         }
         #endregion
 
         #region Tool
-        public void AddModbusToolCommand(ModbusToolCommand command)
+        public void AddModbusToolCommand(ModbusToolCommand command, CNCState.CNCState currentState)
         {
-            AddAction(new ModbusToolAction(command, modbusSender));
+            AddAction(new ModbusToolAction(command, modbusSender), currentState);
         }
         #endregion
 
         #region stops
-        public void AddBreak()
+        public void AddBreak(CNCState.CNCState currentState)
         {
-            AddAction(new MachineControlAction(new PauseCommand(machine), machine));
+            AddAction(new MachineControlAction(new PauseCommand(machine), machine), currentState);
         }
 
-        public void AddStop()
+        public void AddStop(CNCState.CNCState currentState)
         {
-            AddAction(new MachineControlAction(new StopCommand(machine), machine));
+            AddAction(new MachineControlAction(new StopCommand(machine), machine), currentState);
         }
         #endregion
     }

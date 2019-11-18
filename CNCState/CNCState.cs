@@ -14,33 +14,59 @@ namespace CNCState
             public CoordinateSystem()
             {
                 Offset = new Vector3();
+                Sign = new Vector3(1, 1, 1);
             }
 
             public Vector3 Offset { get; set; }
+            public Vector3 Sign { get; set; }
 
             public Vector3 ToLocal(Vector3 P)
             {
-                return P - Offset;
+                return new Vector3(ToLocalX(P.x), ToLocalY(P.y), ToLocalZ(P.z));
             }
 
             public Vector3 ToGlobal(Vector3 P)
             {
-                return P + Offset;
+                return new Vector3(ToGlobalX(P.x), ToGlobalY(P.y), ToGlobalZ(P.z));
             }
 
             public double ToGlobalX(double x)
             {
-                return x + Offset.x;
+                return x * Sign.x + Offset.x;
             }
 
             public double ToGlobalY(double y)
             {
-                return y + Offset.y;
+                return y * Sign.y + Offset.y;
             }
 
             public double ToGlobalZ(double z)
             {
-                return z + Offset.z;
+                return z * Sign.z + Offset.z;
+            }
+
+            public double ToLocalX(double x)
+            {
+                return (x - Offset.x) * Sign.x;
+            }
+
+            public double ToLocalY(double y)
+            {
+                return (y - Offset.y) * Sign.y;
+            }
+
+            public double ToLocalZ(double z)
+            {
+                return (z - Offset.z) * Sign.z;
+            }
+
+            public CoordinateSystem BuildCopy()
+            {
+                CoordinateSystem cs = new CoordinateSystem
+                {
+                    Offset = new Vector3(Offset.x, Offset.y, Offset.z),
+                };
+                return cs;
             }
         }
 
@@ -66,8 +92,12 @@ namespace CNCState
                     ArcAxis = ArcAxis,
                     Feed = Feed,
                     CurrentCoordinateSystemIndex = CurrentCoordinateSystemIndex,
-                    CoordinateSystems = CoordinateSystems, // Not a copy
+                    CoordinateSystems = new CoordinateSystem[CoordinateSystems.Length],
                 };
+                for (int i = 0; i < copy.CoordinateSystems.Length; ++i)
+                {
+                    copy.CoordinateSystems[i] = CoordinateSystems[i].BuildCopy();
+                }
                 return copy;
             }
         }
@@ -119,6 +149,17 @@ namespace CNCState
         }
 
         public MType MoveType { get; set; }
+
+        public AxisState BuildCopy()
+        {
+            var copy = new AxisState
+            {
+                MoveType = MoveType,
+                Params = Params.BuildCopy(),
+                Position = new Vector3(Position.x, Position.y, Position.z),
+            };
+            return copy;
+        }
     }
 
     public class SpindleState
@@ -132,5 +173,31 @@ namespace CNCState
             RotationState = SpindleRotationState.Off;
             SpindleSpeed = 0;
         }
+
+        public SpindleState BuildCopy()
+        {
+            return new SpindleState
+            {
+                RotationState = RotationState,
+                SpindleSpeed = SpindleSpeed,
+            };
+        }
+    }
+
+    public class CNCState
+    {
+        public CNCState(AxisState axisState, SpindleState spindleState)
+        {
+            AxisState = axisState;
+            SpindleState = spindleState;
+        }
+
+        public CNCState BuildCopy()
+        {
+            return new CNCState(AxisState.BuildCopy(), SpindleState.BuildCopy());
+        }
+
+        public AxisState AxisState { get; private set; }
+        public SpindleState SpindleState { get; private set; }
     }
 }

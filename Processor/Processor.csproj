@@ -12,5 +12,6 @@
     <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj" />
     <ProjectReference Include="..\Config\Config.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\CNCState\CNCState.csproj" />
   </ItemGroup>
 </Project>

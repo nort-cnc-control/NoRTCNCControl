@@ -11,7 +11,7 @@ namespace Processor
         {
             foreach (var action in program.Actions)
             {
-                var ma = action as RTAction;
+                var ma = action.action as RTAction;
                 if (ma == null)
                     continue;
                 var arcmovecmd = ma.Command as RTArcMoveCommand;

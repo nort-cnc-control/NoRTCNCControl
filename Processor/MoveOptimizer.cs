@@ -218,8 +218,8 @@ namespace Processor
             var actions = program.Actions;
             foreach (var action in actions)
             {
-                var ma = action as RTAction;
-                if (ma == null || action.RequireFinish || ma.Command as IRTMoveCommand == null)
+                var ma = action.action as RTAction;
+                if (ma == null || ma.RequireFinish || ma.Command as IRTMoveCommand == null)
                 {
                     if (chain.Actions.Count > 0)
                     {

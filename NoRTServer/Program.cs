@@ -8,6 +8,7 @@ using System;
 using Actions.Tools.SpindleTool;
 using Newtonsoft.Json;
 using Gnu.Getopt;
+using System.Threading;
 
 namespace NoRTServer
 {
@@ -79,6 +80,8 @@ namespace NoRTServer
             Console.WriteLine("\t\tNone");
         }
 
+
+
         class SocketStream : Stream
         {
             public override bool CanRead => true;
@@ -106,7 +109,14 @@ namespace NoRTServer
             public override int Read(byte[] buffer, int offset, int count)
             {
                 // TODO: implement offset
-                return socket.Receive(buffer, count, 0);
+                try
+                {
+                    return socket.Receive(buffer, count, 0);
+                }
+                catch
+                {
+                    return -1;
+                }
             }
 
             public override long Seek(long offset, SeekOrigin origin)
@@ -121,7 +131,14 @@ namespace NoRTServer
 
             public override void Write(byte[] buffer, int offset, int count)
             {
-                socket.Send(buffer, count, 0);
+                try
+                {
+                    socket.Send(buffer, count, 0);
+                }
+                catch
+                {
+                    return;
+                }
             }
         }
 
@@ -283,6 +300,7 @@ namespace NoRTServer
 
                 var machineServer = new GCodeServer.GCodeServer(rtSender, modbusSender, spindleCommandFactory,
                                                                 machineConfig, stream, stream);
+
                 try
                 {
                     run = machineServer.Run();

@@ -100,15 +100,18 @@ namespace Actions
         }
 
         #region methods
-        
+
         public void Run()
         {
             if (!sender.HasSlots)
                 throw new OutOfMemoryException("MCU doesn't have empty slots");
             String cmd = Command.Command;
-            sender.Indexed += OnIndexed;
-            sender.SendCommand(cmd);
-            sender.Indexed -= OnIndexed;
+            lock (sender)
+            {
+                sender.Indexed += OnIndexed;
+                sender.SendCommand(cmd);
+                sender.Indexed -= OnIndexed;
+            }
         }
 
         public void Abort()
