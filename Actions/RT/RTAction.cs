@@ -27,7 +27,10 @@ namespace Actions
 
         public IRTCommand Command { get; private set; }
         private IRTSender sender;
-        
+
+        public event Action<IAction> EventStarted;
+        public event Action<IAction> EventFinished;
+
         public RTAction(IRTSender sender, IRTCommand command)
         {
             this.sender = sender;
@@ -66,14 +69,16 @@ namespace Actions
                 return;
             ActionResult = result;
             Finished.Set();
+            EventFinished?.Invoke(this);
         }
 
         private void OnStartedHdl(int nid)
         {
             if (nid != CommandId)
                 return;
-            
             Started.Set();
+            Console.WriteLine("RTAction {0}", nid);
+            EventStarted?.Invoke(this);
         }
 
         private void OnQueuedHdl(int nid)
@@ -92,6 +97,7 @@ namespace Actions
             ContiniousBlockCompleted.Set();
             Started.Set();
             Finished.Set();
+            EventFinished?.Invoke(this);
         }
 
         private void OnIndexed(int nid)

@@ -105,7 +105,7 @@ namespace ActionProgram
                 gx3 *= -1;
             }
             AddRTForgetResidual(currentState);
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx1, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
+            AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx1, 0, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), currentState);
             AddRTForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx2, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), currentState);
             AddRTForgetResidual(currentState);
@@ -203,7 +203,7 @@ namespace ActionProgram
         private void MaxArcAcc(out double acc)
         {
             //TODO: calculate
-            acc = 40;
+            acc = config.max_acceleration;
         }
 
         public void AddArcMovement(Vector3 delta, double R, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed, CNCState.CNCState currentState)
@@ -214,7 +214,7 @@ namespace ActionProgram
 
         public void AddArcMovement(Vector3 delta, Vector3 center, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed, CNCState.CNCState currentState)
         {
-            double acc = 0;
+            MaxArcAcc(out double acc);
             AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState);
         }
         #endregion

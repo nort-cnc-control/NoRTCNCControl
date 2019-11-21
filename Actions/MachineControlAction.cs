@@ -24,9 +24,11 @@ namespace Actions
         public void Run()
         {
             Started.Set();
+            EventStarted?.Invoke(this);
             command.Run();
             Finished.Set();
             ContiniousBlockCompleted.Set();
+            EventFinished?.Invoke(this);
         }
 
         public void Abort()
@@ -41,6 +43,10 @@ namespace Actions
         #endregion
 
         private IMachine machine;
+
+        public event Action<IAction> EventStarted;
+        public event Action<IAction> EventFinished;
+
         public MachineControlAction(IMachineControlCommand command, IMachine machine)
         {
             ContiniousBlockCompleted = new EventWaitHandle(false, EventResetMode.ManualReset);

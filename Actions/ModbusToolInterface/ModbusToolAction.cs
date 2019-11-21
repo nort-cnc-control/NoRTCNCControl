@@ -47,6 +47,9 @@ namespace Actions.ModbusTool
 
         public bool Failed => false;
 
+        public event Action<IAction> EventStarted;
+        public event Action<IAction> EventFinished;
+
         public void Abort()
         {
             Aborted = true;
@@ -59,6 +62,7 @@ namespace Actions.ModbusTool
         public void Run()
         {
             Started.Set();
+            EventStarted?.Invoke(this);
             foreach (var reg in toolCommand.Registers)
             {
                 sender.WriteRegister(reg.DeviceId, reg.RegisterId, reg.RegisterValue);
@@ -67,6 +71,7 @@ namespace Actions.ModbusTool
                 Thread.Sleep(toolCommand.Delay);
             Finished.Set();
             ContiniousBlockCompleted.Set();
+            EventFinished?.Invoke(this);
         }
     }
 }

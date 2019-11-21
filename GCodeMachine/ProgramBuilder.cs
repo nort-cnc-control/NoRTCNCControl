@@ -12,6 +12,7 @@ using System.Linq;
 using Processor;
 
 using System.Collections.Generic;
+using System.Threading;
 
 namespace GCodeMachine
 {
@@ -54,8 +55,7 @@ namespace GCodeMachine
 
         private void ProcessPreMove(Arguments args,
                                     ActionProgram.ActionProgram program,
-                                    CNCState.CNCState state,
-                                    int index)
+                                    CNCState.CNCState state)
         {
             bool spindleChange = false;
             if (args.Feed != null)
@@ -141,8 +141,7 @@ namespace GCodeMachine
 
         private void ProcessMove(Arguments args,
                                  ActionProgram.ActionProgram program,
-                                 CNCState.CNCState state,
-                                 int index)
+                                 CNCState.CNCState state)
         {
             var X = args.X;
             var Y = args.Y;
@@ -289,8 +288,7 @@ namespace GCodeMachine
 
         private void ProcessPostMove(Arguments args,
                                      ActionProgram.ActionProgram program,
-                                     CNCState.CNCState state,
-                                     int index)
+                                     CNCState.CNCState state)
         {
             bool spindleChange = false;
             foreach (var cmd in args.Options)
@@ -324,29 +322,40 @@ namespace GCodeMachine
         private int Process(String frame,
                             ActionProgram.ActionProgram program,
                             CNCState.CNCState state,
+                            Dictionary<IAction, int> starts,
                             int index)
         {
             Arguments args = new Arguments(frame);
             var line_number = args.LineNumber;
+            var len0 = program.Actions.Count;
 
-            ProcessPreMove(args, program, state, index);
-            ProcessMove(args, program, state, index);
-            ProcessPostMove(args, program, state, index);
+            ProcessPreMove(args, program, state);
+            ProcessMove(args, program, state);
+            ProcessPostMove(args, program, state);
+
+            var len1 = program.Actions.Count;
+            if (len1 > len0)
+            {
+                var (first, _) = program.Actions[len0];
+                starts[first] = index;
+            }
 
             return index + 1;
         }
 
-        public ActionProgram.ActionProgram BuildProgram(String[] frames,
-                                                        CNCState.CNCState state)
+        public (ActionProgram.ActionProgram program, IReadOnlyDictionary<IAction, int> starts) 
+                BuildProgram(String[] frames, CNCState.CNCState state)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine);
+            var starts = new Dictionary<IAction, int>();
             int index = 0;
             int len = frames.Length;
             program.AddRTUnlock(state);
+            starts[program.Actions[0].action] = index;
             while (index < len)
             {
                 var frame = frames[index];
-                int next = Process(frame, program, state, index);
+                int next = Process(frame, program, state, starts, index);
                 if (next < 0)
                     break;
                 else
@@ -356,11 +365,11 @@ namespace GCodeMachine
             arcMoveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
 
-            return program;
+            return (program, starts);
         }
 
-        public ActionProgram.ActionProgram BuildProgram(String frame,
-                                                        CNCState.CNCState state)
+        public (ActionProgram.ActionProgram program, IReadOnlyDictionary<IAction, int> starts) 
+                BuildProgram(String frame, CNCState.CNCState state)
         {
             return BuildProgram(frame.Split('\n'), state);
         }

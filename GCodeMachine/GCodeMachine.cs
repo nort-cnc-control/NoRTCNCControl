@@ -1,5 +1,6 @@
 using System;
 using Machine;
+using ActionExecutor;
 using ActionProgram;
 using Actions;
 using System.Threading;
@@ -9,8 +10,10 @@ using CNCState;
 
 namespace GCodeMachine
 {
-    public class GCodeMachine : IMachine
+    public class GCodeMachine : IMachine, IActionExecutor
     {
+        public event Action<IAction> ActionStarted;
+
         public enum MachineState
         {
             Idle,
@@ -33,28 +36,29 @@ namespace GCodeMachine
         public CNCState.CNCState LastState { get; set; }
         private readonly Config.MachineParameters config;
 
-        private AxisState.CoordinateSystem CurrentCoordinateSystem =>
+        public AxisState.CoordinateSystem CurrentCoordinateSystem =>
                 LastState.AxisState.Params.CurrentCoordinateSystem;
-
-        private AxisState.CoordinateSystem hwCoordinateSystem;
+        public int CurrentCoordinateSystemIndex =>
+                LastState.AxisState.Params.CurrentCoordinateSystemIndex;
+        public AxisState.CoordinateSystem HwCoordinateSystem { get; private set; }
 
         private EventWaitHandle currentWait;
         public State RunState { get; private set; }
 
         private IRTSender rtSender;
 
-        public GCodeMachine(IRTSender sender, CNCState.CNCState state, Config.MachineParameters config)
+        public GCodeMachine(IRTSender sender, CNCState.CNCState state, Config.MachineParameters config, Vector3 hwCoords)
         {
             this.config = config;
             LastState = state;
-            hwCoordinateSystem = null;
+            HwCoordinateSystem = null;
             this.rtSender = sender;
             this.rtSender.Reseted += OnReseted;
 
-            var crds = ReadHardwareCoordinates();
+            Vector3 crds = hwCoords;
             var pos = LastState.AxisState.Position;
             var sign = new Vector3(config.invert_x ? -1 : 1, config.invert_y ? -1 : 1, config.invert_z ? -1 : 1);
-            hwCoordinateSystem = new AxisState.CoordinateSystem
+            HwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,
                 Offset = new Vector3(crds.x - sign.x * pos.x,
@@ -88,6 +92,25 @@ namespace GCodeMachine
             }
         }
 
+        public (Vector3 glob, Vector3 loc, string cs)
+            ConvertCoordinates(Vector3 hw)
+        {
+            Vector3 glob;
+            if (HwCoordinateSystem == null)
+                glob = new Vector3();
+            else
+                glob = HwCoordinateSystem.ToLocal(hw);
+
+            Vector3 loc;
+            if (CurrentCoordinateSystem == null)
+                loc = new Vector3();
+            else
+                loc = CurrentCoordinateSystem.ToLocal(glob);
+            var id = CurrentCoordinateSystemIndex;
+            return (glob, loc, String.Format("G5{0}", 3 + id));
+        }
+
+
         private void Wait(EventWaitHandle waitHandle)
         {
             currentWait = waitHandle;
@@ -117,6 +140,8 @@ namespace GCodeMachine
 
         public void Continue()
         {
+            bool fast_exit = false;
+            List<IAction> started = new List<IAction>();
             RunState = State.Running;
             previousAction = null;
             while (StateMachine != MachineState.End &&
@@ -138,7 +163,6 @@ namespace GCodeMachine
                         }
                         else
                         {
-
                             SwitchToState(MachineState.WaitActionCanRun);
                         }
                         break;
@@ -156,6 +180,8 @@ namespace GCodeMachine
                         break;
                     case MachineState.ActionRun:
                         SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
+                        currentAction.EventStarted += Action_OnStarted;
+                        started.Add(currentAction);
                         currentAction.Run();
                         break;
                     case MachineState.WaitActionContiniousBlockCompleted:
@@ -164,55 +190,32 @@ namespace GCodeMachine
                         break;
                     case MachineState.Aborted:
                         Stop();
+                        fast_exit = true;
                         break;
                     case MachineState.End:
                         break;
                     case MachineState.Error:
+                        fast_exit = true;
                         break;
                 }
             }
+            if (!fast_exit)
+            {
+                foreach (var act in started)
+                {
+                    act.Finished.WaitOne();
+                }
+            }
+            foreach (var act in started)
+            {
+                act.EventStarted -= Action_OnStarted;
+            }
         }
 
-        private Vector3 ReadHardwareCoordinates()
+        void Action_OnStarted(IAction obj)
         {
-            RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
-            // action.ReadyToRun.WaitOne();
-            action.Run();
-            action.Finished.WaitOne(1000);
-            return new Vector3(double.Parse(action.ActionResult["X"]),
-                               double.Parse(action.ActionResult["Y"]),
-                               double.Parse(action.ActionResult["Z"]));
-        }
-
-        public (Vector3 hw, Vector3 glob, Vector3 loc, String coordinate_system) ReadCurrentCoordinates()
-        {
-            Vector3 hw = ReadHardwareCoordinates();
-
-            Vector3 glob;
-            if (hwCoordinateSystem == null)
-                glob = new Vector3();
-            else
-                glob = hwCoordinateSystem.ToLocal(hw);
-
-            Vector3 loc;
-            if (CurrentCoordinateSystem == null)
-                loc = new Vector3();
-            else
-                loc = CurrentCoordinateSystem.ToLocal(glob);
-            var id = LastState.AxisState.Params.CurrentCoordinateSystemIndex;
-            return (hw, glob, loc, String.Format("G5{0}", 3 + id));
-        }
-
-        public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
-        {
-            RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
-            // action.ReadyToRun.WaitOne();
-            action.Run();
-            action.Finished.WaitOne();
-            return (action.ActionResult["EX"] == "1",
-                    action.ActionResult["EY"] == "1",
-                    action.ActionResult["EZ"] == "1",
-                    action.ActionResult["EP"] == "1");
+            Console.WriteLine("STARTED event");
+            ActionStarted?.Invoke(obj);
         }
 
         public void Stop()

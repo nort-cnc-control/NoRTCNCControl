@@ -16,5 +16,6 @@
     <ProjectReference Include="..\Config\Config.csproj" />
     <ProjectReference Include="..\CNCState\CNCState.csproj" />
     <ProjectReference Include="..\Processor\Processor.csproj" />
+    <ProjectReference Include="..\ActionExecutor\ActionExecutor.csproj" />
   </ItemGroup>
 </Project>

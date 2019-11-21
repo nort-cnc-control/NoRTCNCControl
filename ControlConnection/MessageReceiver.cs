@@ -155,10 +155,15 @@ namespace ControlConnection
             streamReader.Start();
         }
 
-        public void Dispose()
+        public void Stop()
         {
             run = false;
             streamReader.Join();
+        }
+
+        public void Dispose()
+        {
+            Stop();
         }
 
         private void OnReceive(String str)

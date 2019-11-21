@@ -5,6 +5,9 @@ namespace Actions
 {
     public interface IAction : IDisposable
     {
+        event Action<IAction> EventStarted;
+        event Action<IAction> EventFinished;
+
         bool RequireFinish { get; }
 
         #region status

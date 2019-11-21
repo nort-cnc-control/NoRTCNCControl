@@ -19,5 +19,6 @@
     <ProjectReference Include="..\ModbusSender\ModbusSender.csproj" />
     <ProjectReference Include="..\RTSender\RTSender.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\ReadStatusMachine\ReadStatusMachine.csproj" />
   </ItemGroup>
 </Project>
