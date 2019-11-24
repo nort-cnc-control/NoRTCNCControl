@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 using RTSender;
 
@@ -67,7 +68,11 @@ namespace Actions
         {
             if (nid != CommandId)
                 return;
-            ActionResult = result;
+
+            var dict = new Dictionary<string, string>();
+            foreach (var pair in result)
+                dict.Add(pair.Key, pair.Value);
+            ActionResult = dict;
             Finished.Set();
             EventFinished?.Invoke(this);
         }

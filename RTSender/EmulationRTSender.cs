@@ -9,40 +9,47 @@ namespace RTSender
 {
     public class EmulationRTSender : IRTSender
     {
-        public event Action EmptySlotAppeared
-        { add { } remove { } }
-  
-        public event Action EmptySlotsEnded
-        { add { } remove { } }
+        private class Command
+        {
+            public int id;
+            public string command;
+
+            public Command(int id, string command)
+            {
+                this.id = id;
+                this.command = command;
+            }
+        }
+
+        public event Action EmptySlotAppeared;
+        public event Action EmptySlotsEnded;
 
         public event Action<int> Indexed;
-
         public event Action<int> Queued;
+        public event Action<int> Started;
+        public event Action<int, IReadOnlyDictionary<String, String>> Completed;
 
         public event Action<int> Dropped
         { add { } remove { } }
 
-        public event Action<int> Started;
-
         public event Action Reseted
         { add { } remove { } }
-
-        public event Action<int, IReadOnlyDictionary<String, String>> Completed;
 
         public event Action<int, String> Failed
         { add { } remove { } }
 
         private int index;
         public bool HasSlots { get { return true; } }
-        private IReadOnlyDictionary<String, String> opts = new Dictionary<String, String>();
+        private readonly Dictionary<String, String> opts = new Dictionary<String, String>();
         private TextWriter output;
 
-        private object lockObj = new object();
+        private readonly object lockObj = new object();
         private Thread queueThread;
         private Thread runThread;
 
-        private ConcurrentQueue<int> commandsQueue;
-        private ConcurrentQueue<int> commandsRun;
+        private ConcurrentQueue<Command> commandsQueue;
+        private ConcurrentQueue<Command> commandsRun;
+        private readonly int maxLength;
 
         public void SendCommand(String command)
         {
@@ -51,7 +58,7 @@ namespace RTSender
                 var msg = "RT: " + String.Format("N{0} {1}", index, command);
                 output.WriteLine(msg);
                 Indexed?.Invoke(index);
-                commandsQueue.Enqueue(index);
+                commandsQueue.Enqueue(new Command(index, command));
                 index++;
             }
         }
@@ -61,10 +68,14 @@ namespace RTSender
         {
             while (running)
             {
-                if (commandsQueue.TryDequeue(out int cmd))
+                if (commandsQueue.TryDequeue(out Command cmd))
                 {
-                    Queued?.Invoke(cmd);
+                    Queued?.Invoke(cmd.id);
                     commandsRun.Enqueue(cmd);
+                    if (commandsRun.Count >= maxLength)
+                    {
+                        EmptySlotsEnded?.Invoke();
+                    }
                 }
                 Thread.Sleep(10);
             }
@@ -74,12 +85,40 @@ namespace RTSender
         {
             while (running)
             {
-                if (commandsRun.TryDequeue(out int cmd))
+                if (commandsRun.TryDequeue(out Command cmd))
                 {
-                    Started?.Invoke(cmd);
-                    Completed?.Invoke(cmd, opts);
+                    Started?.Invoke(cmd.id);
+                    Dictionary<string, string> results;
+
+                    if (cmd.command == "M114" || cmd.command == "M119")
+                    {
+                        results = new Dictionary<string, string>();
+                        if (cmd.command == "M114")
+                        {
+                            results["X"] = "0.0";
+                            results["Y"] = "0.0";
+                            results["Z"] = "0.0";
+                        }
+                        if (cmd.command == "M119")
+                        {
+                            results["EX"] = "0";
+                            results["EY"] = "0";
+                            results["EZ"] = "0";
+                            results["EP"] = "0";
+                        }
+                    }
+                    else
+                    {
+                        results = opts;
+                    }
+
+                    Completed?.Invoke(cmd.id, results);
+                    if (commandsRun.Count == maxLength - 1)
+                    {
+                        EmptySlotAppeared?.Invoke();
+                    }
                 }
-                Thread.Sleep(10);
+                Thread.Sleep(1000);
             }
         }
 
@@ -89,8 +128,9 @@ namespace RTSender
             running = true;
             queueThread = new Thread(new ThreadStart(QueueThreadProc));
             runThread = new Thread(new ThreadStart(RunThreadProc));
-            commandsQueue = new ConcurrentQueue<int>();
-            commandsRun = new ConcurrentQueue<int>();
+            commandsQueue = new ConcurrentQueue<Command>();
+            commandsRun = new ConcurrentQueue<Command>();
+            maxLength = 8;
             queueThread.Start();
             runThread.Start();
         }
