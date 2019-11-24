@@ -3,6 +3,7 @@ using System.Threading;
 using Machine;
 using Actions;
 using RTSender;
+using System.Globalization;
 
 namespace ReadStatusMachine
 {
@@ -63,10 +64,13 @@ namespace ReadStatusMachine
                     RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
                     // action.ReadyToRun.WaitOne();
                     action.Run();
-                    action.Finished.WaitOne(1000);
-                    return new Vector3(double.Parse(action.ActionResult["X"]),
-                                       double.Parse(action.ActionResult["Y"]),
-                                       double.Parse(action.ActionResult["Z"]));
+                    action.Finished.WaitOne(2000);
+                    var xs = action.ActionResult["X"];
+                    var ys = action.ActionResult["Y"];
+                    var zs = action.ActionResult["Z"];
+                    return new Vector3(double.Parse(xs, CultureInfo.InvariantCulture),
+                                       double.Parse(ys, CultureInfo.InvariantCulture),
+                                       double.Parse(zs, CultureInfo.InvariantCulture));
                 }
                 catch
                 {
@@ -91,7 +95,7 @@ namespace ReadStatusMachine
         {
             while (run)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(500);
                 try
                 {
                     var hw_crds = ReadHardwareCoordinates();
