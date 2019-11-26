@@ -21,6 +21,7 @@ namespace GCodeMachine
         public IReadOnlyList<Option> Options => options;
 
         private Dictionary<Char, Option> singleOptions;
+        public IReadOnlyDictionary<Char, Option> SingleOptions => singleOptions;
 
         private Tuple<Option, String> GetOption(String s)
         {

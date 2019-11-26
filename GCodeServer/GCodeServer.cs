@@ -14,11 +14,12 @@ using System.Linq;
 using GCodeMachine;
 using System.Json;
 using System.Threading;
+using Actions.Tools;
 
 namespace GCodeServer
 {
 
-    public class GCodeServer : IDisposable
+    public class GCodeServer : IDisposable, IMessageRouter
     {
         public MachineParameters Config { get; private set; }
         public GCodeMachine.GCodeMachine Machine { get; private set; }
@@ -39,8 +40,14 @@ namespace GCodeServer
         private readonly Stream commandStream;
         private readonly Stream responseStream;
 
-        public GCodeServer(IRTSender rtSender, IModbusSender modbusSender, ISpindleToolFactory spindleToolFactory,
-                           MachineParameters config, Stream commandStream, Stream responseStream)
+        private readonly IToolManager toolManager;
+
+        public GCodeServer(IRTSender rtSender,
+                           IModbusSender modbusSender,
+                           ISpindleToolFactory spindleToolFactory,
+                           MachineParameters config,
+                           Stream commandStream,
+                           Stream responseStream)
         {
             state = new CNCState.CNCState(new AxisState(), new SpindleState());
             this.rtSender = rtSender;
@@ -51,11 +58,29 @@ namespace GCodeServer
             this.responseStream = responseStream;
             StatusMachine = new ReadStatusMachine.ReadStatusMachine(rtSender);
             StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
-            Machine = new GCodeMachine.GCodeMachine(this.rtSender, state, Config, StatusMachine.ReadHardwareCoordinates());
+            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, state, Config, StatusMachine.ReadHardwareCoordinates());
             Machine.ActionStarted += Machine_ActionStarted;
-            programBuilder = new ProgramBuilder(this.Machine, this.rtSender, this.modbusSender, this.spindleToolFactory, this.Config);
+
+            toolManager = new ManualToolManager(this, Machine);
+
+            programBuilder = new ProgramBuilder(this.Machine,
+                                                this.rtSender,
+                                                this.modbusSender,
+                                                this.spindleToolFactory,
+                                                toolManager,
+                                                this.Config);
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
+        }
+
+        public void Message(IReadOnlyDictionary<string, string> message)
+        {
+            var response = new JsonObject();
+            foreach (var keyval in message)
+            {
+                response[keyval.Key] = keyval.Value;
+            }
+            responseSender.MessageSend(response.ToString());
         }
 
         private void OnStatusUpdate(Vector3 hw_crds, bool ex, bool ey, bool ez, bool ep)
@@ -108,6 +133,7 @@ namespace GCodeServer
                 ;
             }
         }
+
 
         #region gcode machine methods
         private void RunGcode(String[] prg)
@@ -197,6 +223,11 @@ namespace GCodeServer
                     else if (command == "start")
                     {
                         RunGcode(gcodeprogram);
+                    }
+                    else if (command == "continue")
+                    {
+                        Machine.Continue();
+                        Machine.LastState = state.BuildCopy();
                     }
                     else if (command == "stop")
                     {

@@ -35,6 +35,7 @@ namespace GCodeMachine
         private IAction previousAction;
         public CNCState.CNCState LastState { get; set; }
         private readonly Config.MachineParameters config;
+        public IMessageRouter messageRouter;
 
         public AxisState.CoordinateSystem CurrentCoordinateSystem =>
                 LastState.AxisState.Params.CurrentCoordinateSystem;
@@ -47,9 +48,14 @@ namespace GCodeMachine
 
         private IRTSender rtSender;
 
-        public GCodeMachine(IRTSender sender, CNCState.CNCState state, Config.MachineParameters config, Vector3 hwCoords)
+        public GCodeMachine(IRTSender sender,
+                            IMessageRouter messageRouter,
+                            CNCState.CNCState state,
+                            Config.MachineParameters config,
+                            Vector3 hwCoords)
         {
             this.config = config;
+            this.messageRouter = messageRouter;
             LastState = state;
             HwCoordinateSystem = null;
             this.rtSender = sender;
@@ -125,6 +131,17 @@ namespace GCodeMachine
             Wait(disableBreakOnProbe.Finished);
         }
 
+        private void SendState(string state)
+        {
+            Dictionary<string, string> message = new Dictionary<string, string>
+            {
+                ["type"] = "state",
+                ["state"] = state,
+                ["message"] = "",
+            };
+            messageRouter.Message(message);
+        }
+
         public void Start()
         {
             if (program == null)
@@ -133,7 +150,6 @@ namespace GCodeMachine
                 return;
             }
             index = 0;
-
             SwitchToState(MachineState.Ready, true);
             Continue();
         }
@@ -144,6 +160,8 @@ namespace GCodeMachine
             List<IAction> started = new List<IAction>();
             RunState = State.Running;
             previousAction = null;
+            SendState("running");
+            SwitchToState(MachineState.Ready);
             while (StateMachine != MachineState.End &&
                    StateMachine != MachineState.Error &&
                    StateMachine != MachineState.Pause)
@@ -155,8 +173,7 @@ namespace GCodeMachine
                         break;
                     case MachineState.Ready:
                         previousAction = currentAction;
-                        CNCState.CNCState state;
-                        (currentAction, state) = PopAction();
+                        (currentAction, _) = PopAction();
                         if (currentAction == null)
                         {
                             SwitchToState(MachineState.End);
@@ -210,6 +227,20 @@ namespace GCodeMachine
             {
                 act.EventStarted -= Action_OnStarted;
             }
+
+            switch (StateMachine)
+            {
+                case MachineState.Pause:
+                    SendState("pause");
+                    break;
+                case MachineState.End:
+                case MachineState.Idle:
+                    SendState("init");
+                    break;
+                case MachineState.Error:
+                    SendState("error");
+                    break;
+            }
         }
 
         void Action_OnStarted(IAction obj)
@@ -220,12 +251,14 @@ namespace GCodeMachine
 
         public void Stop()
         {
+            SendState("init");
             SwitchToState(MachineState.End);
             RunState = State.Stopped;
         }
 
         public void Pause()
         {
+            SendState("paused");
             SwitchToState(MachineState.Pause);
             RunState = State.Paused;
         }
@@ -252,6 +285,7 @@ namespace GCodeMachine
         public void Dispose()
         {
             program = null; // remove link usage
+            messageRouter = null;
         }
 
         public void LoadProgram(ActionProgram.ActionProgram program)
