@@ -13,6 +13,7 @@ using Processor;
 
 using System.Collections.Generic;
 using System.Threading;
+using Actions.Tools;
 
 namespace GCodeMachine
 {
@@ -23,6 +24,7 @@ namespace GCodeMachine
         private readonly ISpindleToolFactory spindleToolFactory;
         private readonly MachineParameters config;
         private readonly GCodeMachine machine;
+        private readonly IToolManager toolManager;
         private ArcMoveFeedLimiter arcMoveFeedLimiter;
         private MoveOptimizer optimizer;
         private Stack<AxisState.Parameters> axisStateStack;
@@ -31,12 +33,14 @@ namespace GCodeMachine
                               IRTSender rtSender,
                               IModbusSender modbusSender,
                               ISpindleToolFactory spindleToolFactory,
+                              IToolManager toolManager,
                               MachineParameters config)
         {
             this.machine = machine;
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
             this.spindleToolFactory = spindleToolFactory;
+            this.toolManager = toolManager;
             this.config = config;
             arcMoveFeedLimiter = new ArcMoveFeedLimiter(this.config);
             optimizer = new MoveOptimizer(this.config);
@@ -87,6 +91,10 @@ namespace GCodeMachine
                             case 4:
                                 spindleChange = true;
                                 state.SpindleState.RotationState = SpindleRotationState.CounterClockwise;
+                                break;
+                            case 6:
+                                if (args.SingleOptions.ContainsKey('T'))
+                                    program.AddToolChange(args.SingleOptions['T'].ivalue1);
                                 break;
                             case 120:
                                 PushState(state.AxisState);
@@ -346,7 +354,7 @@ namespace GCodeMachine
         public (ActionProgram.ActionProgram program, IReadOnlyDictionary<IAction, int> starts) 
                 BuildProgram(String[] frames, CNCState.CNCState state)
         {
-            var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine);
+            var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
             var starts = new Dictionary<IAction, int>();
             int index = 0;
             int len = frames.Length;

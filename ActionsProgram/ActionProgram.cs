@@ -7,6 +7,7 @@ using Config;
 using Machine;
 using ModbusSender;
 using CNCState;
+using Actions.Tools;
 
 namespace ActionProgram
 {
@@ -14,21 +15,20 @@ namespace ActionProgram
     {
         private List<(IAction action, CNCState.CNCState state)> actions;
         public IReadOnlyList<(IAction action, CNCState.CNCState state)> Actions => actions;
-        private int index;
-        private IRTSender rtSender;
-        private IModbusSender modbusSender;
+        private readonly IRTSender rtSender;
+        private readonly IModbusSender modbusSender;
         private MachineParameters config;
-        private IMachine machine;
+        private readonly IMachine machine;
+        private readonly IToolManager toolManager;
 
         public ActionProgram(IRTSender rtSender, IModbusSender modbusSender,
-                             MachineParameters config, IMachine machine,
-                             int index=0)
+                             MachineParameters config, IMachine machine, IToolManager toolManager)
         {
-            this.index = index;
             this.machine = machine;
             this.config = config;
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
+            this.toolManager = toolManager;
             actions = new List<(IAction action, CNCState.CNCState state)>();
         }
 
@@ -227,14 +227,22 @@ namespace ActionProgram
         #endregion
 
         #region stops
-        public void AddBreak(CNCState.CNCState currentState)
+        public void AddBreak()
         {
-            AddAction(new MachineControlAction(new PauseCommand(machine), machine), currentState);
+            AddAction(new MachineControlAction(new PauseCommand(machine), machine), null);
         }
 
-        public void AddStop(CNCState.CNCState currentState)
+        public void AddStop()
         {
-            AddAction(new MachineControlAction(new StopCommand(machine), machine), currentState);
+            AddAction(new MachineControlAction(new StopCommand(machine), machine), null);
+        }
+        #endregion
+
+        #region tools
+        public void AddToolChange(int toolId)
+        {
+            var cmd = new SelectToolCommand(toolId, machine, toolManager);
+            AddAction(new MachineControlAction(cmd, machine), null);
         }
         #endregion
     }
