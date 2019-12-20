@@ -58,7 +58,7 @@ namespace GCodeMachine
                 }
                 opt.value2 = val;
                 opt.ivalue2 = Int32.Parse(val);
-                opt.value = Double.Parse(opt.value1 + "." + opt.value2);
+                opt.value = Double.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
             }
             else
             {
@@ -126,6 +126,19 @@ namespace GCodeMachine
                     singleOptions[opt.letter] = opt;
                 options.Add(opt);
             }
+        }
+
+        public Arguments()
+        {
+            options = new List<Option>();
+            singleOptions = new Dictionary<char, Option>();
+        }
+
+        public void AddOption(Option opt)
+        {
+            options.Add(opt);
+            if (opt.letter != 'G' && opt.letter != 'M')
+                singleOptions[opt.letter] = opt;
         }
 
         public Option LineNumber

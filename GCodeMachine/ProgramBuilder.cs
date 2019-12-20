@@ -29,6 +29,8 @@ namespace GCodeMachine
         private MoveOptimizer optimizer;
         private Stack<AxisState.Parameters> axisStateStack;
 
+        private bool spindleCommandPending;
+
         public ProgramBuilder(GCodeMachine machine,
                               IRTSender rtSender,
                               IModbusSender modbusSender,
@@ -45,6 +47,7 @@ namespace GCodeMachine
             arcMoveFeedLimiter = new ArcMoveFeedLimiter(this.config);
             optimizer = new MoveOptimizer(this.config);
             axisStateStack = new Stack<AxisState.Parameters>();
+            spindleCommandPending = false;
         }
 
         private void PushState(AxisState axisState)
@@ -57,129 +60,74 @@ namespace GCodeMachine
             axisState.Params = axisStateStack.Pop();
         }
 
-        private void ProcessPreMove(Arguments args,
-                                    ActionProgram.ActionProgram program,
-                                    CNCState.CNCState state)
+        private void ProcessParameters(Arguments block,
+                                       ActionProgram.ActionProgram program,
+                                       CNCState.CNCState state)
         {
-            bool spindleChange = false;
-            if (args.Feed != null)
+            if (block.Feed != null)
             {
-                state.AxisState.Feed = args.Feed.value;
+                state.AxisState.Feed = block.Feed.value;
             }
-            if (args.Speed != null)
+            if (block.Speed != null)
             {
-                if (Math.Abs(state.SpindleState.SpindleSpeed - args.Speed.value) > 1e-2)
-                {
-                    state.SpindleState.SpindleSpeed = args.Speed.value;
-                    spindleChange = true;
-                }
-            }
-            foreach (var cmd in args.Options)
-            {
-                if (cmd.letter == 'M')
-                {
-                    if (cmd.dot == false)
-                    {
-                        // We don't check current state == new state,
-                        // because of possible inconsistency of spindle driver and state
-                        switch (cmd.ivalue1)
-                        {
-                            case 3:
-                                spindleChange = true;
-                                state.SpindleState.RotationState = SpindleRotationState.Clockwise;
-                                break;
-                            case 4:
-                                spindleChange = true;
-                                state.SpindleState.RotationState = SpindleRotationState.CounterClockwise;
-                                break;
-                            case 6:
-                                if (args.SingleOptions.ContainsKey('T'))
-                                    program.AddToolChange(args.SingleOptions['T'].ivalue1);
-                                break;
-                            case 120:
-                                PushState(state.AxisState);
-                                break;
-                        }
-                    }
-                }
-                else if (cmd.letter == 'G')
-                {
-                    if (cmd.dot == false)
-                    {
-                        switch (cmd.ivalue1)
-                        {
-                            case 53:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 0;
-                                break;
-                            case 54:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 1;
-                                break;
-                            case 55:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 2;
-                                break;
-                            case 56:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 3;
-                                break;
-                            case 57:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 4;
-                                break;
-                            case 58:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 5;
-                                break;
-                            case 59:
-                                state.AxisState.Params.CurrentCoordinateSystemIndex = 6;
-                                break;
-                            case 90:
-                                state.AxisState.Absolute = true;
-                                break;
-                            case 91:
-                                state.AxisState.Absolute = false;
-                                break;
-                        }
-                    }
-                }
-            }
-
-            if (spindleChange)
-            {
-                var command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
-                program.AddModbusToolCommand(command, state);
+                state.SpindleState.SpindleSpeed = block.Speed.value;
+                spindleCommandPending = true;
             }
         }
 
-        private void ProcessMove(Arguments args,
+        private void ProcessMove(Arguments block,
                                  ActionProgram.ActionProgram program,
                                  CNCState.CNCState state)
         {
-            var X = args.X;
-            var Y = args.Y;
-            var Z = args.Z;
-            var I = args.I;
-            var J = args.J;
-            var K = args.K;
-            var R = args.R;
+            var X = block.X;
+            var Y = block.Y;
+            var Z = block.Z;
+            var I = block.I;
+            var J = block.J;
+            var K = block.K;
+            var R = block.R;
+
+            var cmd = block.Options.FirstOrDefault((arg) => arg.letter == 'G');
+            if (cmd != null)
+            {
+                switch (cmd.ivalue1)
+                {
+                    case 0:
+                        state.AxisState.MoveType = AxisState.MType.FastLine;
+                        break;
+                    case 1:
+                        state.AxisState.MoveType = AxisState.MType.Line;
+                        break;
+                    case 2:
+                        state.AxisState.MoveType = AxisState.MType.ArcCW;
+                        break;
+                    case 3:
+                        state.AxisState.MoveType = AxisState.MType.ArcCCW;
+                        break;
+                }
+            }
+
+            if (X == null && Y == null && Z == null)
+                return;
 
             double dx = 0;
             double dy = 0;
             double dz = 0;
-            bool has_move = false;
+
             if (state.AxisState.Absolute)
             {
                 if (X != null)
                 {
-                    has_move = true;
                     dx = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalX(X.value) -
                          state.AxisState.Position.x;
                 }
                 if (Y != null)
                 {
-                    has_move = true;
                     dy = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalY(Y.value) -
                          state.AxisState.Position.y;
                 }
                 if (Z != null)
                 {
-                    has_move = true;
                     dz = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalZ(Z.value) -
                          state.AxisState.Position.z;
                 }
@@ -188,143 +136,273 @@ namespace GCodeMachine
             {
                 if (X != null)
                 {
-                    has_move = true;
                     dx = X.value;
                 }
                 if (Y != null)
                 {
-                    has_move = true;
                     dy = Y.value;
                 }
                 if (Z != null)
                 {
-                    has_move = true;
                     dz = Z.value;
                 }
             }
 
             var delta = new Vector3(dx, dy, dz);
-            foreach (var cmd in args.GCommands)
+
+            switch (state.AxisState.MoveType)
             {
-                if (cmd.dot == false)
-                {
-                    switch (cmd.ivalue1)
+                case AxisState.MType.FastLine:
+                    program.AddFastLineMovement(delta, state);
+                    break;
+                case AxisState.MType.Line:
+                    program.AddLineMovement(delta, state.AxisState.Feed, state);
+                    break;
+                case AxisState.MType.ArcCW:
+                case AxisState.MType.ArcCCW:
                     {
-                        case 0:
-                            state.AxisState.MoveType = AxisState.MType.FastLine;
-                            break;
-                        case 1:
-                            state.AxisState.MoveType = AxisState.MType.Line;
-                            break;
-                        case 2:
-                            state.AxisState.MoveType = AxisState.MType.ArcCW;
-                            break;
-                        case 3:
-                            state.AxisState.MoveType = AxisState.MType.ArcCCW;
-                            break;
-                        case 28:
-                            program.AddHoming(state);
-                            break;
-                        case 30:
-                            program.AddZProbe(state);
-                            break;
-                        case 92:
-                            has_move = false;
-                            if (X != null)
-                            {
-                                state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
-                                    state.AxisState.Position.x - X.value;
-                            }
-                            if (Y != null)
-                            {
-                                state.AxisState.Params.CurrentCoordinateSystem.Offset.y =
-                                    state.AxisState.Position.y - Y.value;
-                            }
-                            if (Z != null)
-                            {
-                                state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
-                                    state.AxisState.Position.z - Z.value;
-                            }
-                            program.AddRTForgetResidual(state);
-                            break;
-                    }
-                }
-
-            }
-
-            if (has_move)
-            {
-                switch (state.AxisState.MoveType)
-                {
-                    case AxisState.MType.FastLine:
-                        program.AddFastLineMovement(delta, state);
-                        break;
-                    case AxisState.MType.Line:
-                        program.AddLineMovement(delta, state.AxisState.Feed, state);
-                        break;
-                    case AxisState.MType.ArcCW:
-                    case AxisState.MType.ArcCCW:
+                        bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
+                        if (R != null)
                         {
-                            bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
-                            if (R != null)
-                            {
-                                program.AddArcMovement(delta, R.value, ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
-                            }
-                            else
-                            {
-                                double i = 0;
-                                double j = 0;
-                                double k = 0;
-                                if (I != null)
-                                    i = I.value;
-                                if (J != null)
-                                    j = J.value;
-                                if (K != null)
-                                    k = K.value;
-                                program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
-                            }
+                            program.AddArcMovement(delta, R.value, ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
                         }
-                        break;
-                    default:
-                        break;
-                }
-                state.AxisState.Position.x += dx;
-                state.AxisState.Position.y += dy;
-                state.AxisState.Position.z += dz;
+                        else
+                        {
+                            double i = 0;
+                            double j = 0;
+                            double k = 0;
+                            if (I != null)
+                                i = I.value;
+                            if (J != null)
+                                j = J.value;
+                            if (K != null)
+                                k = K.value;
+                            program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            state.AxisState.Position.x += dx;
+            state.AxisState.Position.y += dy;
+            state.AxisState.Position.z += dz;
+        }
+
+
+        private void ProcessSpindleRunCommand(Arguments block,
+                                              ActionProgram.ActionProgram program,
+                                              CNCState.CNCState state)
+        {
+            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G'));
+            if (cmd == null)
+                return;
+            switch (cmd.ivalue1)
+            {
+                case 3:
+                    spindleCommandPending = true;
+                    state.SpindleState.RotationState = SpindleRotationState.Clockwise;
+                    break;
+                case 4:
+                    spindleCommandPending = true;
+                    state.SpindleState.RotationState = SpindleRotationState.CounterClockwise;
+                    break;
+                case 5:
+                    spindleCommandPending = true;
+                    state.SpindleState.RotationState = SpindleRotationState.Off;
+                    break;
             }
         }
 
-        private void ProcessPostMove(Arguments args,
-                                     ActionProgram.ActionProgram program,
-                                     CNCState.CNCState state)
+        private void ProcessCoordinatesSet(Arguments args,
+                                           ActionProgram.ActionProgram program,
+                                           CNCState.CNCState state)
         {
-            bool spindleChange = false;
-            foreach (var cmd in args.Options)
+            var X = args.X;
+            var Y = args.Y;
+            var Z = args.Z;
+
+            if (X != null)
             {
-                if (cmd.letter == 'M')
+                state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
+                    state.AxisState.Position.x - X.value;
+            }
+            if (Y != null)
+            {
+                state.AxisState.Params.CurrentCoordinateSystem.Offset.y =
+                    state.AxisState.Position.y - Y.value;
+            }
+            if (Z != null)
+            {
+                state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
+                    state.AxisState.Position.z - Z.value;
+            }
+            program.AddRTForgetResidual(state);
+        }
+
+        private void ProcessCoordinatesSystemSet(Arguments block,
+                                                 ActionProgram.ActionProgram program,
+                                                 CNCState.CNCState state)
+        {
+            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G'));
+            if (cmd == null)
+                return;
+            if (cmd.ivalue1 < 53 || cmd.ivalue1 > 59)
+                return;
+            int crdsid = cmd.ivalue1 - 53;
+            state.AxisState.Params.CurrentCoordinateSystemIndex = crdsid;
+        }
+
+        private IReadOnlyList<Arguments> SplitFrame(Arguments args)
+        {
+            List<Arguments> arguments = new List<Arguments>();
+
+            Arguments cur = new Arguments();
+
+            foreach (var arg in args.Options)
+            {
+                if (arg.letter == 'M' || arg.letter == 'G')
                 {
-                    if (cmd.dot == false)
+                    if (cur.Options.Count > 0)
                     {
-                        // We don't check current state == new state,
-                        // because of possible inconsistency of spindle driver and state
-                        switch (cmd.ivalue1)
-                        {
-                            case 5:
-                                spindleChange = true;
-                                state.SpindleState.RotationState = SpindleRotationState.Off;
-                                break;
-                            case 121:
-                                PopState(state.AxisState);
-                                break;
-                        }
+                        arguments.Add(cur);
+                        cur = new Arguments();
                     }
                 }
+                cur.AddOption(arg);
             }
-            if (spindleChange)
+
+            if (cur.Options.Count > 0)
             {
-                ModbusToolCommand command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
-                program.AddModbusToolCommand(command, state);
+                arguments.Add(cur);
+                cur = new Arguments();
             }
+
+            return arguments;
+        }
+
+        private void CommitPendingCommands(ActionProgram.ActionProgram program,
+                                           CNCState.CNCState state)
+        {
+            if (spindleCommandPending)
+            {
+                var command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
+                program.AddModbusToolCommand(command, state);
+                spindleCommandPending = false;
+            }
+        }
+        /*
+        private int CallSubprogram(Arguments args,
+                                   int index,
+                                   CNCState.CNCState state)
+        {
+            var prg = args.SingleOptions['P'];
+            int prgindex = programs[prg];
+
+            PushPosition(prgindex + 1);
+
+            return prgindex;
+        }
+
+        private int ReturnFromSubprogram(Arguments args,
+                                         ActionProgram.ActionProgram program,
+                                         CNCState.CNCState state)
+        {
+            int pos = PopPosition();
+            if (pos < 0)
+                program.AddStop();
+            return pos;
+        }
+        */
+        private int ProcessBlock(Arguments block,
+                                 ActionProgram.ActionProgram program,
+                                 CNCState.CNCState state)
+        {
+            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G' || arg.letter == 'M'));
+            int next = -1;
+
+            ProcessParameters(block, program, state);
+
+            if (cmd == null)
+            {
+                ProcessMove(block, program, state);
+            }
+            else if (cmd.letter == 'G')
+            {
+                switch (cmd.ivalue1)
+                {
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                        ProcessMove(block, program, state);
+                        break;
+                    case 17:
+                        state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.XY;
+                        break;
+                    case 18:
+                        state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.YZ;
+                        break;
+                    case 19:
+                        state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.ZX;
+                        break;
+                    case 28:
+                        program.AddHoming(state);
+                        break;
+                    case 30:
+                        program.AddZProbe(state);
+                        break;
+                    case 53:
+                    case 54:
+                    case 55:
+                    case 56:
+                    case 57:
+                    case 58:
+                    case 59:
+                        ProcessCoordinatesSystemSet(block, program, state);
+                        break;
+                    case 90:
+                        state.AxisState.Absolute = true;
+                        break;
+                    case 91:
+                        state.AxisState.Absolute = false;
+                        break;
+                    case 92:
+                        ProcessCoordinatesSet(block, program, state);
+                        break;
+                }
+            }
+            else if (cmd.letter == 'M')
+            {
+                switch (cmd.ivalue1)
+                {
+                    case 3:
+                    case 4:
+                    case 5:
+                        ProcessSpindleRunCommand(block, program, state);
+                        break;
+                    case 6:
+                        if (block.SingleOptions.ContainsKey('T'))
+                            program.AddToolChange(block.SingleOptions['T'].ivalue1);
+                        break;
+                    /*case 97:
+                        next = CallSubprogram(block, index, state);
+                        break;
+                    case 99:
+                        next = ReturnFromSubprogram(block, program, state);
+                        break;*/
+                    case 120:
+                        PushState(state.AxisState);
+                        break;
+                    case 121:
+                        PopState(state.AxisState);
+                        break;
+                }
+            }
+
+            CommitPendingCommands(program, state);
+
+            return next;
         }
 
         private int Process(String frame,
@@ -336,19 +414,25 @@ namespace GCodeMachine
             Arguments args = new Arguments(frame);
             var line_number = args.LineNumber;
             var len0 = program.Actions.Count;
-
-            ProcessPreMove(args, program, state);
-            ProcessMove(args, program, state);
-            ProcessPostMove(args, program, state);
-
+            var next = index + 1;
+            var sargs = SplitFrame(args);
+            foreach (var block in sargs)
+            {
+                int si = ProcessBlock(block, program, state);
+                if (si >= 0)
+                {
+                    next = si;
+                    break;
+                }
+            }
+           
             var len1 = program.Actions.Count;
             if (len1 > len0)
             {
                 var (first, _) = program.Actions[len0];
                 starts[first] = index;
             }
-
-            return index + 1;
+            return next;
         }
 
         public (ActionProgram.ActionProgram program, IReadOnlyDictionary<IAction, int> starts) 

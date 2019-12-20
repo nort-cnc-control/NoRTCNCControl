@@ -305,7 +305,7 @@ namespace NoRTServer
                 {
                     run = machineServer.Run();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Console.WriteLine("Exception: {0}", e);
                 }
