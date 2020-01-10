@@ -32,7 +32,7 @@ namespace NoRTServer
         private static void Usage()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("NoRTServer.exe [-h] -m machineConfig.json [-r runConfig.json] [-p port]");
+            Console.WriteLine("NoRTServer.exe [-h] [-x proxy] -m machineConfig.json [-r runConfig.json] [-p port]");
             Console.WriteLine("");
             Console.WriteLine("Detailed options:");
 
@@ -45,6 +45,11 @@ namespace NoRTServer
 
             Console.WriteLine("-p port");
             Console.WriteLine("Control connection port (tcp). Default: 8888");
+
+            Console.WriteLine("");
+
+            Console.WriteLine("-x proxy");
+            Console.WriteLine("Hardware proxy address. Default is 127.0.0.1. Proxy port = 8889");
 
             Console.WriteLine("");
 
@@ -149,11 +154,12 @@ namespace NoRTServer
 
         static void Main(string[] args)
         {
-            var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:");
+            var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:x:");
 
             string machineConfigName = "";
             string runConfigName = "";
             int controlPort = 8888;
+            string proxyAddress = "127.0.0.1";
             int proxyPort = 8889;
 
             int arg;
@@ -174,6 +180,11 @@ namespace NoRTServer
                     case 'r':
                         {
                             runConfigName = opts.Optarg;
+                            break;
+                        }
+                    case 'x':
+                        {
+                            proxyAddress = opts.Optarg;
                             break;
                         }
                     case 'h':
@@ -268,7 +279,7 @@ namespace NoRTServer
 
             if (packetModbus || packetRT)
             {
-                var proxy = IPAddress.Parse("127.0.0.1");
+                var proxy = IPAddress.Parse(proxyAddress);
                 TcpClient tcpClient = new TcpClient();
                 tcpClient.Connect(proxy, proxyPort);
                 var stream = tcpClient.GetStream();
