@@ -32,7 +32,7 @@ namespace NoRTServer
         private static void Usage()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("NoRTServer.exe -m machineConfig.json [-r runConfig.json] [-p port]");
+            Console.WriteLine("NoRTServer.exe [-h] -m machineConfig.json [-r runConfig.json] [-p port]");
             Console.WriteLine("");
             Console.WriteLine("Detailed options:");
 
@@ -78,6 +78,10 @@ namespace NoRTServer
             Console.WriteLine("\tAvailable values:");
             Console.WriteLine("\t\tN700E");
             Console.WriteLine("\t\tNone");
+
+            Console.WriteLine("");
+            Console.WriteLine("-h");
+            Console.WriteLine("Print help and exit");
         }
 
 
