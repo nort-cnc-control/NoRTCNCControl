@@ -18,5 +18,5 @@
     "max_movement_leap" : 40,
     "max_acceleration" : 40,
 
-    "state_refresh_timeout" : 500
+    "state_refresh_timeout" : 1000
 }

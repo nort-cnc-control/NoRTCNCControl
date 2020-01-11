@@ -48,12 +48,15 @@ namespace GCodeMachine
 
         private IRTSender rtSender;
 
+        private EventWaitHandle reseted;
+
         public GCodeMachine(IRTSender sender,
                             IMessageRouter messageRouter,
                             CNCState.CNCState state,
                             Config.MachineParameters config,
                             Vector3 hwCoords)
         {
+            reseted = new EventWaitHandle(false, EventResetMode.AutoReset);
             this.config = config;
             this.messageRouter = messageRouter;
             LastState = state;
@@ -96,6 +99,8 @@ namespace GCodeMachine
             {
                 currentWait.Set();
             }
+            SendState("init");
+            reseted.Set();
         }
 
         public (Vector3 glob, Vector3 loc, string cs)
@@ -155,6 +160,12 @@ namespace GCodeMachine
         }
 
         public void Continue()
+        {
+            var runThread = new Thread(new ThreadStart(Process));
+            runThread.Start();
+        }
+
+        public void Process()
         {
             bool fast_exit = false;
             List<IAction> started = new List<IAction>();
@@ -266,11 +277,13 @@ namespace GCodeMachine
         public void Reboot()
         {
             rtSender.SendCommand("M999");
+            reseted.WaitOne();
         }
 
         public void Abort()
         {
             rtSender.SendCommand("M999");
+            reseted.WaitOne();
         }
 
         private (IAction, CNCState.CNCState) PopAction()
@@ -284,6 +297,7 @@ namespace GCodeMachine
 
         public void Dispose()
         {
+            rtSender.Reseted -= OnReseted;
             program = null; // remove link usage
             messageRouter = null;
         }

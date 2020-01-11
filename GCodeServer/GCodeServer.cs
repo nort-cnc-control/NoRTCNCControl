@@ -228,15 +228,6 @@ namespace GCodeServer
                         Init();
                         StatusMachine.Start();
                     }
-                    else if (command == "start")
-                    {
-                        RunGcode(gcodeprogram);
-                    }
-                    else if (command == "continue")
-                    {
-                        Machine.Continue();
-                        Machine.LastState = state.BuildCopy();
-                    }
                     else if (command == "stop")
                     {
                         Machine.Stop();
@@ -261,6 +252,15 @@ namespace GCodeServer
                             ["lines"] = message["program"]
                         };
                         responseSender.MessageSend(response.ToString());
+                    }
+                    else if (command == "continue")
+                    {
+                        Machine.Continue();
+                        Machine.LastState = state.BuildCopy();
+                    }
+                    else if (command == "start")
+                    {
+                        RunGcode(gcodeprogram);
                     }
                     else if (command == "execute")
                     {

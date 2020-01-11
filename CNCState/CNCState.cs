@@ -129,7 +129,7 @@ namespace CNCState
             {
                 Absolute = true,
                 ArcAxis = RTArcMoveCommand.ArcAxis.XY,
-                Feed = 0,
+                Feed = 100,
                 CoordinateSystems = new CoordinateSystem[8],
                 CurrentCoordinateSystemIndex = 0,
             };
