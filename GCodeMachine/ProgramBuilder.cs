@@ -194,7 +194,7 @@ namespace GCodeMachine
                                               ActionProgram.ActionProgram program,
                                               CNCState.CNCState state)
         {
-            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G'));
+            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'M'));
             if (cmd == null)
                 return;
             switch (cmd.ivalue1)

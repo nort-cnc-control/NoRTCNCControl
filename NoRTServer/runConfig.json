@@ -1,5 +1,15 @@
 ﻿{
-    "rt_sender" : "PacketRTSender",
-    "modbus_sender" : "PacketModbusSender",
+    "modbus_sender" : {
+        "sender" : "PacketModbusSender",
+        "address" : "127.0.0.1",
+        "port" : 8890
+    },
+
+    "rt_sender" : {
+        "sender" : "PacketRTSender",
+        "address" : "127.0.0.1",
+        "port" : 8889
+    },
+
     "spindle_driver" : "N700E"
 }

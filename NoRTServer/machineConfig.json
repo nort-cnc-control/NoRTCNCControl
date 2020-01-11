@@ -16,5 +16,7 @@
     "invert_z" : true,
 
     "max_movement_leap" : 40,
-    "max_acceleration" : 40
+    "max_acceleration" : 40,
+
+    "state_refresh_timeout" : 500
 }

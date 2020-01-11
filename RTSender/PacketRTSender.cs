@@ -48,6 +48,7 @@ namespace RTSender
             while (running)
             {
                 var line = input.ReadLine();
+                Console.WriteLine("Received: {0}", line);
                 try
                 {
                     var args = new Answer(line);

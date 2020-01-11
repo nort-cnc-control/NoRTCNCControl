@@ -24,6 +24,8 @@ namespace Config
         public double max_movement_leap { get; set; }
         public double max_acceleration { get; set; }
 
+        public int state_refresh_timeout { get; set; }
+
         public static MachineParameters LoadConfig(string config)
         {
             try

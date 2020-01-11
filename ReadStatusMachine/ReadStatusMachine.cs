@@ -12,12 +12,16 @@ namespace ReadStatusMachine
         private bool run;
         private readonly IRTSender rtSender;
         private Thread askPosThread;
+        private readonly int timeout;
+        private EventWaitHandle timeoutWait;
 
         public event Action<Vector3, bool, bool, bool, bool> CurrentStatusUpdate;
 
-        public ReadStatusMachine(IRTSender rtSender)
+        public ReadStatusMachine(IRTSender rtSender, int updateT)
         {
             this.rtSender = rtSender;
+            timeout = updateT;
+            timeoutWait = new EventWaitHandle(false, EventResetMode.AutoReset);
         }
 
         public State RunState { get; private set; }
@@ -25,6 +29,7 @@ namespace ReadStatusMachine
         public void Abort()
         {
             run = false;
+            timeoutWait.Set();
             askPosThread.Join();
         }
 
@@ -42,12 +47,14 @@ namespace ReadStatusMachine
         public void Dispose()
         {
             run = false;
+            timeoutWait.Set();
             askPosThread.Join();
         }
 
         public void Pause()
         {
             run = false;
+            timeoutWait.Set();
             askPosThread.Join();
         }
 
@@ -64,7 +71,7 @@ namespace ReadStatusMachine
                     RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
                     // action.ReadyToRun.WaitOne();
                     action.Run();
-                    action.Finished.WaitOne(2000);
+                    action.Finished.WaitOne(100);
                     var xs = action.ActionResult["X"];
                     var ys = action.ActionResult["Y"];
                     var zs = action.ActionResult["Z"];
@@ -74,6 +81,7 @@ namespace ReadStatusMachine
                 }
                 catch
                 {
+
                     Thread.Sleep(100);
                 }
             }
@@ -95,7 +103,6 @@ namespace ReadStatusMachine
         {
             while (run)
             {
-                Thread.Sleep(500);
                 try
                 {
                     var hw_crds = ReadHardwareCoordinates();
@@ -107,6 +114,7 @@ namespace ReadStatusMachine
                 {
                     ;
                 }
+                timeoutWait.WaitOne(timeout);
             }
             Console.WriteLine("End ask coordinate");
         }

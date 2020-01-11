@@ -6,21 +6,14 @@ using ModbusSender;
 using System.IO;
 using System;
 using Actions.Tools.SpindleTool;
-using Newtonsoft.Json;
 using Gnu.Getopt;
-using System.Threading;
+using System.Json;
+using Newtonsoft.Json;
 
 namespace NoRTServer
 {
     class Program
     {
-        private class RunConfig
-        {
-            public string rt_sender { get; set; }
-            public string modbus_sender { get; set; }
-            public string spindle_driver { get; set; }
-        }
-
         private static void PrintStream(MemoryStream output)
         {
             output.Seek(0, SeekOrigin.Begin);
@@ -32,7 +25,7 @@ namespace NoRTServer
         private static void Usage()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("NoRTServer.exe [-h] [-x proxy] -m machineConfig.json [-r runConfig.json] [-p port]");
+            Console.WriteLine("NoRTServer.exe [-h] -m machineConfig.json [-r runConfig.json] [-p port]");
             Console.WriteLine("");
             Console.WriteLine("Detailed options:");
 
@@ -48,18 +41,13 @@ namespace NoRTServer
 
             Console.WriteLine("");
 
-            Console.WriteLine("-x proxy");
-            Console.WriteLine("Hardware proxy address. Default is 127.0.0.1. Proxy port = 8889");
-
-            Console.WriteLine("");
-
             Console.WriteLine("-r runConfig.json");
             Console.WriteLine("Use config file for selecting used interfaces");
 
             Console.WriteLine("\nFormat:\n");
             Console.WriteLine("\t{");
-            Console.WriteLine("\t\t\"rt_sender\" : \"...\",");
-            Console.WriteLine("\t\t\"modbus_sender\" : \"...\",");
+            Console.WriteLine("\t\t\"rt_sender\" : {\"sender\" : \"...\"},");
+            Console.WriteLine("\t\t\"modbus_sender\" : {\"sender\" : \"...\"},");
             Console.WriteLine("\t\t\"spindle_driver\" : \"...\"");
             Console.WriteLine("\t}");
 
@@ -219,13 +207,13 @@ namespace NoRTServer
                 };
             }
             machineConfig.max_acceleration *= 3600; // to mm/min^2
-            RunConfig runConfig;
+            JsonValue runConfig;
             if (runConfigName != "")
             {
                 try
                 {
                     string cfg = File.ReadAllText(runConfigName);
-                    runConfig = JsonConvert.DeserializeObject<RunConfig>(cfg);
+                    runConfig = JsonValue.Parse(cfg);
                 }
                 catch (Exception e)
                 {
@@ -235,11 +223,15 @@ namespace NoRTServer
             }
             else
             {
-                runConfig = new RunConfig
+                runConfig = new JsonObject
                 {
-                    rt_sender = "EmulationRTSender",
-                    modbus_sender = "EmulationModbusSender",
-                    spindle_driver = "N700E",
+                    ["rt_sender"] = new JsonObject {
+                        ["sender"] = "EmulationRTSender",
+                    },
+                    ["modbus_sender"] = new JsonObject {
+                        ["sender"] = "EmulationModbusSender",
+                    },
+                    ["spindle_driver"] = "N700E",
                 };
             }
 
@@ -249,31 +241,57 @@ namespace NoRTServer
 
             bool packetModbus = false;
             IModbusSender modbusSender = null;
-            switch (runConfig.modbus_sender)
+            string modbus_sender = runConfig["modbus_sender"]["sender"];
+            Console.WriteLine("Using {0} modbus sender", modbus_sender);
+            switch (modbus_sender)
             {
                 case "EmulationModbusSender":
-                    modbusSender = new EmulationModbusSender(Console.Out);
-                    break;
+                    {
+                        modbusSender = new EmulationModbusSender(Console.Out);
+                        break;
+                    }
                 case "PacketModbusSender":
-                    packetModbus = true;
-                    break;
+                    {
+                        string address = runConfig["modbus_sender"]["address"];
+                        int port = runConfig["modbus_sender"]["port"];
+                        TcpClient tcpClient = new TcpClient();
+                        tcpClient.Connect(IPAddress.Parse(address), port);
+                        var stream = tcpClient.GetStream();
+                        var reader = new StreamReader(stream);
+                        var writer = new StreamWriter(stream);
+                        modbusSender = new PacketModbusSender(writer, reader);
+                        break;
+                    }
                 default:
-                    Console.WriteLine("Invalid modbus sender: {0}", runConfig.modbus_sender);
+                    Console.WriteLine("Invalid modbus sender: {0}", modbus_sender);
                     return;
             }
 
             bool packetRT = false;
             IRTSender rtSender = null;
-            switch (runConfig.rt_sender)
+            string rt_sender = runConfig["rt_sender"]["sender"];
+            Console.WriteLine("Using {0} rt sender", rt_sender);
+            switch (rt_sender)
             {
                 case "EmulationRTSender":
-                    rtSender = new EmulationRTSender(Console.Out);
-                    break;
+                    {
+                        rtSender = new EmulationRTSender(Console.Out);
+                        break;
+                    }
                 case "PacketRTSender":
-                    packetRT = true;
-                    break;
+                    {
+                        string address = runConfig["rt_sender"]["address"];
+                        int port = runConfig["rt_sender"]["port"];
+                        TcpClient tcpClient = new TcpClient();
+                        tcpClient.Connect(IPAddress.Parse(address), port);
+                        var stream = tcpClient.GetStream();
+                        var reader = new StreamReader(stream);
+                        var writer = new StreamWriter(stream);
+                        rtSender = new PacketRTSender(writer, reader);
+                        break;
+                    }
                 default:
-                    Console.WriteLine("Invalid RT sender: {0}", runConfig.rt_sender);
+                    Console.WriteLine("Invalid RT sender: {0}", rt_sender);
                     return;
             }
 
@@ -292,7 +310,8 @@ namespace NoRTServer
             }
 
             ISpindleToolFactory spindleCommandFactory;
-            switch (runConfig.spindle_driver)
+            string spindle_driver = runConfig["spindle_driver"];
+            switch (spindle_driver)
             {
                 case "N700E":
                     spindleCommandFactory = new N700ESpindleToolFactory();
@@ -301,7 +320,7 @@ namespace NoRTServer
                     spindleCommandFactory = new NoneSpindleToolFactory();
                     break;
                 default:
-                    Console.WriteLine("Invalid spindle driver: {0}", runConfig.spindle_driver);
+                    Console.WriteLine("Invalid spindle driver: {0}", spindle_driver);
                     return;
             }
             

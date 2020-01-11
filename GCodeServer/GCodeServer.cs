@@ -24,7 +24,7 @@ namespace GCodeServer
         public MachineParameters Config { get; private set; }
         public GCodeMachine.GCodeMachine Machine { get; private set; }
         public ReadStatusMachine.ReadStatusMachine StatusMachine { get; private set; }
-        private readonly ProgramBuilder programBuilder;
+        private ProgramBuilder programBuilder;
 
         private readonly IRTSender rtSender;
         private readonly IModbusSender modbusSender;
@@ -32,7 +32,7 @@ namespace GCodeServer
 
         private IReadOnlyDictionary<IAction, int> starts;
 
-        private readonly CNCState.CNCState state;
+        private CNCState.CNCState state;
 
         private MessageReceiver cmdReceiver;
         private MessageSender responseSender;
@@ -40,7 +40,7 @@ namespace GCodeServer
         private readonly Stream commandStream;
         private readonly Stream responseStream;
 
-        private readonly IToolManager toolManager;
+        private IToolManager toolManager;
 
         public GCodeServer(IRTSender rtSender,
                            IModbusSender modbusSender,
@@ -49,28 +49,33 @@ namespace GCodeServer
                            Stream commandStream,
                            Stream responseStream)
         {
-            state = new CNCState.CNCState(new AxisState(), new SpindleState());
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
             this.spindleToolFactory = spindleToolFactory;
             this.Config = config;
             this.commandStream = commandStream;
             this.responseStream = responseStream;
-            StatusMachine = new ReadStatusMachine.ReadStatusMachine(rtSender);
+            StatusMachine = new ReadStatusMachine.ReadStatusMachine(rtSender, Config.state_refresh_timeout);
             StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
-            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, state, Config, StatusMachine.ReadHardwareCoordinates());
-            Machine.ActionStarted += Machine_ActionStarted;
+            Init();
 
-            toolManager = new ManualToolManager(this, Machine);
-
-            programBuilder = new ProgramBuilder(this.Machine,
-                                                this.rtSender,
-                                                this.modbusSender,
-                                                this.spindleToolFactory,
-                                                toolManager,
-                                                this.Config);
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
+        }
+
+        private void Init()
+        {
+            state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var crds = StatusMachine.ReadHardwareCoordinates();
+            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, state, Config, crds);
+            Machine.ActionStarted += Machine_ActionStarted;
+            programBuilder = new ProgramBuilder(Machine,
+                                                rtSender,
+                                                modbusSender,
+                                                spindleToolFactory,
+                                                toolManager,
+                                                Config);
+            toolManager = new ManualToolManager(this, Machine);
         }
 
         public void Message(IReadOnlyDictionary<string, string> message)
@@ -218,6 +223,9 @@ namespace GCodeServer
                     {
                         StatusMachine.Abort();
                         Machine.Abort();
+                        Machine.ActionStarted -= Machine_ActionStarted;
+                        Machine.Dispose();
+                        Init();
                         StatusMachine.Start();
                     }
                     else if (command == "start")
