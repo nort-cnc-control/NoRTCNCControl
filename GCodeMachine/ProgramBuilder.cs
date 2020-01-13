@@ -348,6 +348,7 @@ namespace GCodeMachine
                         break;
                     case 28:
                         program.AddHoming(state);
+                        state.AxisState.Reset();
                         break;
                     case 30:
                         program.AddZProbe(state);

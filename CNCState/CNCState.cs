@@ -160,6 +160,15 @@ namespace CNCState
             };
             return copy;
         }
+
+        public void Reset()
+        {
+            Position.x = Position.y = Position.z = 0;
+            foreach (var cs in Params.CoordinateSystems)
+            {
+                cs.Offset.x = cs.Offset.y = cs.Offset.z = 0;
+            }
+        }
     }
 
     public class SpindleState

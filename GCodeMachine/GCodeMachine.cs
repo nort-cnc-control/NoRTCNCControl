@@ -210,9 +210,17 @@ namespace GCodeMachine
                         SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
                         currentAction.EventStarted += Action_OnStarted;
                         started.Add(currentAction);
+                        if (currentAction is RTAction)
+                        {
+                            Console.WriteLine("Running command {0}", (currentAction as RTAction).CommandId);
+                        }
                         currentAction.Run();
                         break;
                     case MachineState.WaitActionContiniousBlockCompleted:
+                        if (currentAction is RTAction)
+                        {
+                            Console.WriteLine("Waiting for command {0}", (currentAction as RTAction).CommandId);
+                        }
                         Wait(currentAction.ContiniousBlockCompleted);
                         SwitchToState(MachineState.Ready);
                         break;

@@ -158,6 +158,7 @@ namespace ControlConnection
         public void Stop()
         {
             run = false;
+            waiter.Set();
             streamReader.Join();
         }
 
@@ -180,7 +181,7 @@ namespace ControlConnection
                 waiter.Reset();
                 waiter.WaitOne();
             }
-            if (end)
+            if (end || run == false)
                 return null;
             String rcvd = receivedStrings[0];
             receivedStrings.RemoveAt(0);

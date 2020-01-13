@@ -15,6 +15,7 @@ using GCodeMachine;
 using System.Json;
 using System.Threading;
 using Actions.Tools;
+using System.Collections.Concurrent;
 
 namespace GCodeServer
 {
@@ -41,6 +42,9 @@ namespace GCodeServer
         private readonly Stream responseStream;
 
         private IToolManager toolManager;
+        private bool serverRun;
+
+        private BlockingCollection<JsonObject> commands;
 
         public GCodeServer(IRTSender rtSender,
                            IModbusSender modbusSender,
@@ -57,6 +61,7 @@ namespace GCodeServer
             this.responseStream = responseStream;
             StatusMachine = new ReadStatusMachine.ReadStatusMachine(rtSender, Config.state_refresh_timeout);
             StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
+            commands = new BlockingCollection<JsonObject>();
             Init();
 
             cmdReceiver = new MessageReceiver(commandStream);
@@ -168,13 +173,13 @@ namespace GCodeServer
         }
         #endregion
 
-        public bool Run()
+        private void ReceiveCmdCycle()
         {
-            StatusMachine.Start();
-            cmdReceiver.Run();
             String[] gcodeprogram = { };
+            cmdReceiver.Run();
             do
             {
+
                 var cmd = cmdReceiver.MessageReceive();
                 if (cmd == null)
                 {
@@ -182,7 +187,7 @@ namespace GCodeServer
                     cmdReceiver.Stop();
                     StatusMachine.Stop();
                     Machine.Stop();
-                    return true;
+                    break;
                 }
                 JsonValue message;
                 try
@@ -194,83 +199,154 @@ namespace GCodeServer
                     cmdReceiver.Stop();
                     StatusMachine.Stop();
                     Machine.Stop();
+                    serverRun = false;
                     Console.WriteLine("Cannot parse command \"{0}\"", cmd);
-                    return true;
+                    break;
                 }
-                var type = message["type"];
-                if (type == "command")
-                {
-                    var command = message["command"];
-                    if (command == "exit")
-                    {
-                        cmdReceiver.Stop();
-                        StatusMachine.Stop();
-                        Machine.Stop();
-                        return false;
-                    }
-                    else if (command == "disconnect")
-                    {
-                        cmdReceiver.Stop();
-                        StatusMachine.Stop();
-                        Machine.Stop();
-                        return true;
-                    }
-                    else if (command == "reboot")
-                    {
-                        Machine.Reboot();
-                    }
-                    else if (command == "reset")
-                    {
-                        StatusMachine.Abort();
-                        Machine.Abort();
-                        Machine.ActionStarted -= Machine_ActionStarted;
-                        Machine.Dispose();
-                        Init();
-                        StatusMachine.Start();
-                    }
-                    else if (command == "stop")
-                    {
-                        Machine.Stop();
-                    }
-                    else if (command == "pause")
-                    {
-                        //TODO
-                    }
-                    else if (command == "load")
-                    {
 
-                        List<string> program = new List<string>();
-                        foreach (JsonPrimitive line in message["program"])
+                string type = message["type"];
+                switch (type)
+                {
+                    case "command":
                         {
-                            string str = line;
-                            program.Add(str);
+                            string command = message["command"];
+                            switch (command)
+                            {
+                                case "exit":
+                                    {
+                                        cmdReceiver.Stop();
+                                        StatusMachine.Stop();
+                                        Machine.Stop();
+                                        serverRun = false;
+                                        break;
+                                    }
+                                case "disconnect":
+                                    {
+                                        cmdReceiver.Stop();
+                                        StatusMachine.Stop();
+                                        Machine.Stop();
+                                        serverRun = false;
+                                        break;
+                                    }
+                                case "reboot":
+                                    {
+                                        Machine.Reboot();
+                                        break;
+                                    }
+                                case "reset":
+                                    {
+                                        StatusMachine.Stop();
+                                        Machine.Abort();
+                                        Machine.ActionStarted -= Machine_ActionStarted;
+                                        Machine.Dispose();
+                                        Init();
+                                        StatusMachine.Start();
+                                        break;
+                                    }
+                                case "stop":
+                                    {
+                                        Machine.Stop();
+                                        break;
+                                    }
+                                case "pause":
+                                    {
+                                        break;
+                                    }
+                                case "load":
+                                    {
+
+                                        List<string> program = new List<string>();
+                                        foreach (JsonPrimitive line in message["program"])
+                                        {
+                                            string str = line;
+                                            program.Add(str);
+                                        }
+                                        gcodeprogram = program.ToArray();
+                                        var response = new JsonObject
+                                        {
+                                            ["type"] = "loadlines",
+                                            ["lines"] = message["program"]
+                                        };
+                                        responseSender.MessageSend(response.ToString());
+                                        break;
+                                    }
+                                case "continue":
+                                    {
+                                        commands.Add(new JsonObject
+                                            {
+                                                ["command"] = "continue",
+                                            }
+                                        );
+                                        break;
+                                    }
+                                case "start":
+                                    {
+                                        var lines = gcodeprogram.Select(line => new JsonPrimitive(line));
+                                        commands.Add(new JsonObject
+                                            {
+                                                ["command"] = "start",
+                                                ["program"] = new JsonArray(lines),
+                                            }
+                                        );
+                                        break;
+                                    }
+                                case "execute":
+                                    {
+                                        var lines = new List<JsonValue>
+                                        {
+                                            message["program"]
+                                        };
+
+                                        commands.Add(new JsonObject
+                                            {
+                                                ["command"] = "start",
+                                                ["program"] = new JsonArray(lines),
+                                            }
+                                        );
+                                        break;
+                                    }
+                                default:
+                                    throw new ArgumentException(String.Format("Invalid command \"{0}\"", message.ToString()));
+                            }
+                            break;
                         }
-                        gcodeprogram = program.ToArray();
-                        var response = new JsonObject
+                }
+
+            } while (serverRun);
+            cmdReceiver.Stop();
+        }
+
+        public bool Run()
+        {
+            StatusMachine.Start();
+            serverRun = true;
+            var cmdThread = new Thread(new ThreadStart(ReceiveCmdCycle));
+            cmdThread.Start();
+            String[] gcodeprogram = { };
+            do
+            {
+                var command = commands.Take();
+                string cmd = command["command"];
+                switch (cmd)
+                {
+                    case "start":
                         {
-                            ["type"] = "loadlines",
-                            ["lines"] = message["program"]
-                        };
-                        responseSender.MessageSend(response.ToString());
-                    }
-                    else if (command == "continue")
-                    {
-                        Machine.Continue();
-                        Machine.LastState = state.BuildCopy();
-                    }
-                    else if (command == "start")
-                    {
-                        RunGcode(gcodeprogram);
-                    }
-                    else if (command == "execute")
-                    {
-                        string program = message["program"];
-                        RunGcode(program);
-                    }
-                    else
-                    {
-                        throw new ArgumentException(String.Format("Invalid command \"{0}\"", message.ToString()));
-                    }
+                            List<string> program = new List<string>();
+                            foreach (JsonPrimitive line in command["program"])
+                            {
+                                string str = line;
+                                program.Add(str);
+                            }
+                            RunGcode(program.ToArray());
+                            state = Machine.LastState;
+                            break;
+                        }
+                    case "continue":
+                        {
+                            Machine.Continue();
+                            state = Machine.LastState;
+                            break;
+                        }
                 }
 
             } while (true);
@@ -288,7 +364,6 @@ namespace GCodeServer
                 responseSender.Dispose();
                 responseSender = null;
             }
-
             Machine.Dispose();
             StatusMachine.Dispose();
         }

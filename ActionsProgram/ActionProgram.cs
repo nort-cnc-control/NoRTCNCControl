@@ -136,12 +136,6 @@ namespace ActionProgram
             var gz2 = config.step_back_z;
             var gz3 = -config.step_back_z*1.2;
 
-            if (config.invert_z)
-            {
-                gz1 *= -1;
-                gz2 *= -1;
-                gz3 *= -1;
-            }
             AddRTEnableBreakOnProbe(currentState);
             
             AddRTForgetResidual(currentState);
