@@ -53,8 +53,7 @@ namespace GCodeMachine
         public GCodeMachine(IRTSender sender,
                             IMessageRouter messageRouter,
                             CNCState.CNCState state,
-                            Config.MachineParameters config,
-                            Vector3 hwCoords)
+                            Config.MachineParameters config)
         {
             reseted = new EventWaitHandle(false, EventResetMode.AutoReset);
             this.config = config;
@@ -63,17 +62,6 @@ namespace GCodeMachine
             HwCoordinateSystem = null;
             this.rtSender = sender;
             this.rtSender.Reseted += OnReseted;
-
-            Vector3 crds = hwCoords;
-            var pos = LastState.AxisState.Position;
-            var sign = new Vector3(config.invert_x ? -1 : 1, config.invert_y ? -1 : 1, config.invert_z ? -1 : 1);
-            HwCoordinateSystem = new AxisState.CoordinateSystem
-            {
-                Sign = sign,
-                Offset = new Vector3(crds.x - sign.x * pos.x,
-                                     crds.y - sign.y * pos.y,
-                                     crds.z - sign.z * pos.z)
-            };
         }
 
         private void SwitchToState(MachineState state, bool force=false)
@@ -103,22 +91,16 @@ namespace GCodeMachine
             reseted.Set();
         }
 
-        public (Vector3 glob, Vector3 loc, string cs)
-            ConvertCoordinates(Vector3 hw)
+        public (Vector3 loc, string cs)
+            ConvertCoordinates(Vector3 glob)
         {
-            Vector3 glob;
-            if (HwCoordinateSystem == null)
-                glob = new Vector3();
-            else
-                glob = HwCoordinateSystem.ToLocal(hw);
-
             Vector3 loc;
             if (CurrentCoordinateSystem == null)
                 loc = new Vector3();
             else
                 loc = CurrentCoordinateSystem.ToLocal(glob);
             var id = CurrentCoordinateSystemIndex;
-            return (glob, loc, String.Format("G5{0}", 3 + id));
+            return (loc, String.Format("G5{0}", 3 + id));
         }
 
 

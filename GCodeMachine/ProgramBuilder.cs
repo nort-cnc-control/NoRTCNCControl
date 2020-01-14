@@ -28,16 +28,19 @@ namespace GCodeMachine
         private ArcMoveFeedLimiter arcMoveFeedLimiter;
         private MoveOptimizer optimizer;
         private Stack<AxisState.Parameters> axisStateStack;
+        private readonly IStateSyncManager stateSyncManager;
 
         private bool spindleCommandPending;
 
         public ProgramBuilder(GCodeMachine machine,
+                              IStateSyncManager stateSyncManager,
                               IRTSender rtSender,
                               IModbusSender modbusSender,
                               ISpindleToolFactory spindleToolFactory,
                               IToolManager toolManager,
                               MachineParameters config)
         {
+            this.stateSyncManager = stateSyncManager;
             this.machine = machine;
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
@@ -349,9 +352,12 @@ namespace GCodeMachine
                     case 28:
                         program.AddHoming(state);
                         state.AxisState.Reset();
+                        program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state);
                         break;
                     case 30:
                         program.AddZProbe(state);
+                        state.AxisState.Position.z = 0;
+                        program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state);
                         break;
                     case 53:
                     case 54:

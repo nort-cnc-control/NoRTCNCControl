@@ -20,7 +20,7 @@ using System.Collections.Concurrent;
 namespace GCodeServer
 {
 
-    public class GCodeServer : IDisposable, IMessageRouter
+    public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager
     {
         public MachineParameters Config { get; private set; }
         public GCodeMachine.GCodeMachine Machine { get; private set; }
@@ -34,6 +34,7 @@ namespace GCodeServer
         private IReadOnlyDictionary<IAction, int> starts;
 
         private CNCState.CNCState state;
+        private AxisState.CoordinateSystem hwCoordinateSystem;
 
         private MessageReceiver cmdReceiver;
         private MessageSender responseSender;
@@ -71,10 +72,21 @@ namespace GCodeServer
         private void Init()
         {
             state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, state, Config);
+
             var crds = StatusMachine.ReadHardwareCoordinates();
-            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, state, Config, crds);
+            var sign = new Vector3(Config.SignX, Config.SignY, Config.SignZ);
+            hwCoordinateSystem = new AxisState.CoordinateSystem
+            {
+                Sign = sign,
+                Offset = new Vector3(crds.x - sign.x * state.AxisState.Position.x,
+                                     crds.y - sign.y * state.AxisState.Position.y,
+                                     crds.z - sign.z * state.AxisState.Position.z)
+            };
+
             Machine.ActionStarted += Machine_ActionStarted;
             programBuilder = new ProgramBuilder(Machine,
+                                                this,
                                                 rtSender,
                                                 modbusSender,
                                                 spindleToolFactory,
@@ -95,7 +107,8 @@ namespace GCodeServer
 
         private void OnStatusUpdate(Vector3 hw_crds, bool ex, bool ey, bool ez, bool ep)
         {
-            var (gl_crds, loc_crds, crd_system) = Machine.ConvertCoordinates(hw_crds);
+            var gl_crds = hwCoordinateSystem.ToLocal(hw_crds);
+            var (loc_crds, crd_system) = Machine.ConvertCoordinates(gl_crds);
             var response = new JsonObject
             {
                 ["type"] = "coordinates",
@@ -366,6 +379,19 @@ namespace GCodeServer
             }
             Machine.Dispose();
             StatusMachine.Dispose();
+        }
+
+        public void SyncCoordinates(Vector3 stateCoordinates)
+        {
+            var crds = StatusMachine.ReadHardwareCoordinates();
+            var sign = new Vector3(Config.SignX, Config.SignY, Config.SignZ);
+            hwCoordinateSystem = new AxisState.CoordinateSystem
+            {
+                Sign = sign,
+                Offset = new Vector3(crds.x - sign.x * state.AxisState.Position.x,
+                                     crds.y - sign.y * state.AxisState.Position.y,
+                                     crds.z - sign.z * state.AxisState.Position.z)
+            };
         }
     }
 }

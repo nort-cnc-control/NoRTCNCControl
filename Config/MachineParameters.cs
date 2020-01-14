@@ -21,6 +21,13 @@ namespace Config
         public double step_back_z { get; set; }
         public bool invert_z { get; set; }
 
+        [JsonIgnore]
+        public int SignX => invert_x ? -1 : 1;
+        [JsonIgnore]
+        public int SignY => invert_y ? -1 : 1;
+        [JsonIgnore]
+        public int SignZ => invert_z ? -1 : 1;
+
         public double max_movement_leap { get; set; }
         public double max_acceleration { get; set; }
 

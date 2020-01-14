@@ -32,7 +32,7 @@ namespace ActionProgram
             actions = new List<(IAction action, CNCState.CNCState state)>();
         }
 
-        private void AddAction(IAction action, CNCState.CNCState currentState)
+        public void AddAction(IAction action, CNCState.CNCState currentState)
         {
             if (currentState != null)
                 actions.Add((action, currentState.BuildCopy()));
