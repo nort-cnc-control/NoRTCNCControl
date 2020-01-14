@@ -116,7 +116,7 @@ namespace ReadStatusMachine
                 }
                 timeoutWait.WaitOne(timeout);
             }
-            Console.WriteLine("End ask coordinate");
+            //Console.WriteLine("End ask coordinate");
         }
 
         public void Start()

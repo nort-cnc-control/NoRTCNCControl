@@ -14,5 +14,6 @@
     <ProjectReference Include="..\Config\Config.csproj" />
     <ProjectReference Include="..\Actions\Actions.csproj" />
     <ProjectReference Include="..\CNCState\CNCState.csproj" />
+    <ProjectReference Include="..\Log\Log.csproj" />
   </ItemGroup>
 </Project>

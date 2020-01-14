@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Log;
 
 namespace ControlConnection
 {
@@ -18,6 +19,7 @@ namespace ControlConnection
         private State state;
         private String buffer;
         private int messageLen;
+
         public MessageReader()
         {
             state = State.ReadingLength;
@@ -98,7 +100,7 @@ namespace ControlConnection
         }
     }
 
-    public class MessageReceiver : IDisposable
+    public class MessageReceiver : IDisposable, ILoggerSource
     {
         public event Action<String> MessageReceived;
         
@@ -108,6 +110,8 @@ namespace ControlConnection
         private MessageReader reader;
         private bool run;
         private bool end;
+        public string Name => "message receiver";
+
         private void ReadingThread()
         {
             byte[] buffer = new byte[1000];
@@ -169,7 +173,7 @@ namespace ControlConnection
 
         private void OnReceive(String str)
         {
-            Console.WriteLine("RCVD: {0}", str);
+            Logger.Instance.Debug(this, "receive", str);
             receivedStrings.Add(str);
             waiter.Set();
         }

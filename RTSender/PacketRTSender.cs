@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-
+using Log;
 
 namespace RTSender
 {
-    public class PacketRTSender : IRTSender
+    public class PacketRTSender : IRTSender, ILoggerSource
     {
         public event Action EmptySlotAppeared;
         public event Action EmptySlotsEnded;
@@ -39,6 +39,9 @@ namespace RTSender
             }
         }
         public bool HasSlots { get { return Q > 0; } }
+
+        public string Name => "Packet sender";
+
         private readonly object lockObj = new object();
         private Thread receiveThread;
         private bool running;
@@ -48,7 +51,7 @@ namespace RTSender
             while (running)
             {
                 var line = input.ReadLine();
-                Console.WriteLine("Received: {0}", line);
+                Logger.Instance.Debug(this, "receive", line);
                 try
                 {
                     var args = new Answer(line);
@@ -82,7 +85,7 @@ namespace RTSender
                 }
                 catch
                 {
-                    Console.WriteLine("Can not parse response");
+                    Logger.Instance.Error(this, "parse error", line);
                 }
             }
         }
@@ -102,10 +105,11 @@ namespace RTSender
         {
             lock (lockObj)
             {
+                Indexed?.Invoke(index);
                 var cmd = String.Format("RT:N{0} {1}", index, command);
+                Logger.Instance.Debug(this, "send", cmd);
                 output.WriteLine(cmd);
                 output.Flush();
-                Indexed?.Invoke(index);
                 index++;
             }
         }

@@ -7,10 +7,11 @@ using System.Threading;
 using RTSender;
 using System.Collections.Generic;
 using CNCState;
+using Log;
 
 namespace GCodeMachine
 {
-    public class GCodeMachine : IMachine, IActionExecutor
+    public class GCodeMachine : IMachine, IActionExecutor, ILoggerSource
     {
         public event Action<IAction> ActionStarted;
 
@@ -37,6 +38,8 @@ namespace GCodeMachine
         private readonly Config.MachineParameters config;
         public IMessageRouter messageRouter;
 
+        private bool machineIsRunning;
+
         public AxisState.CoordinateSystem CurrentCoordinateSystem =>
                 LastState.AxisState.Params.CurrentCoordinateSystem;
         public int CurrentCoordinateSystemIndex =>
@@ -45,6 +48,8 @@ namespace GCodeMachine
 
         private EventWaitHandle currentWait;
         public State RunState { get; private set; }
+
+        public string Name => "gcode machine";
 
         private IRTSender rtSender;
 
@@ -62,6 +67,7 @@ namespace GCodeMachine
             HwCoordinateSystem = null;
             this.rtSender = sender;
             this.rtSender.Reseted += OnReseted;
+            machineIsRunning = false;
         }
 
         private void SwitchToState(MachineState state, bool force=false)
@@ -72,6 +78,7 @@ namespace GCodeMachine
 
         private void OnReseted()
         {
+            bool run = machineIsRunning;
             SwitchToState(MachineState.Aborted);
             if (previousAction != null)
             {
@@ -88,7 +95,8 @@ namespace GCodeMachine
                 currentWait.Set();
             }
             SendState("init");
-            reseted.Set();
+            if (!run)
+                reseted.Set();
         }
 
         public (Vector3 loc, string cs)
@@ -149,6 +157,7 @@ namespace GCodeMachine
 
         public void Process()
         {
+            machineIsRunning = true;
             bool fast_exit = false;
             List<IAction> started = new List<IAction>();
             RunState = State.Running;
@@ -192,16 +201,12 @@ namespace GCodeMachine
                         SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
                         currentAction.EventStarted += Action_OnStarted;
                         started.Add(currentAction);
-                        if (currentAction is RTAction)
-                        {
-                            Console.WriteLine("Running command {0}", (currentAction as RTAction).CommandId);
-                        }
                         currentAction.Run();
                         break;
                     case MachineState.WaitActionContiniousBlockCompleted:
                         if (currentAction is RTAction)
                         {
-                            Console.WriteLine("Waiting for command {0}", (currentAction as RTAction).CommandId);
+                            Logger.Instance.Debug(this, "wait", String.Format("Waiting for command {0}", (currentAction as RTAction).CommandId));
                         }
                         Wait(currentAction.ContiniousBlockCompleted);
                         SwitchToState(MachineState.Ready);
@@ -209,6 +214,7 @@ namespace GCodeMachine
                     case MachineState.Aborted:
                         Stop();
                         fast_exit = true;
+                        reseted.Set();
                         break;
                     case MachineState.End:
                         break;
@@ -242,18 +248,22 @@ namespace GCodeMachine
                     SendState("error");
                     break;
             }
+            machineIsRunning = false;
         }
 
-        void Action_OnStarted(IAction obj)
+        void Action_OnStarted(IAction action)
         {
-            Console.WriteLine("STARTED event");
-            ActionStarted?.Invoke(obj);
+            if (action is RTAction)
+                Logger.Instance.Debug(this, "started", (action as RTAction).CommandId.ToString());
+            else
+                Logger.Instance.Debug(this, "started", "");
+            ActionStarted?.Invoke(action);
         }
 
         public void Stop()
         {
             SendState("init");
-            SwitchToState(MachineState.End);
+            SwitchToState(MachineState.End, true);
             RunState = State.Stopped;
         }
 
@@ -266,12 +276,14 @@ namespace GCodeMachine
 
         public void Reboot()
         {
+            reseted.Reset();
             rtSender.SendCommand("M999");
             reseted.WaitOne();
         }
 
         public void Abort()
         {
+            reseted.Reset();
             rtSender.SendCommand("M999");
             reseted.WaitOne();
         }

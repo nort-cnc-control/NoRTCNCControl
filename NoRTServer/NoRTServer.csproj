@@ -107,6 +107,10 @@
       <Project>{dfafed0f-c31a-4194-b0bc-86cce50499d7}</Project>
       <Name>RTSender</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Log\Log.csproj">
+      <Project>{505E0AB1-E3E1-4FF4-9C71-19E5D862FC13}</Project>
+      <Name>Log</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

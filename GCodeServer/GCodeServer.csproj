@@ -20,5 +20,6 @@
     <ProjectReference Include="..\RTSender\RTSender.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\ReadStatusMachine\ReadStatusMachine.csproj" />
+    <ProjectReference Include="..\Log\Log.csproj" />
   </ItemGroup>
 </Project>

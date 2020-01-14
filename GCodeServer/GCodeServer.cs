@@ -15,16 +15,20 @@ using GCodeMachine;
 using System.Json;
 using System.Threading;
 using Actions.Tools;
+using Log;
 using System.Collections.Concurrent;
 
 namespace GCodeServer
 {
 
-    public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager
+    public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager, ILoggerSource
     {
         public MachineParameters Config { get; private set; }
         public GCodeMachine.GCodeMachine Machine { get; private set; }
         public ReadStatusMachine.ReadStatusMachine StatusMachine { get; private set; }
+
+        public string Name => "gcode server";
+
         private ProgramBuilder programBuilder;
 
         private readonly IRTSender rtSender;
@@ -177,7 +181,7 @@ namespace GCodeServer
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: {0}", e);
+                Logger.Instance.Error(this, "compile", String.Format("Exception: {0}", e));
                 return;
             }
             this.Machine.LoadProgram(program);
@@ -213,7 +217,7 @@ namespace GCodeServer
                     StatusMachine.Stop();
                     Machine.Stop();
                     serverRun = false;
-                    Console.WriteLine("Cannot parse command \"{0}\"", cmd);
+                    Logger.Instance.Error(this, "parse", cmd);
                     break;
                 }
 

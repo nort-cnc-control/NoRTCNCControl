@@ -2,12 +2,13 @@ using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using Log;
 
 using RTSender;
 
 namespace Actions
 {
-    public class RTAction : IAction
+    public class RTAction : IAction, ILoggerSource
     {
         public bool RequireFinish { get { return !Command.CommandIsCached; } }
 
@@ -27,6 +28,9 @@ namespace Actions
         #endregion
 
         public IRTCommand Command { get; private set; }
+
+        public string Name => "RTAction";
+
         private IRTSender sender;
 
         public event Action<IAction> EventStarted;
@@ -68,7 +72,7 @@ namespace Actions
         {
             if (nid != CommandId)
                 return;
-
+            Logger.Instance.Debug(this, "completed", nid.ToString());
             var dict = new Dictionary<string, string>();
             foreach (var pair in result)
                 dict.Add(pair.Key, pair.Value);
@@ -82,15 +86,16 @@ namespace Actions
             if (nid != CommandId)
                 return;
             Started.Set();
-            Console.WriteLine("RTAction {0}", nid);
+            Logger.Instance.Debug(this, "start", nid.ToString());
             EventStarted?.Invoke(this);
         }
 
         private void OnQueuedHdl(int nid)
         {
+            //Logger.Instance.Debug(this, "queued", String.Format("{0} {1}", nid, CommandId));
             if (nid != CommandId)
                 return;
-            
+            Logger.Instance.Debug(this, "queued", nid.ToString());
             ContiniousBlockCompleted.Set();
         }
 
@@ -98,7 +103,7 @@ namespace Actions
         {
             if (nid != CommandId)
                 return;
-                
+            Logger.Instance.Debug(this, "dropped", nid.ToString());
             ContiniousBlockCompleted.Set();
             Started.Set();
             Finished.Set();
