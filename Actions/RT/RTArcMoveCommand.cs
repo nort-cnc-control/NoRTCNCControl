@@ -25,7 +25,7 @@ namespace Actions
         public bool CCW { get; private set; }
         public double R { get; private set; }
 
-        public Double Hcl { get; private set; }
+        public Double HordeCenterDistance { get; private set; }
         public Vector3 DirStart { get; private set; }
         public Vector3 DirEnd { get; private set; }
         public double Length { get; private set; }
@@ -79,7 +79,7 @@ namespace Actions
             }
         }
     
-        private String move_cmd
+        private String MoveCmd
         {
             get
             {
@@ -126,19 +126,19 @@ namespace Actions
 
                 if (left_basis)
                 {
-                    hwhcl = -Hcl;
+                    hwhcl = -HordeCenterDistance;
                     hwccw = !CCW;
                 }
                 else
                 {
-                    hwhcl = Hcl;
+                    hwhcl = HordeCenterDistance;
                     hwccw = CCW;
                 }
-                return $"{move_cmd} {plane_cmd} {Options.Command} X{FormatD(hwdelta.x)} Y{FormatD(hwdelta.y)} Z{FormatD(hwdelta.z)} D{FormatD(hwhcl)}";
+                return $"{MoveCmd} {plane_cmd} {Options.Command} X{FormatD(hwdelta.x)} Y{FormatD(hwdelta.y)} Z{FormatD(hwdelta.z)} D{FormatD(hwhcl)}";
             }
         }
 
-        private double FindHclR(Vector2 delta, bool ccw, double R)
+        private double FindHordeCenterDistanceR(Vector2 delta, bool ccw, double R)
         {
             double D = delta.Length();
             bool big_arc = (R < 0);
@@ -155,7 +155,7 @@ namespace Actions
             return hcl;
         }
 
-        private double FindHclIJK(Vector2 delta, bool ccw, Vector2 center)
+        private double FindHordeCenterDistanceIJK(Vector2 delta, bool ccw, Vector2 center)
         {
             double D = delta.Length();
             double R = center.Length();
@@ -250,13 +250,13 @@ namespace Actions
             Plane = plane;
             Options = opts;
             deltaProj = VectorPlaneProj(Delta, Plane);
-            Hcl = FindHclR(deltaProj, CCW, R);
-            startToCenterProj = deltaProj / 2 + Vector2.Normalize(deltaProj.Right()) * Hcl;
+            HordeCenterDistance = FindHordeCenterDistanceR(deltaProj, CCW, R);
+            startToCenterProj = deltaProj / 2 + Vector2.Normalize(deltaProj.Right()) * HordeCenterDistance;
             endToCenterProj = startToCenterProj - deltaProj;
             FillDirs();
             this.R = Math.Abs(R);
             Angle = 2*Math.Asin(deltaProj.Length()/2/R);
-            if (Hcl > 0 && CCW || Hcl < 0 && !CCW)
+            if (HordeCenterDistance > 0 && CCW || HordeCenterDistance < 0 && !CCW)
             {
                 Angle = Math.PI*2 - Angle;
             }
@@ -279,11 +279,11 @@ namespace Actions
             deltaProj = VectorPlaneProj(Delta, Plane);
             startToCenterProj = VectorPlaneProj(startToCenter, Plane);
             endToCenterProj = startToCenterProj - deltaProj;
-            Hcl = FindHclIJK(deltaProj, CCW, startToCenterProj);
+            HordeCenterDistance = FindHordeCenterDistanceIJK(deltaProj, CCW, startToCenterProj);
             FillDirs();
             R = startToCenter.Length();
             Angle = 2*Math.Asin(deltaProj.Length()/2/R);
-            if (Hcl > 0 && !CCW || Hcl < 0 && CCW)
+            if (HordeCenterDistance > 0 && CCW || HordeCenterDistance < 0 && !CCW)
             {
                 Angle = Math.PI*2 - Angle;
             }

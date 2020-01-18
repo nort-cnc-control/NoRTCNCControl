@@ -19,11 +19,12 @@ namespace GCodeMachine
         {
             Idle,
             Ready,
-            WaitActionCanRun,
+            WaitActionReady,
             ActionRun,
             WaitActionContiniousBlockCompleted,
             WaitPreviousActionFinished,
             Pause,
+            WaitEnd,
             End,
             Error,
             Aborted,
@@ -79,7 +80,7 @@ namespace GCodeMachine
         private void OnReseted()
         {
             bool run = machineIsRunning;
-            SwitchToState(MachineState.Aborted);
+
             if (previousAction != null)
             {
                 previousAction.Abort();
@@ -95,6 +96,7 @@ namespace GCodeMachine
                 currentWait.Set();
             }
             SendState("init");
+            SwitchToState(MachineState.Aborted);
             if (!run)
                 reseted.Set();
         }
@@ -178,30 +180,35 @@ namespace GCodeMachine
                         (currentAction, _) = PopAction();
                         if (currentAction == null)
                         {
-                            SwitchToState(MachineState.End);
+                            SwitchToState(MachineState.WaitEnd);
                         }
                         else
                         {
-                            SwitchToState(MachineState.WaitActionCanRun);
+                            SwitchToState(MachineState.WaitPreviousActionFinished);
                         }
                         break;
-                    case MachineState.WaitActionCanRun:
-                        Wait(currentAction.ReadyToRun);
-                        if (currentAction.RequireFinish)
-                            SwitchToState(MachineState.WaitPreviousActionFinished);
-                        else
-                            SwitchToState(MachineState.ActionRun);
-                        break;
-                    case MachineState.WaitPreviousActionFinished:
+                    case MachineState.WaitEnd:
                         if (previousAction != null)
                             Wait(previousAction.Finished);
+                        SwitchToState(MachineState.End);
+                        break;
+                    case MachineState.WaitPreviousActionFinished:
+                        if (currentAction.RequireFinish)
+                        {
+                            if (previousAction != null)
+                                Wait(previousAction.Finished);
+                        }
+                        SwitchToState(MachineState.WaitActionReady);
+                        break;
+                    case MachineState.WaitActionReady:
+                        Wait(currentAction.ReadyToRun);
                         SwitchToState(MachineState.ActionRun);
                         break;
                     case MachineState.ActionRun:
-                        SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
                         currentAction.EventStarted += Action_OnStarted;
                         started.Add(currentAction);
                         currentAction.Run();
+                        SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
                         break;
                     case MachineState.WaitActionContiniousBlockCompleted:
                         if (currentAction is RTAction)
@@ -223,13 +230,7 @@ namespace GCodeMachine
                         break;
                 }
             }
-            if (!fast_exit)
-            {
-                foreach (var act in started)
-                {
-                    act.Finished.WaitOne();
-                }
-            }
+
             foreach (var act in started)
             {
                 act.EventStarted -= Action_OnStarted;

@@ -45,7 +45,7 @@ namespace Actions
             this.sender.Completed += OnCompletedHdl;
             this.sender.EmptySlotAppeared += OnEmptySlotHdl;
             this.sender.EmptySlotsEnded += OnEmptySlotsEndedHdl;
-
+            this.sender.SlotsNumberReceived += OnSpaceReceived;
             Command = command;
             
             ContiniousBlockCompleted = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -56,6 +56,13 @@ namespace Actions
             Failed = false;
             Aborted = false;
             CommandId = -1;
+        }
+
+        private void OnSpaceReceived(int nid)
+        {
+            if (nid != CommandId)
+                return;
+            ContiniousBlockCompleted.Set();
         }
 
         private void OnEmptySlotHdl()
@@ -96,7 +103,7 @@ namespace Actions
             if (nid != CommandId)
                 return;
             Logger.Instance.Debug(this, "queued", nid.ToString());
-            ContiniousBlockCompleted.Set();
+
         }
 
         private void OnDroppedHdl(int nid)

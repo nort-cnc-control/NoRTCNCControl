@@ -28,6 +28,7 @@ namespace RTSender
         public event Action<int> Queued;
         public event Action<int> Started;
         public event Action<int, IReadOnlyDictionary<String, String>> Completed;
+        public event Action<int> SlotsNumberReceived;
 
         public event Action<int> Dropped
         { add { } remove { } }
@@ -76,6 +77,7 @@ namespace RTSender
                     {
                         EmptySlotsEnded?.Invoke();
                     }
+                    SlotsNumberReceived?.Invoke(cmd.id);
                 }
                 Thread.Sleep(10);
             }
@@ -117,6 +119,7 @@ namespace RTSender
                     {
                         EmptySlotAppeared?.Invoke();
                     }
+                    SlotsNumberReceived?.Invoke(cmd.id);
                 }
                 Thread.Sleep(1000);
             }

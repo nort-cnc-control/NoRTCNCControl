@@ -18,25 +18,29 @@ namespace RTSender
         public event Action<int> Started;
         public event Action<int, IReadOnlyDictionary<String, String>> Completed;
         public event Action<int, String> Failed;
+        public event Action<int> SlotsNumberReceived;
 
         StreamReader input;
         StreamWriter output;
         private int index;
         private int q;
-        private int Q {
+        private int Q
+        {
             get => q;
-            set {
-                int oldq = q;
-                q = value;
-                if (oldq == 0 && value > 0)
-                {
-                    EmptySlotAppeared?.Invoke();
-                }
-                else if (oldq > 0 && value == 0)
-                {
-                    EmptySlotsEnded?.Invoke();
-                }
+        }
+        private void SetQ(int value, int nid)
+        {
+            int oldq = q;
+            q = value;
+            if (oldq == 0 && value > 0)
+            {
+                EmptySlotAppeared?.Invoke();
             }
+            else if (oldq > 0 && value == 0)
+            {
+                EmptySlotsEnded?.Invoke();
+            }
+            SlotsNumberReceived?.Invoke(nid);
         }
         public bool HasSlots { get { return Q > 0; } }
 
@@ -80,7 +84,7 @@ namespace RTSender
                     }
                     if (args.Values.ContainsKey("Q"))
                     {
-                        Q = int.Parse(args.Values["Q"]);
+                        SetQ(int.Parse(args.Values["Q"]), int.Parse(args.Values["N"]));
                     }
                 }
                 catch

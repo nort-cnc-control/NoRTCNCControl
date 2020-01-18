@@ -165,7 +165,7 @@ namespace GCodeServer
         #region gcode machine methods
         private void RunGcode(String[] prg)
         {
-            var (program, starts) = this.programBuilder.BuildProgram(prg, state);
+            var (program, starts) = programBuilder.BuildProgram(prg, state);
             this.starts = starts;
             Machine.LoadProgram(program);
             Machine.Start();
