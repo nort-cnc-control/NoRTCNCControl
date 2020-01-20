@@ -89,6 +89,7 @@ namespace GCodeServer
             };
 
             Machine.ActionStarted += Machine_ActionStarted;
+            toolManager = new ManualToolManager(this, Machine);
             programBuilder = new ProgramBuilder(Machine,
                                                 this,
                                                 rtSender,
@@ -96,7 +97,6 @@ namespace GCodeServer
                                                 spindleToolFactory,
                                                 toolManager,
                                                 Config);
-            toolManager = new ManualToolManager(this, Machine);
         }
 
         public void Message(IReadOnlyDictionary<string, string> message)

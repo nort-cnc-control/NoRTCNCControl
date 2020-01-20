@@ -61,6 +61,7 @@
     <None Include="packages.config" />
     <None Include="machineConfig.json" />
     <None Include="runConfig.json" />
+    <None Include="runConfig.Emu.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj">

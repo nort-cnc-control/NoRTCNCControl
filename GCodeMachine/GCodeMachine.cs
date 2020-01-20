@@ -159,8 +159,8 @@ namespace GCodeMachine
 
         public void Process()
         {
+            MachineState change = MachineState.Error;
             machineIsRunning = true;
-            bool fast_exit = false;
             List<IAction> started = new List<IAction>();
             RunState = State.Running;
             previousAction = null;
@@ -208,6 +208,7 @@ namespace GCodeMachine
                         currentAction.EventStarted += Action_OnStarted;
                         started.Add(currentAction);
                         currentAction.Run();
+                        change = StateMachine;
                         SwitchToState(MachineState.WaitActionContiniousBlockCompleted);
                         break;
                     case MachineState.WaitActionContiniousBlockCompleted:
@@ -216,17 +217,18 @@ namespace GCodeMachine
                             Logger.Instance.Debug(this, "wait", String.Format("Waiting for command {0}", (currentAction as RTAction).CommandId));
                         }
                         Wait(currentAction.ContiniousBlockCompleted);
-                        SwitchToState(MachineState.Ready);
+                        if (change == MachineState.ActionRun)
+                            SwitchToState(MachineState.Ready);
+                        else
+                            SwitchToState(change);
                         break;
                     case MachineState.Aborted:
                         Stop();
-                        fast_exit = true;
                         reseted.Set();
                         break;
                     case MachineState.End:
                         break;
                     case MachineState.Error:
-                        fast_exit = true;
                         break;
                 }
             }
@@ -239,7 +241,7 @@ namespace GCodeMachine
             switch (StateMachine)
             {
                 case MachineState.Pause:
-                    SendState("pause");
+                    SendState("paused");
                     break;
                 case MachineState.End:
                 case MachineState.Idle:

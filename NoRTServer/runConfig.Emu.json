@@ -1,0 +1,11 @@
+﻿{
+    "modbus_sender" : {
+        "sender" : "EmulationModbusSender"
+    },
+
+    "rt_sender" : {
+        "sender" : "EmulationRTSender"
+    },
+
+    "spindle_driver" : "N700E"
+}
