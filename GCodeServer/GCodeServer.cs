@@ -37,7 +37,7 @@ namespace GCodeServer
 
         private IReadOnlyDictionary<IAction, int> starts;
 
-        private CNCState.CNCState state;
+        private CNCState.CNCState State => Machine.LastState;
         private AxisState.CoordinateSystem hwCoordinateSystem;
 
         private MessageReceiver cmdReceiver;
@@ -75,17 +75,17 @@ namespace GCodeServer
 
         private void Init()
         {
-            state = new CNCState.CNCState(new AxisState(), new SpindleState());
-            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, state, Config);
+            var newState = new CNCState.CNCState(new AxisState(), new SpindleState());
+            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
 
             var crds = StatusMachine.ReadHardwareCoordinates();
             var sign = new Vector3(Config.SignX, Config.SignY, Config.SignZ);
             hwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,
-                Offset = new Vector3(crds.x - sign.x * state.AxisState.Position.x,
-                                     crds.y - sign.y * state.AxisState.Position.y,
-                                     crds.z - sign.z * state.AxisState.Position.z)
+                Offset = new Vector3(crds.x - sign.x * State.AxisState.Position.x,
+                                     crds.y - sign.y * State.AxisState.Position.y,
+                                     crds.z - sign.z * State.AxisState.Position.z)
             };
 
             Machine.ActionStarted += Machine_ActionStarted;
@@ -165,28 +165,20 @@ namespace GCodeServer
         #region gcode machine methods
         private void RunGcode(String[] prg)
         {
-            var (program, starts) = programBuilder.BuildProgram(prg, state);
-            this.starts = starts;
-            Machine.LoadProgram(program);
-            Machine.Start();
-            Machine.LastState = state.BuildCopy();
-        }
-
-        private void RunGcode(String cmd)
-        {
             ActionProgram.ActionProgram program;
+
             try
             {
-                (program, starts) = programBuilder.BuildProgram(cmd, state);
+                (program, starts) = programBuilder.BuildProgram(prg, Machine.LastState);
             }
             catch (Exception e)
             {
                 Logger.Instance.Error(this, "compile", String.Format("Exception: {0}", e));
                 return;
             }
-            this.Machine.LoadProgram(program);
-            this.Machine.Start();
-            Machine.LastState = state.BuildCopy();
+
+            Machine.LoadProgram(program);
+            Machine.Start();
         }
         #endregion
 
@@ -355,13 +347,11 @@ namespace GCodeServer
                                 program.Add(str);
                             }
                             RunGcode(program.ToArray());
-                            state = Machine.LastState;
                             break;
                         }
                     case "continue":
                         {
                             Machine.Continue();
-                            state = Machine.LastState;
                             break;
                         }
                 }
@@ -392,9 +382,9 @@ namespace GCodeServer
             hwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,
-                Offset = new Vector3(crds.x - sign.x * state.AxisState.Position.x,
-                                     crds.y - sign.y * state.AxisState.Position.y,
-                                     crds.z - sign.z * state.AxisState.Position.z)
+                Offset = new Vector3(crds.x - sign.x * State.AxisState.Position.x,
+                                     crds.y - sign.y * State.AxisState.Position.y,
+                                     crds.z - sign.z * State.AxisState.Position.z)
             };
         }
     }

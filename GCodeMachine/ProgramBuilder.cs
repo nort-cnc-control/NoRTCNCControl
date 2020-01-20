@@ -156,10 +156,10 @@ namespace GCodeMachine
             switch (state.AxisState.MoveType)
             {
                 case AxisState.MType.FastLine:
-                    program.AddFastLineMovement(delta, state);
+                    state = program.AddFastLineMovement(delta, state);
                     break;
                 case AxisState.MType.Line:
-                    program.AddLineMovement(delta, state.AxisState.Feed, state);
+                    state = program.AddLineMovement(delta, state.AxisState.Feed, state);
                     break;
                 case AxisState.MType.ArcCW:
                 case AxisState.MType.ArcCCW:
@@ -167,7 +167,7 @@ namespace GCodeMachine
                         bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
                         if (R != null)
                         {
-                            program.AddArcMovement(delta, R.value, ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, R.value, ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
                         }
                         else
                         {
@@ -180,16 +180,13 @@ namespace GCodeMachine
                                 j = J.value;
                             if (K != null)
                                 k = K.value;
-                            program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
                         }
                     }
                     break;
                 default:
                     break;
             }
-            state.AxisState.Position.x += dx;
-            state.AxisState.Position.y += dy;
-            state.AxisState.Position.z += dz;
         }
 
 
@@ -290,7 +287,7 @@ namespace GCodeMachine
             if (spindleCommandPending)
             {
                 var command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
-                program.AddModbusToolCommand(command, state);
+                program.AddModbusToolCommand(command, state, state);
                 spindleCommandPending = false;
             }
         }
@@ -350,15 +347,24 @@ namespace GCodeMachine
                         state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.ZX;
                         break;
                     case 28:
-                        program.AddHoming(state);
-                        state.AxisState.Reset();
-                        program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state);
-                        break;
+                        {
+                            var after = state.BuildCopy();
+                            after.AxisState.Position.x = after.AxisState.Position.y = after.AxisState.Position.z = 0;
+                            program.AddHoming(state, after);
+                            state = after;
+                            program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state, null);
+                            break;
+                        }
                     case 30:
-                        program.AddZProbe(state);
-                        state.AxisState.Position.z = 0;
-                        program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state);
-                        break;
+                        {
+                            var after = state.BuildCopy();
+                            after.AxisState.Position.z = 0;
+
+                            program.AddZProbe(state, after);
+                            state = after;
+                            program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state, null);
+                            break;
+                        }
                     case 53:
                     case 54:
                     case 55:
@@ -383,6 +389,12 @@ namespace GCodeMachine
             {
                 switch (cmd.ivalue1)
                 {
+                    case 0:
+                        program.AddBreak();
+                        break;
+                    case 2:
+                        program.AddStop();
+                        break;
                     case 3:
                     case 4:
                     case 5:
@@ -436,7 +448,7 @@ namespace GCodeMachine
             var len1 = program.Actions.Count;
             if (len1 > len0)
             {
-                var (first, _) = program.Actions[len0];
+                var (first, _, _) = program.Actions[len0];
                 starts[first] = index;
             }
             return next;

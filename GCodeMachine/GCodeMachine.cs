@@ -35,9 +35,12 @@ namespace GCodeMachine
         private int index;
         private IAction currentAction;
         private IAction previousAction;
-        public CNCState.CNCState LastState { get; set; }
+        private CNCState.CNCState lastState;
+        public CNCState.CNCState LastState => lastState.BuildCopy();
         private readonly Config.MachineParameters config;
         public IMessageRouter messageRouter;
+
+        private Dictionary<IAction, (CNCState.CNCState before, CNCState.CNCState after)> states;
 
         private bool machineIsRunning;
 
@@ -64,11 +67,12 @@ namespace GCodeMachine
             reseted = new EventWaitHandle(false, EventResetMode.AutoReset);
             this.config = config;
             this.messageRouter = messageRouter;
-            LastState = state;
+            lastState = state.BuildCopy();
             HwCoordinateSystem = null;
             this.rtSender = sender;
             this.rtSender.Reseted += OnReseted;
             machineIsRunning = false;
+            states = new Dictionary<IAction, (CNCState.CNCState before, CNCState.CNCState after)>();
         }
 
         private void SwitchToState(MachineState state, bool force=false)
@@ -159,6 +163,7 @@ namespace GCodeMachine
 
         public void Process()
         {
+            CNCState.CNCState sa, sb;
             MachineState change = MachineState.Error;
             machineIsRunning = true;
             List<IAction> started = new List<IAction>();
@@ -177,13 +182,14 @@ namespace GCodeMachine
                         break;
                     case MachineState.Ready:
                         previousAction = currentAction;
-                        (currentAction, _) = PopAction();
+                        (currentAction, sb, sa) = PopAction();
                         if (currentAction == null)
                         {
                             SwitchToState(MachineState.WaitEnd);
                         }
                         else
                         {
+                            states.Add(currentAction, (sb, sa));
                             SwitchToState(MachineState.WaitPreviousActionFinished);
                         }
                         break;
@@ -206,6 +212,7 @@ namespace GCodeMachine
                         break;
                     case MachineState.ActionRun:
                         currentAction.EventStarted += Action_OnStarted;
+                        currentAction.EventFinished += Action_OnFinished;
                         started.Add(currentAction);
                         currentAction.Run();
                         change = StateMachine;
@@ -236,6 +243,7 @@ namespace GCodeMachine
             foreach (var act in started)
             {
                 act.EventStarted -= Action_OnStarted;
+                act.EventFinished -= Action_OnFinished;
             }
 
             switch (StateMachine)
@@ -254,13 +262,21 @@ namespace GCodeMachine
             machineIsRunning = false;
         }
 
-        void Action_OnStarted(IAction action)
+        private void Action_OnStarted(IAction action)
         {
             if (action is RTAction)
                 Logger.Instance.Debug(this, "started", (action as RTAction).CommandId.ToString());
             else
                 Logger.Instance.Debug(this, "started", "");
+            if (states[action].before != null)
+                lastState = states[action].before;
             ActionStarted?.Invoke(action);
+        }
+
+        private void Action_OnFinished(IAction action)
+        {
+            if (states[action].after != null)
+                lastState = states[action].after;
         }
 
         public void Stop()
@@ -291,12 +307,12 @@ namespace GCodeMachine
             reseted.WaitOne();
         }
 
-        private (IAction, CNCState.CNCState) PopAction()
+        private (IAction, CNCState.CNCState, CNCState.CNCState) PopAction()
         {
             if (program == null)
-                return (null, null);
+                return (null, null, null);
             if (index >= program.Actions.Count)
-                return (null, null);
+                return (null, null, null);
             return program.Actions[index++];
         }
 
@@ -305,6 +321,7 @@ namespace GCodeMachine
             rtSender.Reseted -= OnReseted;
             program = null; // remove link usage
             messageRouter = null;
+            states.Clear();
         }
 
         public void LoadProgram(ActionProgram.ActionProgram program)
