@@ -169,7 +169,7 @@ namespace GCodeServer
 
             try
             {
-                (program, starts) = programBuilder.BuildProgram(prg, Machine.LastState);
+                (program, _, starts) = programBuilder.BuildProgram(prg, Machine.LastState);
             }
             catch (Exception e)
             {

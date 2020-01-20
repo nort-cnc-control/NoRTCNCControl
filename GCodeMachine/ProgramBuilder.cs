@@ -63,10 +63,11 @@ namespace GCodeMachine
             axisState.Params = axisStateStack.Pop();
         }
 
-        private void ProcessParameters(Arguments block,
+        private CNCState.CNCState ProcessParameters(Arguments block,
                                        ActionProgram.ActionProgram program,
                                        CNCState.CNCState state)
         {
+            state = state.BuildCopy();
             if (block.Feed != null)
             {
                 state.AxisState.Feed = block.Feed.value;
@@ -76,11 +77,12 @@ namespace GCodeMachine
                 state.SpindleState.SpindleSpeed = block.Speed.value;
                 spindleCommandPending = true;
             }
+            return state;
         }
 
-        private void ProcessMove(Arguments block,
-                                 ActionProgram.ActionProgram program,
-                                 CNCState.CNCState state)
+        private CNCState.CNCState ProcessMove(Arguments block,
+                                              ActionProgram.ActionProgram program,
+                                              CNCState.CNCState state)
         {
             var X = block.X;
             var Y = block.Y;
@@ -89,6 +91,8 @@ namespace GCodeMachine
             var J = block.J;
             var K = block.K;
             var R = block.R;
+
+            state = state.BuildCopy();
 
             var cmd = block.Options.FirstOrDefault((arg) => arg.letter == 'G');
             if (cmd != null)
@@ -111,7 +115,7 @@ namespace GCodeMachine
             }
 
             if (X == null && Y == null && Z == null)
-                return;
+                return state;
 
             double dx = 0;
             double dy = 0;
@@ -187,41 +191,46 @@ namespace GCodeMachine
                 default:
                     break;
             }
+            return state;
         }
 
 
-        private void ProcessSpindleRunCommand(Arguments block,
-                                              ActionProgram.ActionProgram program,
-                                              CNCState.CNCState state)
+        private CNCState.CNCState ProcessSpindleRunCommand(Arguments block,
+                                                           ActionProgram.ActionProgram program,
+                                                           CNCState.CNCState state)
         {
             var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'M'));
             if (cmd == null)
-                return;
+                return state;
             switch (cmd.ivalue1)
             {
                 case 3:
+                    state = state.BuildCopy();
                     spindleCommandPending = true;
                     state.SpindleState.RotationState = SpindleRotationState.Clockwise;
                     break;
                 case 4:
+                    state = state.BuildCopy();
                     spindleCommandPending = true;
                     state.SpindleState.RotationState = SpindleRotationState.CounterClockwise;
                     break;
                 case 5:
+                    state = state.BuildCopy();
                     spindleCommandPending = true;
                     state.SpindleState.RotationState = SpindleRotationState.Off;
                     break;
             }
+            return state;
         }
 
-        private void ProcessCoordinatesSet(Arguments args,
-                                           ActionProgram.ActionProgram program,
-                                           CNCState.CNCState state)
+        private CNCState.CNCState ProcessCoordinatesSet(Arguments args,
+                                                        ActionProgram.ActionProgram program,
+                                                        CNCState.CNCState state)
         {
             var X = args.X;
             var Y = args.Y;
             var Z = args.Z;
-
+            state = state.BuildCopy();
             if (X != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
@@ -238,19 +247,22 @@ namespace GCodeMachine
                     state.AxisState.Position.z - Z.value;
             }
             program.AddRTForgetResidual(state);
+            return state;
         }
 
-        private void ProcessCoordinatesSystemSet(Arguments block,
+        private CNCState.CNCState ProcessCoordinatesSystemSet(Arguments block,
                                                  ActionProgram.ActionProgram program,
                                                  CNCState.CNCState state)
         {
             var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G'));
             if (cmd == null)
-                return;
+                return state;
             if (cmd.ivalue1 < 53 || cmd.ivalue1 > 59)
-                return;
+                return state;
+            state = state.BuildCopy();
             int crdsid = cmd.ivalue1 - 53;
             state.AxisState.Params.CurrentCoordinateSystemIndex = crdsid;
+            return state;
         }
 
         private IReadOnlyList<Arguments> SplitFrame(Arguments args)
@@ -314,18 +326,18 @@ namespace GCodeMachine
             return pos;
         }
         */
-        private int ProcessBlock(Arguments block,
+        private (int, CNCState.CNCState) ProcessBlock(Arguments block,
                                  ActionProgram.ActionProgram program,
                                  CNCState.CNCState state)
         {
             var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G' || arg.letter == 'M'));
             int next = -1;
-
-            ProcessParameters(block, program, state);
+            state = state.BuildCopy();
+            state = ProcessParameters(block, program, state);
 
             if (cmd == null)
             {
-                ProcessMove(block, program, state);
+                state = ProcessMove(block, program, state);
             }
             else if (cmd.letter == 'G')
             {
@@ -335,7 +347,7 @@ namespace GCodeMachine
                     case 1:
                     case 2:
                     case 3:
-                        ProcessMove(block, program, state);
+                        state = ProcessMove(block, program, state);
                         break;
                     case 17:
                         state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.XY;
@@ -372,7 +384,7 @@ namespace GCodeMachine
                     case 57:
                     case 58:
                     case 59:
-                        ProcessCoordinatesSystemSet(block, program, state);
+                        state = ProcessCoordinatesSystemSet(block, program, state);
                         break;
                     case 90:
                         state.AxisState.Absolute = true;
@@ -421,14 +433,14 @@ namespace GCodeMachine
 
             CommitPendingCommands(program, state);
 
-            return next;
+            return (next, state);
         }
 
-        private int Process(String frame,
-                            ActionProgram.ActionProgram program,
-                            CNCState.CNCState state,
-                            Dictionary<IAction, int> starts,
-                            int index)
+        private (int, CNCState.CNCState) Process(String frame,
+                                         ActionProgram.ActionProgram program,
+                                         CNCState.CNCState state,
+                                         Dictionary<IAction, int> starts,
+                                         int index)
         {
             Arguments args = new Arguments(frame);
             var line_number = args.LineNumber;
@@ -437,7 +449,8 @@ namespace GCodeMachine
             var sargs = SplitFrame(args);
             foreach (var block in sargs)
             {
-                int si = ProcessBlock(block, program, state);
+                int si;
+                (si, state) = ProcessBlock(block, program, state);
                 if (si >= 0)
                 {
                     next = si;
@@ -451,10 +464,10 @@ namespace GCodeMachine
                 var (first, _, _) = program.Actions[len0];
                 starts[first] = index;
             }
-            return next;
+            return (next, state);
         }
 
-        public (ActionProgram.ActionProgram program, IReadOnlyDictionary<IAction, int> starts) 
+        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts) 
                 BuildProgram(String[] frames, CNCState.CNCState state)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
@@ -466,7 +479,8 @@ namespace GCodeMachine
             while (index < len)
             {
                 var frame = frames[index];
-                int next = Process(frame, program, state, starts, index);
+                int next;
+                (next, state) = Process(frame, program, state, starts, index);
                 if (next < 0)
                     break;
                 else
@@ -476,10 +490,10 @@ namespace GCodeMachine
             arcMoveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
 
-            return (program, starts);
+            return (program, state, starts);
         }
 
-        public (ActionProgram.ActionProgram program, IReadOnlyDictionary<IAction, int> starts) 
+        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts) 
                 BuildProgram(String frame, CNCState.CNCState state)
         {
             return BuildProgram(frame.Split('\n'), state);
