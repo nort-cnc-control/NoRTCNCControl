@@ -71,7 +71,7 @@ namespace ReadStatusMachine
                     RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
                     // action.ReadyToRun.WaitOne();
                     action.Run();
-                    action.Finished.WaitOne(100);
+                    action.Finished.WaitOne(500);
                     var xs = action.ActionResult["X"];
                     var ys = action.ActionResult["Y"];
                     var zs = action.ActionResult["Z"];
@@ -81,7 +81,6 @@ namespace ReadStatusMachine
                 }
                 catch
                 {
-
                     Thread.Sleep(100);
                 }
             }

@@ -30,6 +30,9 @@ namespace Actions
         public Vector3 DirEnd { get; private set; }
         public double Length { get; private set; }
         public double Angle { get; private set; }
+
+        private readonly double eps = 1e-6;
+
         private bool left_basis
         {
             get
@@ -239,7 +242,7 @@ namespace Actions
                                 RTMovementOptions opts, MachineParameters config)
         {
             double h = VectorPlaneNormalProj(delta, plane);
-            if (h != 0)
+            if (Math.Abs(h) > eps)
             {
                 throw new ArgumentOutOfRangeException("Only arc supported, not helix");
             }
@@ -267,7 +270,7 @@ namespace Actions
                                 RTMovementOptions opts, MachineParameters config)
         {
             double h = VectorPlaneNormalProj(delta, plane);
-            if (h != 0)
+            if (Math.Abs(h) > eps)
             {
                 throw new ArgumentOutOfRangeException("Only arc supported, not helix");
             }

@@ -327,8 +327,8 @@ namespace GCodeMachine
         }
         */
         private (int, CNCState.CNCState) ProcessBlock(Arguments block,
-                                 ActionProgram.ActionProgram program,
-                                 CNCState.CNCState state)
+                                                      ActionProgram.ActionProgram program,
+                                                      CNCState.CNCState state)
         {
             var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G' || arg.letter == 'M'));
             int next = -1;
@@ -393,7 +393,7 @@ namespace GCodeMachine
                         state.AxisState.Absolute = false;
                         break;
                     case 92:
-                        ProcessCoordinatesSet(block, program, state);
+                        state = ProcessCoordinatesSet(block, program, state);
                         break;
                 }
             }
@@ -403,14 +403,16 @@ namespace GCodeMachine
                 {
                     case 0:
                         program.AddBreak();
+                        program.AddPlaceholder(state);
                         break;
                     case 2:
                         program.AddStop();
+                        program.AddPlaceholder(state);
                         break;
                     case 3:
                     case 4:
                     case 5:
-                        ProcessSpindleRunCommand(block, program, state);
+                        state = ProcessSpindleRunCommand(block, program, state);
                         break;
                     case 6:
                         if (block.SingleOptions.ContainsKey('T'))
@@ -437,10 +439,10 @@ namespace GCodeMachine
         }
 
         private (int, CNCState.CNCState) Process(String frame,
-                                         ActionProgram.ActionProgram program,
-                                         CNCState.CNCState state,
-                                         Dictionary<IAction, int> starts,
-                                         int index)
+                                                 ActionProgram.ActionProgram program,
+                                                 CNCState.CNCState state,
+                                                 Dictionary<IAction, int> starts,
+                                                 int index)
         {
             Arguments args = new Arguments(frame);
             var line_number = args.LineNumber;
@@ -467,8 +469,10 @@ namespace GCodeMachine
             return (next, state);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts) 
-                BuildProgram(String[] frames, CNCState.CNCState state)
+        public (ActionProgram.ActionProgram program,
+                CNCState.CNCState state,
+                IReadOnlyDictionary<IAction, int> starts) 
+            BuildProgram(String[] frames, CNCState.CNCState state)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
             var starts = new Dictionary<IAction, int>();
@@ -487,6 +491,7 @@ namespace GCodeMachine
                     index = next;
             }
 
+            program.AddPlaceholder(state);
             arcMoveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
 

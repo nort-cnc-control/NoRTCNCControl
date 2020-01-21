@@ -264,5 +264,10 @@ namespace ActionProgram
             AddAction(new MachineControlAction(cmd, machine), null, null);
         }
         #endregion
+
+        public void AddPlaceholder(CNCState.CNCState currentState)
+        {
+            AddAction(new PlaceholderAction(), currentState, currentState);
+        }
     }
 }
