@@ -85,9 +85,9 @@ namespace ReadStatusMachine
                                        double.Parse(ys, CultureInfo.InvariantCulture),
                                        double.Parse(zs, CultureInfo.InvariantCulture));
                 }
-                catch
+                catch (Exception e)
                 {
-                    Logger.Instance.Warning(this, "readhw", "Can not read coordinates, retry");
+                    Logger.Instance.Warning(this, "readhw", String.Format("Can not read coordinates, retry. {0}", e));
                     Thread.Sleep(300);
                 }
             }

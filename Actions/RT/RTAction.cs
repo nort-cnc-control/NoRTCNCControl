@@ -126,8 +126,10 @@ namespace Actions
 
         public void Run()
         {
-            if (!sender.HasSlots)
+            if (!sender.HasSlots && Command.CommandIsCached)
+            {
                 throw new OutOfMemoryException("MCU doesn't have empty slots");
+            }
             String cmd = Command.Command;
             lock (sender)
             {

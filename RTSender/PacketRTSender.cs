@@ -44,7 +44,7 @@ namespace RTSender
         }
         public bool HasSlots { get { return Q > 0; } }
 
-        public string Name => "Packet sender";
+        public string Name => "packet sender";
 
         private readonly object lockObj = new object();
         private Thread receiveThread;
@@ -107,14 +107,22 @@ namespace RTSender
 
         public void SendCommand(String command)
         {
+            var cmd = String.Format("RT:N{0} {1}", index, command);
+            Logger.Instance.Debug(this, "send", cmd);
             lock (lockObj)
             {
-                Indexed?.Invoke(index);
-                var cmd = String.Format("RT:N{0} {1}", index, command);
-                Logger.Instance.Debug(this, "send", cmd);
-                output.WriteLine(cmd);
-                output.Flush();
-                index++;
+                Logger.Instance.Debug(this, "lock", "success");
+                try
+                {
+                    Indexed?.Invoke(index);
+                    output.WriteLine(cmd);
+                    output.Flush();
+                    index++;
+                }
+                catch (Exception e)
+                {
+                    Logger.Instance.Error(this, "send", e.ToString());
+                }
             }
         }
 
