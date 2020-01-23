@@ -8,5 +8,6 @@
     <ProjectReference Include="..\Actions\Actions.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\RTSender\RTSender.csproj" />
+    <ProjectReference Include="..\Log\Log.csproj" />
   </ItemGroup>
 </Project>

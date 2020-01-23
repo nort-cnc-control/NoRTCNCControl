@@ -6,6 +6,17 @@ namespace Log
     {
         private static Logger instance;
 
+        private System.IO.StreamWriter writer = new System.IO.StreamWriter(Console.OpenStandardOutput());
+        public System.IO.StreamWriter Writer
+        {
+            get => writer;
+            set
+            {
+                writer = value;
+                writer.AutoFlush = true;
+            }
+        }
+
         public static Logger Instance
         {
             get
@@ -18,17 +29,27 @@ namespace Log
 
         public void Log(ILoggerSource source, string type, string message, int level)
         {
-            Console.WriteLine("{0,16} : {1,16} : {2}", source.Name, type, message);
+            writer.WriteLine("{0} | {1,16} : {2,16} : {3}", level, source.Name, type, message);
         }
 
         public void Debug(ILoggerSource source, string type, string message)
+        {
+            Log(source, type, message, 3);
+        }
+
+        public void Info(ILoggerSource source, string type, string message)
+        {
+            Log(source, type, message, 2);
+        }
+
+        public void Warning(ILoggerSource source, string type, string message)
         {
             Log(source, type, message, 1);
         }
 
         public void Error(ILoggerSource source, string type, string message)
         {
-            Log(source, type, message, -1);
+            Log(source, type, message, 0);
         }
     }
 }

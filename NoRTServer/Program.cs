@@ -31,6 +31,11 @@ namespace NoRTServer
 
             Console.WriteLine("");
 
+            Console.WriteLine("-l file.log");
+            Console.WriteLine("Log to file");
+
+            Console.WriteLine("");
+
             Console.WriteLine("-m machineConfig.json");
             Console.WriteLine("Use config file for setting CNC size, max feedrate, etc");
 
@@ -142,7 +147,7 @@ namespace NoRTServer
 
         static void Main(string[] args)
         {
-            var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:x:");
+            var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:x:l:");
 
             string machineConfigName = "";
             string runConfigName = "";
@@ -175,6 +180,12 @@ namespace NoRTServer
                             proxyAddress = opts.Optarg;
                             break;
                         }
+                    case 'l':
+                        {
+                            var file = File.Open(opts.Optarg, FileMode.Append);
+                            Log.Logger.Instance.Writer = new StreamWriter(file);
+                        }
+                        break;
                     case 'h':
                     default:
                         Usage();

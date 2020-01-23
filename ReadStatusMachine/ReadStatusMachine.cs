@@ -4,10 +4,11 @@ using Machine;
 using Actions;
 using RTSender;
 using System.Globalization;
+using Log;
 
 namespace ReadStatusMachine
 {
-    public class ReadStatusMachine : IMachine
+    public class ReadStatusMachine : IMachine, ILoggerSource
     {
         private bool run;
         private readonly IRTSender rtSender;
@@ -26,6 +27,8 @@ namespace ReadStatusMachine
 
         public State RunState { get; private set; }
 
+        public string Name => "read status machine";
+
         public void Abort()
         {
             run = false;
@@ -39,6 +42,7 @@ namespace ReadStatusMachine
 
         public void Continue()
         {
+            Logger.Instance.Debug(this, "action", "continue");
             run = true;
             askPosThread = new Thread(new ThreadStart(AskPosition));
             askPosThread.Start();
@@ -53,6 +57,7 @@ namespace ReadStatusMachine
 
         public void Pause()
         {
+            Logger.Instance.Debug(this, "action", "pause");
             run = false;
             timeoutWait.Set();
             askPosThread.Join();
@@ -64,6 +69,7 @@ namespace ReadStatusMachine
 
         public Vector3 ReadHardwareCoordinates()
         {
+            Logger.Instance.Debug(this, "readhw", "read coordinates");
             while (true)
             {
                 try
@@ -81,7 +87,8 @@ namespace ReadStatusMachine
                 }
                 catch
                 {
-                    Thread.Sleep(100);
+                    Logger.Instance.Warning(this, "readhw", "Can not read coordinates, retry");
+                    Thread.Sleep(300);
                 }
             }
         }
@@ -100,6 +107,7 @@ namespace ReadStatusMachine
 
         private void AskPosition()
         {
+            Logger.Instance.Debug(this, "run", "start reading thread");
             while (run)
             {
                 try
@@ -115,16 +123,18 @@ namespace ReadStatusMachine
                 }
                 timeoutWait.WaitOne(timeout);
             }
-            //Console.WriteLine("End ask coordinate");
+            Logger.Instance.Debug(this, "run", "finish reading thread");
         }
 
         public void Start()
         {
+            Logger.Instance.Debug(this, "action", "start");
             Continue();
         }
 
         public void Stop()
         {
+            Logger.Instance.Debug(this, "action", "stop");
             run = false;
             askPosThread.Join();
         }
