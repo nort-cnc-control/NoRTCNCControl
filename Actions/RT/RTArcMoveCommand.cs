@@ -146,9 +146,20 @@ namespace Actions
             double D = delta.Length();
             bool big_arc = (R < 0);
             R = Math.Abs(R);
-            if (R < D/2)
-                throw new ArgumentOutOfRangeException("Too small radius");
-            double s = Math.Sqrt(R*R - D*D/4);
+            double s;
+            if (R > D / 2)
+            {
+                s = Math.Sqrt(R * R - D * D / 4);
+            }
+            else if (R > D / 2 - eps)
+            {
+                s = 0;
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException(String.Format("Too small radius {0}, minimal {1}", R, D / 2));
+            }
+
             int center_side;
             if (ccw == big_arc)
                 center_side = 1;
@@ -162,9 +173,20 @@ namespace Actions
         {
             double D = delta.Length();
             double R = center.Length();
-            if (R < D/2)
-                throw new ArgumentOutOfRangeException("Too small radius");
-            double s = Math.Sqrt(R*R - D*D/4);
+            double s;
+            if (R > D / 2)
+            {
+                s = Math.Sqrt(R * R - D * D / 4);
+            }
+            else if (R > D / 2 - eps)
+            {
+                s = 0;
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException(String.Format("Too small radius {0}, minimal {1}", R, D / 2));
+            }
+
             int center_side = Math.Sign(delta.Right() * center);
             double hcl = s * center_side;
             return hcl;
