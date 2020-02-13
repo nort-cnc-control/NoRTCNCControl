@@ -10,14 +10,14 @@ using CNCState;
 using ActionProgram;
 using System.Linq;
 using Processor;
-
+using Log;
 using System.Collections.Generic;
 using System.Threading;
 using Actions.Tools;
 
 namespace GCodeMachine
 {
-    public class ProgramBuilder
+    public class ProgramBuilder : ILoggerSource
     {
         private readonly IRTSender rtSender;
         private readonly IModbusSender modbusSender;
@@ -31,6 +31,8 @@ namespace GCodeMachine
         private readonly IStateSyncManager stateSyncManager;
 
         private bool spindleCommandPending;
+
+        public string Name => "gcode builder";
 
         public ProgramBuilder(GCodeMachine machine,
                               IStateSyncManager stateSyncManager,
@@ -484,11 +486,19 @@ namespace GCodeMachine
             {
                 var frame = frames[index];
                 int next;
-                (next, state) = Process(frame, program, state, starts, index);
-                if (next < 0)
-                    break;
-                else
-                    index = next;
+                try
+                {
+                    (next, state) = Process(frame, program, state, starts, index);
+                    if (next < 0)
+                        break;
+                    else
+                        index = next;
+                }
+                catch (Exception e)
+                {
+                    Logger.Instance.Error(this, "compile error", String.Format("{0} : {1}", frame, e.ToString()));
+                    throw e;
+                }
             }
 
             program.AddPlaceholder(state);
