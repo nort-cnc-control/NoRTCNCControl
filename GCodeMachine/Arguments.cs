@@ -115,6 +115,7 @@ namespace GCodeMachine
         {
             options = new List<Option>();
             singleOptions = new Dictionary<char, Option>();
+            line = CutComments(line);
             while (line.Length > 0)
             {
                 var res = GetOption(line);
