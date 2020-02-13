@@ -182,7 +182,7 @@ namespace NoRTServer
                         }
                     case 'l':
                         {
-                            var file = File.Open(opts.Optarg, FileMode.Append);
+                            var file = File.Open(opts.Optarg, FileMode.Create);
                             Log.Logger.Instance.Writer = new StreamWriter(file);
                         }
                         break;
