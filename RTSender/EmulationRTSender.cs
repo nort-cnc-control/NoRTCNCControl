@@ -30,10 +30,9 @@ namespace RTSender
         public event Action<int, IReadOnlyDictionary<String, String>> Completed;
         public event Action<int> SlotsNumberReceived;
 
-        public event Action<int> Dropped
-        { add { } remove { } }
+        public event Action Reseted;
 
-        public event Action Reseted
+        public event Action<int> Dropped
         { add { } remove { } }
 
         public event Action<int, String> Failed
@@ -111,6 +110,11 @@ namespace RTSender
                     }
                     else
                     {
+                        if (cmd.command == "M999")
+                        {
+                            Reseted?.Invoke();
+                            continue;
+                        }
                         results = opts;
                     }
 
@@ -121,7 +125,7 @@ namespace RTSender
                     }
                     SlotsNumberReceived?.Invoke(cmd.id);
                 }
-                Thread.Sleep(1000);
+                Thread.Sleep(50);
             }
         }
 
