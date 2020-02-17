@@ -8,6 +8,7 @@ using RTSender;
 using System.Collections.Generic;
 using CNCState;
 using Log;
+using Vector;
 
 namespace GCodeMachine
 {

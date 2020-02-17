@@ -14,6 +14,7 @@ using Log;
 using System.Collections.Generic;
 using System.Threading;
 using Actions.Tools;
+using Vector;
 
 namespace GCodeMachine
 {
@@ -175,7 +176,7 @@ namespace GCodeMachine
                         bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
                         if (R != null)
                         {
-                            state = program.AddArcMovement(delta, R.value, ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, R.value, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else
                         {
@@ -188,7 +189,7 @@ namespace GCodeMachine
                                 j = J.value;
                             if (K != null)
                                 k = K.value;
-                            state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.ArcAxis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                     }
                     break;
@@ -211,17 +212,17 @@ namespace GCodeMachine
                 case 3:
                     state = state.BuildCopy();
                     spindleCommandPending = true;
-                    state.SpindleState.RotationState = SpindleRotationState.Clockwise;
+                    state.SpindleState.RotationState = SpindleState.SpindleRotationState.Clockwise;
                     break;
                 case 4:
                     state = state.BuildCopy();
                     spindleCommandPending = true;
-                    state.SpindleState.RotationState = SpindleRotationState.CounterClockwise;
+                    state.SpindleState.RotationState = SpindleState.SpindleRotationState.CounterClockwise;
                     break;
                 case 5:
                     state = state.BuildCopy();
                     spindleCommandPending = true;
-                    state.SpindleState.RotationState = SpindleRotationState.Off;
+                    state.SpindleState.RotationState = SpindleState.SpindleRotationState.Off;
                     break;
             }
             return state;
@@ -354,13 +355,13 @@ namespace GCodeMachine
                         state = ProcessMove(block, program, state);
                         break;
                     case 17:
-                        state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.XY;
+                        state.AxisState.Params.CurrentPlane = AxisState.Plane.XY;
                         break;
                     case 18:
-                        state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.YZ;
+                        state.AxisState.Params.CurrentPlane = AxisState.Plane.YZ;
                         break;
                     case 19:
-                        state.AxisState.Params.ArcAxis = RTArcMoveCommand.ArcAxis.ZX;
+                        state.AxisState.Params.CurrentPlane = AxisState.Plane.ZX;
                         break;
                     case 28:
                         {

@@ -5,6 +5,7 @@ using Actions;
 using RTSender;
 using System.Globalization;
 using Log;
+using Vector;
 
 namespace ReadStatusMachine
 {

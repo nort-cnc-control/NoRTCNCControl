@@ -18,6 +18,7 @@
     <ProjectReference Include="..\Processor\Processor.csproj" />
     <ProjectReference Include="..\ActionExecutor\ActionExecutor.csproj" />
     <ProjectReference Include="..\Log\Log.csproj" />
+    <ProjectReference Include="..\Vector\Vector.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\test.gcode" />

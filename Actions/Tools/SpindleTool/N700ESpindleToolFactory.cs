@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Actions.ModbusTool;
+using CNCState;
 
 namespace Actions.Tools.SpindleTool
 {
@@ -15,21 +16,21 @@ namespace Actions.Tools.SpindleTool
         private readonly UInt16 runReverse = 0x0002;
         private readonly UInt16 runNone = 0x0000;
 
-        public ModbusToolCommand CreateSpindleToolCommand(SpindleRotationState rotation, double speed)
+        public ModbusToolCommand CreateSpindleToolCommand(SpindleState.SpindleRotationState rotation, double speed)
         {
             var registers = new ModbusRegister[2];
             int delay = 0;
             switch (rotation)
             {
-                case SpindleRotationState.Off:
+                case SpindleState.SpindleRotationState.Off:
                     registers[0] = new ModbusRegister { DeviceId = devid, RegisterId = runRegister, RegisterValue = runNone };
                     delay = 0;
                     break;
-                case SpindleRotationState.Clockwise:
+                case SpindleState.SpindleRotationState.Clockwise:
                     registers[0] = new ModbusRegister { DeviceId = devid, RegisterId = runRegister, RegisterValue = runForward };
                     delay = 3000;
                     break;
-                case SpindleRotationState.CounterClockwise:
+                case SpindleState.SpindleRotationState.CounterClockwise:
                     registers[0] = new ModbusRegister { DeviceId = devid, RegisterId = runRegister, RegisterValue = runReverse };
                     delay = 3000;
                     break;

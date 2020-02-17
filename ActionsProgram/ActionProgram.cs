@@ -8,6 +8,7 @@ using Machine;
 using ModbusSender;
 using CNCState;
 using Actions.Tools;
+using Vector;
 
 namespace ActionProgram
 {
@@ -227,7 +228,7 @@ namespace ActionProgram
             acc = config.max_acceleration;
         }
 
-        public CNCState.CNCState AddArcMovement(Vector3 delta, double R, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed, CNCState.CNCState currentState)
+        public CNCState.CNCState AddArcMovement(Vector3 delta, double R, bool ccw, AxisState.Plane axis, double feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
             stateAfter.AxisState.Position.x += delta.x;
@@ -239,7 +240,7 @@ namespace ActionProgram
             return stateAfter;
         }
 
-        public CNCState.CNCState AddArcMovement(Vector3 delta, Vector3 center, bool ccw, RTArcMoveCommand.ArcAxis axis, double feed, CNCState.CNCState currentState)
+        public CNCState.CNCState AddArcMovement(Vector3 delta, Vector3 center, bool ccw, AxisState.Plane axis, double feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
             stateAfter.AxisState.Position.x += delta.x;
@@ -250,6 +251,7 @@ namespace ActionProgram
             AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState, stateAfter);
             return stateAfter;
         }
+
         #endregion
 
         #region Tool

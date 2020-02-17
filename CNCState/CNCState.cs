@@ -1,14 +1,18 @@
 ﻿using System;
 using Machine;
-using Actions;
-using Actions.ModbusTool;
-using Actions.Tools.SpindleTool;
-using System.Collections.Generic;
+using Vector;
 
 namespace CNCState
 {
     public class AxisState : IState
     {
+        public enum Plane
+        {
+            XY,
+            YZ,
+            ZX
+        }
+
         public class CoordinateSystem
         {
             public CoordinateSystem()
@@ -82,14 +86,14 @@ namespace CNCState
 
             public double Feed { get; set; }
 
-            public RTArcMoveCommand.ArcAxis ArcAxis { get; set; }
+            public Plane CurrentPlane { get; set; }
 
             public Parameters BuildCopy()
             {
                 Parameters copy = new Parameters
                 {
                     Absolute = Absolute,
-                    ArcAxis = ArcAxis,
+                    CurrentPlane = CurrentPlane,
                     Feed = Feed,
                     CurrentCoordinateSystemIndex = CurrentCoordinateSystemIndex,
                     CoordinateSystems = new CoordinateSystem[CoordinateSystems.Length],
@@ -114,10 +118,10 @@ namespace CNCState
             set { Params.Absolute = value; }
         }
 
-        public RTArcMoveCommand.ArcAxis ArcAxis
+        public Plane Axis
         {
-            get => Params.ArcAxis;
-            set { Params.ArcAxis = value; }
+            get => Params.CurrentPlane;
+            set { Params.CurrentPlane = value; }
         }
 
         public Vector3 Position { get; set; }
@@ -128,7 +132,7 @@ namespace CNCState
             Params = new Parameters
             {
                 Absolute = true,
-                ArcAxis = RTArcMoveCommand.ArcAxis.XY,
+                CurrentPlane = Plane.XY,
                 Feed = 100,
                 CoordinateSystems = new CoordinateSystem[8],
                 CurrentCoordinateSystemIndex = 0,
@@ -173,6 +177,13 @@ namespace CNCState
 
     public class SpindleState
     {
+        public enum SpindleRotationState
+        {
+            Off,
+            Clockwise,
+            CounterClockwise,
+        }
+
         public SpindleRotationState RotationState { get; set; }
 
         public double SpindleSpeed { get; set; }

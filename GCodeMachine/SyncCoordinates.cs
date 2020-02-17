@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Actions;
+using Vector;
 
 namespace GCodeMachine
 {

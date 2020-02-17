@@ -1,17 +1,12 @@
 using System;
 using Config;
+using Vector;
+using CNCState;
 
 namespace Actions
 {
     public class RTArcMoveCommand : IRTMoveCommand
     {
-        public enum ArcAxis
-        {
-            XY,
-            YZ,
-            ZX
-        }
-
         public bool CommandIsCached { get { return true; } }
         
         private MachineParameters config;
@@ -19,13 +14,13 @@ namespace Actions
         private Vector2 startToCenterProj;
         private Vector2 endToCenterProj;
 
-        public ArcAxis Plane { get; private set; }
+        public AxisState.Plane Plane { get; private set; }
         public RTMovementOptions Options { get; private set; }
         public Vector3 Delta { get; private set; }
         public bool CCW { get; private set; }
         public double R { get; private set; }
 
-        public Double HordeCenterDistance { get; private set; }
+        public double HordeCenterDistance { get; private set; }
         public Vector3 DirStart { get; private set; }
         public Vector3 DirEnd { get; private set; }
         public double Length { get; private set; }
@@ -40,19 +35,19 @@ namespace Actions
                 bool left = false;
                 switch (Plane)
                 {
-                    case ArcAxis.XY:
+                    case AxisState.Plane.XY:
                         if (config.invert_x)
                             left = !left;
                         if (config.invert_y)
                             left = !left;
                         return left;
-                    case ArcAxis.YZ:
+                    case AxisState.Plane.YZ:
                         if (config.invert_y)
                             left = !left;
                         if (config.invert_z)
                             left = !left;
                         return left;
-                    case ArcAxis.ZX:
+                    case AxisState.Plane.ZX:
                         if (config.invert_z)
                             left = !left;
                         if (config.invert_x)
@@ -70,11 +65,11 @@ namespace Actions
             {
                 switch (Plane)
                 {
-                    case ArcAxis.XY:
+                    case AxisState.Plane.XY:
                         return "G17";
-                    case ArcAxis.YZ:
+                    case AxisState.Plane.YZ:
                         return "G18";
-                    case ArcAxis.ZX:
+                    case AxisState.Plane.ZX:
                         return "G19";
                     default:
                         throw new ArgumentOutOfRangeException("Invalid arc plane selection");
@@ -204,30 +199,30 @@ namespace Actions
             return (st / st.Length(), et / et.Length());
         }
 
-        private Vector2 VectorPlaneProj(Vector3 delta, ArcAxis plane)
+        private Vector2 VectorPlaneProj(Vector3 delta, AxisState.Plane plane)
         {
             switch (plane)
             {
-                case ArcAxis.XY:
+                case AxisState.Plane.XY:
                     return new Vector2(delta.x, delta.y);
-                case ArcAxis.YZ:
+                case AxisState.Plane.YZ:
                     return new Vector2(delta.y, delta.z);
-                case ArcAxis.ZX:
+                case AxisState.Plane.ZX:
                     return new Vector2(delta.z, delta.x);
                 default:
                     throw new ArgumentOutOfRangeException("Invalid axis");
             }
         }
 
-        private double VectorPlaneNormalProj(Vector3 delta, ArcAxis plane)
+        private double VectorPlaneNormalProj(Vector3 delta, AxisState.Plane plane)
         {
             switch (plane)
             {
-                case ArcAxis.XY:
+                case AxisState.Plane.XY:
                     return delta.z;
-                case ArcAxis.YZ:
+                case AxisState.Plane.YZ:
                     return delta.x;
-                case ArcAxis.ZX:
+                case AxisState.Plane.ZX:
                     return delta.y;
                 default:
                     throw new ArgumentOutOfRangeException("Invalid axis");
@@ -242,15 +237,15 @@ namespace Actions
 
             switch (Plane)
             {
-                case ArcAxis.XY:
+                case AxisState.Plane.XY:
                     DirStart = new Vector3(startTan.x, startTan.y, 0);
                     DirEnd = new Vector3(endTan.x, endTan.y, 0);
                     break;
-                case ArcAxis.YZ:
+                case AxisState.Plane.YZ:
                     DirStart = new Vector3(0, startTan.x, startTan.y);
                     DirEnd = new Vector3(0, endTan.x, endTan.y);
                     break;
-                case ArcAxis.ZX:
+                case AxisState.Plane.ZX:
                     DirStart = new Vector3(startTan.y, 0, startTan.x);
                     DirEnd = new Vector3(endTan.y, 0, endTan.x);
                     break;
@@ -260,7 +255,7 @@ namespace Actions
         }
 
         
-        public RTArcMoveCommand(Vector3 delta, double R, bool ccw, ArcAxis plane,
+        public RTArcMoveCommand(Vector3 delta, double R, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
             double h = VectorPlaneNormalProj(delta, plane);
@@ -288,7 +283,7 @@ namespace Actions
             Length = Angle * R;
         }
 
-        public RTArcMoveCommand(Vector3 delta, Vector3 startToCenter, bool ccw, ArcAxis plane,
+        public RTArcMoveCommand(Vector3 delta, Vector3 startToCenter, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
             double h = VectorPlaneNormalProj(delta, plane);

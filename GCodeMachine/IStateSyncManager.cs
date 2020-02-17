@@ -1,5 +1,5 @@
 ﻿using System;
-using Actions;
+using Vector;
 
 namespace GCodeMachine
 {

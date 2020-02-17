@@ -1,17 +1,11 @@
 ﻿using System;
 using Actions.ModbusTool;
+using CNCState;
 
 namespace Actions.Tools.SpindleTool
 {
-    public enum SpindleRotationState
-    {
-        Off,
-        Clockwise,
-        CounterClockwise,
-    }
-
     public interface ISpindleToolFactory
     {
-        ModbusToolCommand CreateSpindleToolCommand(SpindleRotationState rotation, double speed);
+        ModbusToolCommand CreateSpindleToolCommand(SpindleState.SpindleRotationState rotation, double speed);
     }
 }
