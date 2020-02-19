@@ -18,6 +18,7 @@ namespace RTSender
         public event Action<int> Started;
         public event Action<int, IReadOnlyDictionary<String, String>> Completed;
         public event Action<int, String> Failed;
+        public event Action<String> Error;
         public event Action<int> SlotsNumberReceived;
 
         StreamReader input;
@@ -78,6 +79,9 @@ namespace RTSender
                             break;
                         case "failed":
                             Failed?.Invoke(int.Parse(args.Values["N"]), line);
+                            break;
+                        case "error":
+                            Error?.Invoke(line);
                             break;
                         default:
                             break;

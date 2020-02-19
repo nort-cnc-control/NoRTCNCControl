@@ -18,7 +18,14 @@ namespace RTSender
             {
                 string val = args[i];
                 string[] kv = val.Split(':');
-                Values[kv[0]] = kv[1];
+                try
+                {
+                    Values[kv[0]] = kv[1];
+                }
+                catch
+                {
+                    break;
+                }
             }
         }
     }

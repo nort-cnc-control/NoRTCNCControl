@@ -21,6 +21,25 @@ namespace Actions
         }
     }
 
+    public class RTFailOnESCommand : IRTCommand
+    {
+        public String Command { get; private set; }
+
+        public bool CommandIsCached { get { return false; } }
+
+        public RTFailOnESCommand(bool fail)
+        {
+            if (fail)
+            {
+                Command = "M803";
+            }
+            else
+            {
+                Command = "M802";
+            }
+        }
+    }
+
     public class RTLockCommand : IRTCommand
     {
         public String Command {get; private set;}

@@ -43,6 +43,7 @@ namespace Actions
             this.sender.Dropped += OnDroppedHdl;
             this.sender.Started += OnStartedHdl;
             this.sender.Completed += OnCompletedHdl;
+            this.sender.Failed += OnFailedHdl;
             this.sender.EmptySlotAppeared += OnEmptySlotHdl;
             this.sender.EmptySlotsEnded += OnEmptySlotsEndedHdl;
             this.sender.SlotsNumberReceived += OnSpaceReceived;
@@ -84,6 +85,21 @@ namespace Actions
             foreach (var pair in result)
                 dict.Add(pair.Key, pair.Value);
             ActionResult = dict;
+            Finished.Set();
+            EventFinished?.Invoke(this);
+        }
+
+        private void OnFailedHdl(int nid, String line)
+        {
+            if (nid != CommandId)
+                return;
+            Logger.Instance.Debug(this, "failed", nid.ToString());
+            var dict = new Dictionary<string, string>
+            {
+                ["error"] = line
+            };
+            ActionResult = dict;
+            Failed = true;
             Finished.Set();
             EventFinished?.Invoke(this);
         }
@@ -150,6 +166,7 @@ namespace Actions
             this.sender.Dropped -= OnDroppedHdl;
             this.sender.Started -= OnStartedHdl;
             this.sender.Completed -= OnCompletedHdl;
+            this.sender.Failed -= OnFailedHdl;
         }
         #endregion
     }

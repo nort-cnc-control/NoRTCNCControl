@@ -68,15 +68,26 @@ namespace ActionProgram
         {
             AddAction(new RTAction(rtSender, new RTSetZeroCommand()), currentState, stateAfter);
         }
+
         public void AddRTEnableBreakOnProbe(CNCState.CNCState currentState)
         {
             AddAction(new RTAction(rtSender, new RTBreakOnProbeCommand(true)), currentState, currentState);
         }
+
         public void AddRTDisableBreakOnProbe(CNCState.CNCState currentState)
         {
             AddAction(new RTAction(rtSender, new RTBreakOnProbeCommand(false)), currentState, currentState);
         }
 
+        public void AddRTEnableFailOnEndstops(CNCState.CNCState currentState)
+        {
+            AddAction(new RTAction(rtSender, new RTFailOnESCommand(true)), currentState, currentState);
+        }
+
+        public void AddRTDisableFailOnEndstops(CNCState.CNCState currentState)
+        {
+            AddAction(new RTAction(rtSender, new RTFailOnESCommand(false)), currentState, currentState);
+        }
         #endregion
 
         #region Movements
@@ -92,6 +103,7 @@ namespace ActionProgram
                 gz3 *= -1;
             }
             AddRTForgetResidual(currentState);
+            AddRTDisableFailOnEndstops(null);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
             AddRTForgetResidual(null);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
@@ -131,6 +143,7 @@ namespace ActionProgram
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy3, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
             AddRTSetZero(null, stateAfter);
             AddRTForgetResidual(null);
+            AddRTEnableFailOnEndstops(null);
         }
 
         public void AddZProbe(CNCState.CNCState currentState, CNCState.CNCState stateAfter)
@@ -140,7 +153,7 @@ namespace ActionProgram
             var gz3 = -config.step_back_z*1.2;
 
             AddRTEnableBreakOnProbe(currentState);
-            
+            AddRTDisableFailOnEndstops(null);
             AddRTForgetResidual(null);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
             AddRTForgetResidual(null);
@@ -149,6 +162,7 @@ namespace ActionProgram
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, stateAfter);
             AddRTForgetResidual(null);
             AddRTDisableBreakOnProbe(null);
+            AddRTEnableFailOnEndstops(null);
         }
 
         private (double feed, double acc) MaxLineFeedAcc(Vector3 dir)

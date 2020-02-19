@@ -25,6 +25,7 @@ namespace GCodeMachine
             WaitPreviousActionFinished,
             Pause,
             WaitEnd,
+            Failed,
             End,
             Error,
             Aborted,
@@ -202,9 +203,35 @@ namespace GCodeMachine
                         if (currentAction.RequireFinish)
                         {
                             if (previousAction != null)
+                            {
                                 Wait(previousAction.Finished);
+                                if (previousAction.Failed)
+                                {
+                                    SwitchToState(MachineState.Failed);
+                                    break;
+                                }
+                            }
                         }
                         SwitchToState(MachineState.WaitActionReady);
+                        break;
+                    case MachineState.Failed:
+                        {
+                            String fail = "";
+                            Logger.Instance.Warning(this, "failed", "Command has failed");
+                            Stop();
+                            if (previousAction is RTAction pa)
+                            {
+                                if (pa.ActionResult.ContainsKey("error"))
+                                    fail = pa.ActionResult["error"];
+                            }
+                            Dictionary<string, string> message = new Dictionary<string, string>
+                            {
+                                ["type"] = "message",
+                                ["message"] = String.Format("Command has failed : {0}", fail),
+                            };
+                            messageRouter.Message(message);
+                            SwitchToState(MachineState.End);
+                        }
                         break;
                     case MachineState.WaitActionReady:
                         Wait(currentAction.ReadyToRun);
