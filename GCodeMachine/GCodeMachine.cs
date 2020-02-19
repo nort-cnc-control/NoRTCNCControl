@@ -147,6 +147,7 @@ namespace GCodeMachine
 
         public void Start()
         {
+            currentAction = null;
             if (program == null)
             {
                 RunState = State.Stopped;
