@@ -166,17 +166,17 @@ namespace GCodeServer
         private void RunGcode(String[] prg)
         {
             ActionProgram.ActionProgram program;
-
+            double time;
             try
             {
-                (program, _, starts) = programBuilder.BuildProgram(prg, Machine.LastState);
+                (program, _, starts, time) = programBuilder.BuildProgram(prg, Machine.LastState);
             }
             catch (Exception e)
             {
                 Logger.Instance.Error(this, "compile", String.Format("Exception: {0}", e));
                 return;
             }
-
+            Logger.Instance.Info(this, "compile", String.Format("Expected execution time = {0}", time));
             Machine.LoadProgram(program);
             Machine.Start();
         }

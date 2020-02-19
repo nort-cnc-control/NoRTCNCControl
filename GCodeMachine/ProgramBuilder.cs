@@ -27,6 +27,7 @@ namespace GCodeMachine
         private readonly IToolManager toolManager;
         private ArcMoveFeedLimiter arcMoveFeedLimiter;
         private MoveOptimizer optimizer;
+        private ExpectedTimeCalculator timeCalculator;
         private Stack<AxisState.Parameters> axisStateStack;
         private readonly IStateSyncManager stateSyncManager;
 
@@ -51,6 +52,7 @@ namespace GCodeMachine
             this.config = config;
             arcMoveFeedLimiter = new ArcMoveFeedLimiter(this.config);
             optimizer = new MoveOptimizer(this.config);
+            timeCalculator = new ExpectedTimeCalculator();
             axisStateStack = new Stack<AxisState.Parameters>();
             spindleCommandPending = false;
         }
@@ -373,7 +375,6 @@ namespace GCodeMachine
                         {
                             var after = state.BuildCopy();
                             after.AxisState.Position.z = 0;
-
                             program.AddZProbe(state, after);
                             state = after;
                             program.AddAction(new SyncCoordinates(stateSyncManager, state.AxisState.Position), state, null);
@@ -473,7 +474,8 @@ namespace GCodeMachine
 
         public (ActionProgram.ActionProgram program,
                 CNCState.CNCState state,
-                IReadOnlyDictionary<IAction, int> starts) 
+                IReadOnlyDictionary<IAction, int> starts,
+                double executionTime) 
             BuildProgram(String[] frames, CNCState.CNCState state)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
@@ -504,11 +506,12 @@ namespace GCodeMachine
             program.AddPlaceholder(state);
             arcMoveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
+            timeCalculator.ProcessProgram(program);
 
-            return (program, state, starts);
+            return (program, state, starts, timeCalculator.ExecutionTime);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts) 
+        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts, double executionTime) 
                 BuildProgram(String frame, CNCState.CNCState state)
         {
             return BuildProgram(frame.Split('\n'), state);
