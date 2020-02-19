@@ -242,7 +242,7 @@ namespace NoRTServer
                     ["modbus_sender"] = new JsonObject {
                         ["sender"] = "EmulationModbusSender",
                     },
-                    ["spindle_driver"] = "N700E",
+                    ["spindle_driver"] = "None",
                 };
             }
 

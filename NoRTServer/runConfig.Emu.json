@@ -7,5 +7,5 @@
         "sender" : "EmulationRTSender"
     },
 
-    "spindle_driver" : "N700E"
+    "spindle_driver" : "None"
 }
