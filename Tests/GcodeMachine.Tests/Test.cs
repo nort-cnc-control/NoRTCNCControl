@@ -51,7 +51,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
             var spindleState = new SpindleState();
 
             var sender = new EmulationRTSender(Console.Out);
@@ -62,9 +62,13 @@ namespace GCodeMachine.Tests
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
             Console.WriteLine("BUILDING");
-            var (program,_,_) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_,_, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             sender.Dispose();
             PrintStream(output);
@@ -83,7 +87,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -93,9 +97,13 @@ namespace GCodeMachine.Tests
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
             Console.WriteLine("BUILDING");
-            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             sender.Dispose();
         }
@@ -114,7 +122,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -123,9 +131,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             sender.Dispose();
 
@@ -149,7 +161,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -158,9 +170,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             sender.Dispose();
 
@@ -184,7 +200,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -193,9 +209,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             sender.Dispose();
 
@@ -219,7 +239,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -228,9 +248,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             sender.Dispose();
 
@@ -254,7 +278,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -263,9 +287,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program,_, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             rtSender.Dispose();
 
@@ -289,7 +317,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -298,9 +326,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program,_, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             rtSender.Dispose();
 
@@ -324,7 +356,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState());
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -333,9 +365,13 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program,_, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+
+            while (machine.IsRunning())
+            { }
+
             machine.Dispose();
             rtSender.Dispose();
 
@@ -345,9 +381,49 @@ namespace GCodeMachine.Tests
             Console.WriteLine("RESULT:\n{0}", result);
         }
 
+        public static void TestCase10()
+        {
+            var programGcode = "Z10\nG90\nG98\nG81 X10 Y10 Z0 R3\nM2\n";
+
+            var config = new MachineParameters
+            {
+                max_acceleration = 40 * 60 * 60,
+                fastfeed = 600,
+                slowfeed = 100,
+                maxfeed = 800,
+                max_movement_leap = 40
+            };
+
+            var output = new MemoryStream();
+            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+
+            var rtSender = new EmulationRTSender(Console.Out);
+            var modbusSender = new EmulationModbusSender(Console.Out);
+            var spindleCmdFactory = new Actions.Tools.SpindleTool.N700ESpindleToolFactory();
+
+            var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
+            var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
+
+            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            machine.LoadProgram(program);
+            machine.Start();
+
+            while (machine.IsRunning())
+            {}
+
+            machine.Dispose();
+            rtSender.Dispose();
+
+            output.Seek(0, SeekOrigin.Begin);
+            var resultb = output.ToArray();
+            var result = System.Text.Encoding.UTF8.GetString(resultb, 0, resultb.Length);
+            Console.WriteLine("RESULT:\n{0}", result);
+        }
+
+
         static void Main(string[] args)
         {
-            TestCase1();
+            TestCase10();
         }
     }
 }

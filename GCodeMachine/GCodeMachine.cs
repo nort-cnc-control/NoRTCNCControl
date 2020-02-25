@@ -40,7 +40,8 @@ namespace GCodeMachine
         private CNCState.CNCState lastState;
         public CNCState.CNCState LastState => lastState.BuildCopy();
         private readonly Config.MachineParameters config;
-        public IMessageRouter messageRouter;
+
+        private IMessageRouter messageRouter;
 
         private Dictionary<IAction, (CNCState.CNCState before, CNCState.CNCState after)> states;
 
@@ -160,8 +161,14 @@ namespace GCodeMachine
 
         public void Continue()
         {
+            machineIsRunning = true;
             var runThread = new Thread(new ThreadStart(Process));
             runThread.Start();
+        }
+
+        public bool IsRunning()
+        {
+            return machineIsRunning;
         }
 
         public void Process()

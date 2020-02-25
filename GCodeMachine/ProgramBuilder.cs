@@ -85,7 +85,86 @@ namespace GCodeMachine
             return state;
         }
 
-        private CNCState.CNCState ProcessMove(Arguments block,
+        private CNCState.CNCState ProcessDrillingMove(Arguments block,
+                                              ActionProgram.ActionProgram program,
+                                              CNCState.CNCState state)
+        {
+            state = state.BuildCopy();
+
+            var X = block.X;
+            var Y = block.Y;
+            var Z = block.Z;
+            var R = block.R;
+
+            if (R != null)
+            {
+                if (state.AxisState.Absolute)
+                    state.DrillingState.RHeight = R.value;
+                else
+                    state.DrillingState.RHeight = state.AxisState.Position.z + R.value;
+            }
+
+            if (Z != null)
+            {
+                if (state.AxisState.Absolute)
+                    state.DrillingState.Depth = Z.value;
+                else
+                    state.DrillingState.Depth = state.AxisState.Position.z + Z.value;
+            }
+
+            double dx = 0;
+            double dy = 0;
+
+            if (state.AxisState.Absolute)
+            {
+                if (X != null)
+                {
+                    dx = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalX(X.value) -
+                         state.AxisState.Position.x;
+                }
+                if (Y != null)
+                {
+                    dy = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalY(Y.value) -
+                         state.AxisState.Position.y;
+                }
+            }
+            else
+            {
+                if (X != null)
+                {
+                    dx = X.value;
+                }
+                if (Y != null)
+                {
+                    dy = Y.value;
+                }
+            }
+            state = program.AddFastLineMovement(new Vector3(dx, dy, 0), state);
+
+            double originalZ = state.AxisState.Position.z;
+
+            double dz = state.DrillingState.RHeight - state.AxisState.Position.z;
+            state = program.AddFastLineMovement(new Vector3(0, 0, dz), state);
+
+            // TODO: add pecking, dwelling, etc
+            dz = state.DrillingState.Depth - state.AxisState.Position.z;
+            state = program.AddLineMovement(new Vector3(0, 0, dz), state.AxisState.Feed, state);
+
+            switch (state.DrillingState.RetractDepth)
+            {
+                case DrillingState.RetractDepthType.InitialHeight:
+                    dz = originalZ - state.AxisState.Position.z;
+                    break;
+                case DrillingState.RetractDepthType.RHeight:
+                    dz = state.DrillingState.RHeight - state.AxisState.Position.z;
+                    break;
+            }
+            state = program.AddFastLineMovement(new Vector3(0, 0, dz), state);
+
+            return state;
+        }
+
+        private CNCState.CNCState ProcessDirectMove(Arguments block,
                                               ActionProgram.ActionProgram program,
                                               CNCState.CNCState state)
         {
@@ -199,6 +278,16 @@ namespace GCodeMachine
             return state;
         }
 
+
+        private CNCState.CNCState ProcessMove(Arguments block,
+                                              ActionProgram.ActionProgram program,
+                                              CNCState.CNCState state)
+        {
+            if (!state.DrillingState.Drilling)
+                return ProcessDirectMove(block, program, state);
+            else
+                return ProcessDrillingMove(block, program, state);
+        }
 
         private CNCState.CNCState ProcessSpindleRunCommand(Arguments block,
                                                            ActionProgram.ActionProgram program,
@@ -390,6 +479,119 @@ namespace GCodeMachine
                     case 59:
                         state = ProcessCoordinatesSystemSet(block, program, state);
                         break;
+                    case 80:
+                        state.DrillingState.Drilling = false;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 81:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Rapid;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = false;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = false;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 82:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Rapid;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = true;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = false;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 83:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = true;
+                        state.DrillingState.Retract = DrillingState.RetractType.Rapid;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = false;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = false;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 84:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Feed;
+                        state.DrillingState.RetractReverse = true;
+                        state.DrillingState.Dwell = false;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = false;
+                        state.DrillingState.Tapping = true;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 85:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Feed;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = false;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = false;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 86:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Feed;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = false;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = true;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 87:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Manual;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = false;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = true;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 88:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Manual;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = true;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = true;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+                    case 89:
+                        state.DrillingState.Drilling = true;
+                        state.DrillingState.Peck = false;
+                        state.DrillingState.Retract = DrillingState.RetractType.Feed;
+                        state.DrillingState.RetractReverse = false;
+                        state.DrillingState.Dwell = true;
+                        state.DrillingState.LeftHand = false;
+                        state.DrillingState.StopSpindle = false;
+                        state.DrillingState.Tapping = false;
+                        state.DrillingState.RetractDepth = 0;
+                        state = ProcessMove(block, program, state);
+                        break;
+
                     case 90:
                         state.AxisState.Absolute = true;
                         break;
@@ -398,6 +600,13 @@ namespace GCodeMachine
                         break;
                     case 92:
                         state = ProcessCoordinatesSet(block, program, state);
+                        break;
+
+                    case 98:
+                        state.DrillingState.RetractDepth = DrillingState.RetractDepthType.InitialHeight;
+                        break;
+                    case 99:
+                        state.DrillingState.RetractDepth = DrillingState.RetractDepthType.RHeight;
                         break;
                 }
             }
@@ -463,7 +672,7 @@ namespace GCodeMachine
                     break;
                 }
             }
-           
+
             var len1 = program.Actions.Count;
             if (len1 > len0)
             {
@@ -476,7 +685,7 @@ namespace GCodeMachine
         public (ActionProgram.ActionProgram program,
                 CNCState.CNCState state,
                 IReadOnlyDictionary<IAction, int> starts,
-                double executionTime) 
+                double executionTime)
             BuildProgram(String[] frames, CNCState.CNCState state)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
@@ -512,7 +721,7 @@ namespace GCodeMachine
             return (program, state, starts, timeCalculator.ExecutionTime);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts, double executionTime) 
+        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts, double executionTime)
                 BuildProgram(String frame, CNCState.CNCState state)
         {
             return BuildProgram(frame.Split('\n'), state);
