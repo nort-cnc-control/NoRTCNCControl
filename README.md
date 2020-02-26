@@ -66,9 +66,13 @@ All sizes should be specified in millimeters (mm).
 - G28 - search Z, X, Y endstops
 - G30 - probe Z axis
 - G53-G59 - select one of the coordinate systems
+- G80 - finish drilling cycle
+- G81 - drill without pecking, dwelling, tapping, retract with fast feed
 - G90 - select absolute positioning
 - G91 - select relative positioning
-- G92 - set current position.
+- G92 - set current position
+- G98 - retract to initial height while drilling
+- G99 - retract to R height while drilling
 
 ### M commands
 
