@@ -79,6 +79,13 @@ namespace Vector
             this.z = z;
         }
 
+        public Vector3(Vector3 v)
+        {
+            this.x = v.x;
+            this.y = v.y;
+            this.z = v.z;
+        }
+
         public static double operator *(Vector3 v, Vector3 w)
         {
             return v.x * w.x + v.y * w.y + v.z * w.z;

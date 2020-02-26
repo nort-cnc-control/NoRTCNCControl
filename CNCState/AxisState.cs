@@ -34,32 +34,32 @@ namespace CNCState
                 return new Vector3(ToGlobalX(P.x), ToGlobalY(P.y), ToGlobalZ(P.z));
             }
 
-            public double ToGlobalX(double x)
+            private double ToGlobalX(double x)
             {
                 return x * Sign.x + Offset.x;
             }
 
-            public double ToGlobalY(double y)
+            private double ToGlobalY(double y)
             {
                 return y * Sign.y + Offset.y;
             }
 
-            public double ToGlobalZ(double z)
+            private double ToGlobalZ(double z)
             {
                 return z * Sign.z + Offset.z;
             }
 
-            public double ToLocalX(double x)
+            private double ToLocalX(double x)
             {
                 return (x - Offset.x) * Sign.x;
             }
 
-            public double ToLocalY(double y)
+            private double ToLocalY(double y)
             {
                 return (y - Offset.y) * Sign.y;
             }
 
-            public double ToLocalZ(double z)
+            private double ToLocalZ(double z)
             {
                 return (z - Offset.z) * Sign.z;
             }

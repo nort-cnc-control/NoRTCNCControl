@@ -36,8 +36,8 @@ namespace CNCState
         public RetractDepthType RetractDepth { get; set; }
 
         public double PeckDepth { get; set; }
-        public double RHeight { get; set; }
-        public double Depth { get; set; }
+        public double RHeightLocal { get; set; }
+        public double DrillDepthLocal { get; set; }
 
         public DrillingState BuildCopy()
         {
@@ -53,8 +53,8 @@ namespace CNCState
                 Retract = Retract,
                 PeckDepth = PeckDepth,
                 RetractDepth = RetractDepth,
-                Depth = Depth,
-                RHeight = RHeight,
+                DrillDepthLocal = DrillDepthLocal,
+                RHeightLocal = RHeightLocal,
             };
         }
     }

@@ -383,7 +383,7 @@ namespace GCodeMachine.Tests
 
         public static void TestCase10()
         {
-            var programGcode = "Z10\nG90\nG98\nG81 X10 Y10 Z0 R3\nM2\n";
+            var programGcode = "G92 Z1.5\nZ10\nG90\nG98\nG81 X10 Y10 Z0 R3\nM2\n";
 
             var config = new MachineParameters
             {

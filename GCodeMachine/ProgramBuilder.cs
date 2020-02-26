@@ -91,75 +91,95 @@ namespace GCodeMachine
         {
             state = state.BuildCopy();
 
+            // TODO Handle G17, 18, 19
+
             var X = block.X;
             var Y = block.Y;
             var Z = block.Z;
             var R = block.R;
 
-            if (R != null)
-            {
-                if (state.AxisState.Absolute)
-                    state.DrillingState.RHeight = R.value;
-                else
-                    state.DrillingState.RHeight = state.AxisState.Position.z + R.value;
-            }
+            var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
+            Vector3 currentPositionLocal = coordinateSystem.ToLocal(state.AxisState.Position);
 
-            if (Z != null)
-            {
-                if (state.AxisState.Absolute)
-                    state.DrillingState.Depth = Z.value;
-                else
-                    state.DrillingState.Depth = state.AxisState.Position.z + Z.value;
-            }
-
-            double dx = 0;
-            double dy = 0;
+            #region Positioning
+            Vector3 targetPositionLocal = new Vector3(currentPositionLocal);
 
             if (state.AxisState.Absolute)
             {
                 if (X != null)
                 {
-                    dx = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalX(X.value) -
-                         state.AxisState.Position.x;
+                    targetPositionLocal.x = X.value;
                 }
                 if (Y != null)
                 {
-                    dy = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalY(Y.value) -
-                         state.AxisState.Position.y;
+                    targetPositionLocal.y = Y.value;
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    dx = X.value;
+                    targetPositionLocal.x += X.value;
                 }
                 if (Y != null)
                 {
-                    dy = Y.value;
+                    targetPositionLocal.y += Y.value;
                 }
             }
-            state = program.AddFastLineMovement(new Vector3(dx, dy, 0), state);
 
-            double originalZ = state.AxisState.Position.z;
+            var targetPosition = coordinateSystem.ToGlobal(targetPositionLocal);
+            state = program.AddFastLineMovement(targetPosition - state.AxisState.Position, state);
+            #endregion
 
-            double dz = state.DrillingState.RHeight - state.AxisState.Position.z;
-            state = program.AddFastLineMovement(new Vector3(0, 0, dz), state);
+            #region R height
+            if (R != null)
+            {
+                if (state.AxisState.Absolute)
+                    state.DrillingState.RHeightLocal = R.value;
+                else
+                    state.DrillingState.RHeightLocal = targetPositionLocal.z + R.value;
+            }
+            var rPositionLocal = new Vector3(targetPositionLocal)
+            {
+                z = state.DrillingState.RHeightLocal
+            };
+            var rPosition = coordinateSystem.ToGlobal(rPositionLocal);
+            state = program.AddFastLineMovement(rPosition - targetPosition, state);
+            #endregion
 
             // TODO: add pecking, dwelling, etc
-            dz = state.DrillingState.Depth - state.AxisState.Position.z;
-            state = program.AddLineMovement(new Vector3(0, 0, dz), state.AxisState.Feed, state);
 
+            #region drilling
+            if (Z != null)
+            {
+                if (state.AxisState.Absolute)
+                    state.DrillingState.DrillDepthLocal = Z.value;
+                else
+                    state.DrillingState.DrillDepthLocal = targetPositionLocal.z + Z.value;
+            }
+            var drillPositionLocal = new Vector3(targetPositionLocal)
+            {
+                z = state.DrillingState.DrillDepthLocal
+            };
+            var drillPosition = coordinateSystem.ToGlobal(drillPositionLocal);
+            state = program.AddLineMovement(drillPosition - rPosition, state.AxisState.Feed, state);
+            #endregion
+
+            #region Retract
+            Vector3 retract;
             switch (state.DrillingState.RetractDepth)
             {
                 case DrillingState.RetractDepthType.InitialHeight:
-                    dz = originalZ - state.AxisState.Position.z;
+                    retract = targetPosition - drillPosition;
                     break;
                 case DrillingState.RetractDepthType.RHeight:
-                    dz = state.DrillingState.RHeight - state.AxisState.Position.z;
+                    retract = rPosition - drillPosition;
                     break;
+                default:
+                    throw new InvalidOperationException("Unknown retract depth state");
             }
-            state = program.AddFastLineMovement(new Vector3(0, 0, dz), state);
+            state = program.AddFastLineMovement(retract, state);
+            #endregion
 
             return state;
         }
@@ -201,45 +221,44 @@ namespace GCodeMachine
             if (X == null && Y == null && Z == null)
                 return state;
 
-            double dx = 0;
-            double dy = 0;
-            double dz = 0;
+            var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
+            Vector3 currentPositionLocal = coordinateSystem.ToLocal(state.AxisState.Position);
+
+            Vector3 targetPositionLocal = new Vector3(currentPositionLocal);
 
             if (state.AxisState.Absolute)
             {
                 if (X != null)
                 {
-                    dx = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalX(X.value) -
-                         state.AxisState.Position.x;
+                    targetPositionLocal.x = X.value;
                 }
                 if (Y != null)
                 {
-                    dy = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalY(Y.value) -
-                         state.AxisState.Position.y;
+                    targetPositionLocal.y = Y.value;
                 }
                 if (Z != null)
                 {
-                    dz = state.AxisState.Params.CurrentCoordinateSystem.ToGlobalZ(Z.value) -
-                         state.AxisState.Position.z;
+                    targetPositionLocal.z = Z.value;
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    dx = X.value;
+                    targetPositionLocal.x += X.value;
                 }
                 if (Y != null)
                 {
-                    dy = Y.value;
+                    targetPositionLocal.y += Y.value;
                 }
                 if (Z != null)
                 {
-                    dz = Z.value;
+                    targetPositionLocal.z += Z.value;
                 }
             }
 
-            var delta = new Vector3(dx, dy, dz);
+            var targetPosition = coordinateSystem.ToGlobal(targetPositionLocal);
+            var delta = targetPosition - state.AxisState.Position;
 
             switch (state.AxisState.MoveType)
             {
@@ -492,7 +511,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = false;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 82:
@@ -504,7 +522,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = false;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 83:
@@ -516,7 +533,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = false;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 84:
@@ -528,7 +544,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = false;
                         state.DrillingState.Tapping = true;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 85:
@@ -540,7 +555,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = false;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 86:
@@ -552,7 +566,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = true;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 87:
@@ -564,7 +577,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = true;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 88:
@@ -576,7 +588,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = true;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
                     case 89:
@@ -588,7 +599,6 @@ namespace GCodeMachine
                         state.DrillingState.LeftHand = false;
                         state.DrillingState.StopSpindle = false;
                         state.DrillingState.Tapping = false;
-                        state.DrillingState.RetractDepth = 0;
                         state = ProcessMove(block, program, state);
                         break;
 
