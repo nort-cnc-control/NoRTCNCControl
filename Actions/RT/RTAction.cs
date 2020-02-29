@@ -142,11 +142,13 @@ namespace Actions
 
         public void Run()
         {
+            String cmd = Command.Command;
             if (!sender.HasSlots && Command.CommandIsCached)
             {
+                Logger.Instance.Error(this, "no slots", String.Format("Command = \"{0}\"", cmd));
                 throw new OutOfMemoryException("MCU doesn't have empty slots");
             }
-            String cmd = Command.Command;
+
             lock (sender)
             {
                 sender.Indexed += OnIndexed;

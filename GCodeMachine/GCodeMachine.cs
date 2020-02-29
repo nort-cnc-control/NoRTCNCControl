@@ -87,6 +87,7 @@ namespace GCodeMachine
         private void OnReseted()
         {
             bool run = machineIsRunning;
+            SwitchToState(MachineState.Aborted);
 
             if (previousAction != null)
             {
@@ -103,7 +104,6 @@ namespace GCodeMachine
                 currentWait.Set();
             }
             SendState("init");
-            SwitchToState(MachineState.Aborted);
             if (!run)
                 reseted.Set();
         }
@@ -143,6 +143,7 @@ namespace GCodeMachine
                 ["state"] = state,
                 ["message"] = "",
             };
+            Logger.Instance.Debug(this, "message state", state);
             messageRouter.Message(message);
         }
 
@@ -188,13 +189,17 @@ namespace GCodeMachine
                 switch (StateMachine)
                 {
                     case MachineState.Idle:
+                        Logger.Instance.Debug(this, "state", "Idle");
                         SwitchToState(MachineState.Ready);
                         break;
                     case MachineState.Ready:
+                        Logger.Instance.Debug(this, "state", "Ready");
+                        Logger.Instance.Debug(this, "action", "Pop action");
                         previousAction = currentAction;
                         (currentAction, sb, sa) = PopAction();
                         if (currentAction == null)
                         {
+                            Logger.Instance.Debug(this, "action", "No more actions, end");
                             SwitchToState(MachineState.WaitEnd);
                         }
                         else
@@ -204,6 +209,7 @@ namespace GCodeMachine
                         }
                         break;
                     case MachineState.WaitEnd:
+                        Logger.Instance.Debug(this, "action", "Wait for last action end");
                         if (previousAction != null)
                             Wait(previousAction.Finished);
                         SwitchToState(MachineState.End);
@@ -213,6 +219,7 @@ namespace GCodeMachine
                         {
                             if (previousAction != null)
                             {
+                                Logger.Instance.Debug(this, "action", "Wait for previous end");
                                 Wait(previousAction.Finished);
                                 if (previousAction.Failed)
                                 {
@@ -220,6 +227,10 @@ namespace GCodeMachine
                                     break;
                                 }
                             }
+                        }
+                        else
+                        {
+                            Logger.Instance.Debug(this, "action", "No need wait for previous end");
                         }
                         SwitchToState(MachineState.WaitActionReady);
                         break;
@@ -243,10 +254,12 @@ namespace GCodeMachine
                         }
                         break;
                     case MachineState.WaitActionReady:
+                        Logger.Instance.Debug(this, "action", "Wait for action ready to run");
                         Wait(currentAction.ReadyToRun);
                         SwitchToState(MachineState.ActionRun);
                         break;
                     case MachineState.ActionRun:
+                        Logger.Instance.Debug(this, "action", "Run action");
                         currentAction.EventStarted += Action_OnStarted;
                         currentAction.EventFinished += Action_OnFinished;
                         started.Add(currentAction);
@@ -266,12 +279,15 @@ namespace GCodeMachine
                             SwitchToState(change);
                         break;
                     case MachineState.Aborted:
+                        Logger.Instance.Debug(this, "action", "Machine aborted");
                         Stop();
                         reseted.Set();
                         break;
                     case MachineState.End:
+                        Logger.Instance.Debug(this, "action", "End");
                         break;
                     case MachineState.Error:
+                        Logger.Instance.Debug(this, "action", "Error");
                         break;
                 }
             }

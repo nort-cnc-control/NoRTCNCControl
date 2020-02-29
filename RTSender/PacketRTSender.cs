@@ -132,7 +132,7 @@ namespace RTSender
 
         public void Dispose()
         {
-            output.WriteLine("EXIT:");
+            Logger.Instance.Debug(this, "exit", "Disposing");
             running = false;
             receiveThread.Join();
         }
