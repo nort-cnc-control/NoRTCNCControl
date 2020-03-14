@@ -6,6 +6,12 @@ namespace CNCState
 {
     public class AxisState : IState
     {
+        public enum Units
+        {
+            Millimeters,
+            Inches,
+        }
+
         public enum Plane
         {
             XY,
@@ -88,6 +94,8 @@ namespace CNCState
 
             public Plane CurrentPlane { get; set; }
 
+            public Units SizeUnits { get; set; }
+
             public Parameters BuildCopy()
             {
                 Parameters copy = new Parameters
@@ -97,6 +105,7 @@ namespace CNCState
                     Feed = Feed,
                     CurrentCoordinateSystemIndex = CurrentCoordinateSystemIndex,
                     CoordinateSystems = new CoordinateSystem[CoordinateSystems.Length],
+                    SizeUnits = SizeUnits,
                 };
                 for (int i = 0; i < copy.CoordinateSystems.Length; ++i)
                 {
@@ -136,6 +145,7 @@ namespace CNCState
                 Feed = 100,
                 CoordinateSystems = new CoordinateSystem[8],
                 CurrentCoordinateSystemIndex = 0,
+                SizeUnits = Units.Millimeters,
             };
             for (int i = 0; i < 8; i++)
             {

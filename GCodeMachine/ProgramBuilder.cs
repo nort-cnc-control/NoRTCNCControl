@@ -75,7 +75,7 @@ namespace GCodeMachine
             state = state.BuildCopy();
             if (block.Feed != null)
             {
-                state.AxisState.Feed = block.Feed.value;
+                state.AxisState.Feed = ConvertSizes(block.Feed.value, state);
             }
             if (block.Speed != null)
             {
@@ -108,22 +108,22 @@ namespace GCodeMachine
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x = X.value;
+                    targetPositionLocal.x = ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y = Y.value;
+                    targetPositionLocal.y = ConvertSizes(Y.value, state);
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x += X.value;
+                    targetPositionLocal.x += ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y += Y.value;
+                    targetPositionLocal.y += ConvertSizes(Y.value, state);
                 }
             }
 
@@ -135,9 +135,9 @@ namespace GCodeMachine
             if (R != null)
             {
                 if (state.AxisState.Absolute)
-                    state.DrillingState.RHeightLocal = R.value;
+                    state.DrillingState.RHeightLocal = ConvertSizes(R.value, state);
                 else
-                    state.DrillingState.RHeightLocal = targetPositionLocal.z + R.value;
+                    state.DrillingState.RHeightLocal = currentPositionLocal.z + ConvertSizes(R.value, state);
             }
             var rPositionLocal = new Vector3(targetPositionLocal)
             {
@@ -153,9 +153,9 @@ namespace GCodeMachine
             if (Z != null)
             {
                 if (state.AxisState.Absolute)
-                    state.DrillingState.DrillDepthLocal = Z.value;
+                    state.DrillingState.DrillDepthLocal = ConvertSizes(Z.value, state);
                 else
-                    state.DrillingState.DrillDepthLocal = targetPositionLocal.z + Z.value;
+                    state.DrillingState.DrillDepthLocal = targetPositionLocal.z + ConvertSizes(Z.value, state);
             }
             var drillPositionLocal = new Vector3(targetPositionLocal)
             {
@@ -230,32 +230,34 @@ namespace GCodeMachine
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x = X.value;
+                    targetPositionLocal.x = ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y = Y.value;
+                    targetPositionLocal.y = ConvertSizes(Y.value, state);
                 }
                 if (Z != null)
                 {
-                    targetPositionLocal.z = Z.value;
+                    targetPositionLocal.z = ConvertSizes(Z.value, state);
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x += X.value;
+                    targetPositionLocal.x += ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y += Y.value;
+                    targetPositionLocal.y += ConvertSizes(Y.value, state);
                 }
                 if (Z != null)
                 {
-                    targetPositionLocal.z += Z.value;
+                    targetPositionLocal.z += ConvertSizes(Z.value, state);
                 }
             }
+
+
 
             var targetPosition = coordinateSystem.ToGlobal(targetPositionLocal);
             var delta = targetPosition - state.AxisState.Position;
@@ -274,7 +276,8 @@ namespace GCodeMachine
                         bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
                         if (R != null)
                         {
-                            state = program.AddArcMovement(delta, R.value, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
+                            var r = ConvertSizes(R.value, state);
+                            state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else
                         {
@@ -282,11 +285,11 @@ namespace GCodeMachine
                             double j = 0;
                             double k = 0;
                             if (I != null)
-                                i = I.value;
+                                i = ConvertSizes(I.value, state);
                             if (J != null)
-                                j = J.value;
+                                j = ConvertSizes(J.value, state);
                             if (K != null)
-                                k = K.value;
+                                k = ConvertSizes(K.value, state);
                             state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                     }
@@ -347,17 +350,17 @@ namespace GCodeMachine
             if (X != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
-                    state.AxisState.Position.x - X.value;
+                    state.AxisState.Position.x - ConvertSizes(X.value, state);
             }
             if (Y != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.y =
-                    state.AxisState.Position.y - Y.value;
+                    state.AxisState.Position.y - ConvertSizes(Y.value, state);
             }
             if (Z != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
-                    state.AxisState.Position.z - Z.value;
+                    state.AxisState.Position.z - ConvertSizes(Z.value, state);
             }
             program.AddRTForgetResidual(state);
             return state;
@@ -404,6 +407,24 @@ namespace GCodeMachine
             }
 
             return arguments;
+        }
+
+        private double ConvertSizes(double value, CNCState.CNCState state)
+        {
+            switch (state.AxisState.Params.SizeUnits)
+            {
+                case AxisState.Units.Millimeters:
+                    return value;
+                case AxisState.Units.Inches:
+                    return value * 25.4;
+                default:
+                    throw new ArgumentException("Invalid units");
+            }
+        }
+
+        private Vector3 ConvertSizes(Vector3 value, CNCState.CNCState state)
+        {
+            return new Vector3(ConvertSizes(value.x, state), ConvertSizes(value.y, state), ConvertSizes(value.z, state));
         }
 
         private void CommitPendingCommands(ActionProgram.ActionProgram program,
@@ -487,6 +508,12 @@ namespace GCodeMachine
                         break;
                     case 19:
                         state.AxisState.Params.CurrentPlane = AxisState.Plane.ZX;
+                        break;
+                    case 20:
+                        state.AxisState.Params.SizeUnits = AxisState.Units.Inches;
+                        break;
+                    case 21:
+                        state.AxisState.Params.SizeUnits = AxisState.Units.Millimeters;
                         break;
                     case 28:
                         {
