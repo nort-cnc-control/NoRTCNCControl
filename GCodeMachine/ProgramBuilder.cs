@@ -462,6 +462,23 @@ namespace GCodeMachine
                     case 3:
                         state = ProcessMove(block, program, state);
                         break;
+                    case 4:
+                        {
+                            double dt = 0;
+                            try
+                            {
+                                var P = block.SingleOptions['P'];
+                                dt = P.value;
+                                if (P.dot)
+                                    dt *= 1000;
+                            }
+                            catch
+                            {
+                                ;
+                            }
+                            program.AddDelay((int)dt, state);
+                        }
+                        break;
                     case 17:
                         state.AxisState.Params.CurrentPlane = AxisState.Plane.XY;
                         break;

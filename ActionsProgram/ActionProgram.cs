@@ -9,6 +9,7 @@ using ModbusSender;
 using CNCState;
 using Actions.Tools;
 using Vector;
+using System.Threading;
 
 namespace ActionProgram
 {
@@ -284,6 +285,15 @@ namespace ActionProgram
         public void AddPlaceholder(CNCState.CNCState currentState)
         {
             AddAction(new PlaceholderAction(), currentState, currentState);
+        }
+
+        public void AddDelay(int ms, CNCState.CNCState currentState)
+        {
+            void delayf()
+            {
+                Thread.Sleep(ms);
+            }
+            AddAction(new FunctionAction(delayf), currentState, currentState);
         }
     }
 }
