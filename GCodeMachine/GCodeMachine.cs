@@ -174,6 +174,7 @@ namespace GCodeMachine
 
         public void Process()
         {
+            bool wasReset = false;
             CNCState.CNCState sa, sb;
             MachineState change = MachineState.Error;
             machineIsRunning = true;
@@ -281,7 +282,7 @@ namespace GCodeMachine
                     case MachineState.Aborted:
                         Logger.Instance.Debug(this, "action", "Machine aborted");
                         Stop();
-                        reseted.Set();
+                        wasReset = true;
                         break;
                     case MachineState.End:
                         Logger.Instance.Debug(this, "action", "End");
@@ -312,6 +313,8 @@ namespace GCodeMachine
                     break;
             }
             machineIsRunning = false;
+            if (wasReset)
+                reseted.Set();
         }
 
         private void Action_OnStarted(IAction action)
