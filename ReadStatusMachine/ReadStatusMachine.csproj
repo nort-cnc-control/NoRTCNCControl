@@ -9,5 +9,6 @@
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\RTSender\RTSender.csproj" />
     <ProjectReference Include="..\Log\Log.csproj" />
+    <ProjectReference Include="..\Config\Config.csproj" />
   </ItemGroup>
 </Project>

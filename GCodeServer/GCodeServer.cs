@@ -65,7 +65,7 @@ namespace GCodeServer
             this.Config = config;
             this.commandStream = commandStream;
             this.responseStream = responseStream;
-            StatusMachine = new ReadStatusMachine.ReadStatusMachine(rtSender, Config.state_refresh_timeout);
+            StatusMachine = new ReadStatusMachine.ReadStatusMachine(config, rtSender, Config.state_refresh_timeout);
             StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
             commands = new BlockingCollection<JsonObject>();
             Init();

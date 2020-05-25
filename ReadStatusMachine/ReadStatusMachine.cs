@@ -6,6 +6,7 @@ using RTSender;
 using System.Globalization;
 using Log;
 using Vector;
+using Config;
 
 namespace ReadStatusMachine
 {
@@ -16,11 +17,13 @@ namespace ReadStatusMachine
         private Thread askPosThread;
         private readonly int timeout;
         private EventWaitHandle timeoutWait;
+        private MachineParameters config;
 
         public event Action<Vector3, bool, bool, bool, bool> CurrentStatusUpdate;
 
-        public ReadStatusMachine(IRTSender rtSender, int updateT)
+        public ReadStatusMachine(MachineParameters config, IRTSender rtSender, int updateT)
         {
+            this.config = config;
             this.rtSender = rtSender;
             timeout = updateT;
             timeoutWait = new EventWaitHandle(false, EventResetMode.AutoReset);
@@ -82,9 +85,13 @@ namespace ReadStatusMachine
                     var xs = action.ActionResult["X"];
                     var ys = action.ActionResult["Y"];
                     var zs = action.ActionResult["Z"];
-                    return new Vector3(double.Parse(xs, CultureInfo.InvariantCulture),
-                                       double.Parse(ys, CultureInfo.InvariantCulture),
-                                       double.Parse(zs, CultureInfo.InvariantCulture));
+                    var pos = new Vector3(double.Parse(xs, CultureInfo.InvariantCulture),
+                                          double.Parse(ys, CultureInfo.InvariantCulture),
+                                          double.Parse(zs, CultureInfo.InvariantCulture));
+                    pos.x /= config.steps_per_x;
+                    pos.y /= config.steps_per_y;
+                    pos.z /= config.steps_per_z;
+                    return pos;
                 }
                 catch (Exception e)
                 {

@@ -58,7 +58,11 @@ namespace Actions
                 else
                     hwdelta.z = Delta.z;
 
-                return $"G1 {Options.Command} X{FormatD(hwdelta.x)} Y{FormatD(hwdelta.y)} Z{FormatD(hwdelta.z)}";
+                int dx = (int)(hwdelta.x * config.steps_per_x);
+                int dy = (int)(hwdelta.y * config.steps_per_y);
+                int dz = (int)(hwdelta.z * config.steps_per_z);
+
+                return $"G1 {Options.Command} X{dx} Y{dy} Z{dz}";
             }
         }
     }

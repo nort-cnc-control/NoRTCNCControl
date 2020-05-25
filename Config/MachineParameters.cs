@@ -21,6 +21,10 @@ namespace Config
         public double step_back_z { get; set; }
         public bool invert_z { get; set; }
 
+        public double steps_per_x { get; set; }
+        public double steps_per_y { get; set; }
+        public double steps_per_z { get; set; }
+
         [JsonIgnore]
         public int SignX => invert_x ? -1 : 1;
         [JsonIgnore]

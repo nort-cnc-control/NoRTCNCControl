@@ -15,6 +15,10 @@
     "step_back_z" : 1.5,
     "invert_z" : true,
 
+    "steps_per_x" : 400,
+    "steps_per_y" : 400,
+    "steps_per_z" : 400,
+
     "max_movement_leap" : 40,
     "max_acceleration" : 40,
 

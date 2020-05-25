@@ -1,6 +1,6 @@
 ﻿{
     "modbus_sender" : {
-        "sender" : "PacketModbusSender",
+        "sender" : "EmulationModbusSender",
         "address" : "127.0.0.1",
         "port" : 8890
     },
