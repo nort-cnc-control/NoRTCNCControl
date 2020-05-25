@@ -21,6 +21,6 @@ namespace Actions
             this.acceleration = acceleration;
         }
 
-        public string Command => $"T{(int)(acceleration / 3600):D}P{(int)FeedStart:D}F{(int)Feed:D}L{(int)FeedEnd:D}";
+        public string Command => $"T{acceleration}P{FeedStart}F{Feed}L{FeedEnd}";
     }
 }

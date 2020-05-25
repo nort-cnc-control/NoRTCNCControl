@@ -1,7 +1,7 @@
 ﻿{
-    "maxfeed" : 800,
-    "fastfeed" : 800,
-    "slowfeed" : 60,
+    "maxfeed" : 15,
+    "fastfeed" : 15,
+    "slowfeed" : 1,
 
     "size_x" : 224,
     "step_back_x" : 1.5,

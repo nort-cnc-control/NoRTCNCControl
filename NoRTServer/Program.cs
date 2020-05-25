@@ -214,10 +214,12 @@ namespace NoRTServer
                     max_acceleration = 40,
                     fastfeed = 600,
                     slowfeed = 100,
-                    maxfeed = 800
+                    maxfeed = 800,
+                    steps_per_x = 400,
+                    steps_per_y = 400,
+                    steps_per_z = 400,
                 };
             }
-            machineConfig.max_acceleration *= 3600; // to mm/min^2
             JsonValue runConfig;
             if (runConfigName != "")
             {

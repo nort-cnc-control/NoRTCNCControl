@@ -75,7 +75,7 @@ namespace GCodeMachine
             state = state.BuildCopy();
             if (block.Feed != null)
             {
-                state.AxisState.Feed = ConvertSizes(block.Feed.value, state);
+                state.AxisState.Feed = ConvertSizes(block.Feed.value, state) / 60.0; // convert from min to sec
             }
             if (block.Speed != null)
             {

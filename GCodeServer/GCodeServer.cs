@@ -32,6 +32,8 @@ namespace GCodeServer
 
         private ProgramBuilder programBuilder;
 
+        private bool runFlag;
+
         private readonly IRTSender rtSender;
         private readonly IModbusSender modbusSender;
         private readonly ISpindleToolFactory spindleToolFactory;
@@ -189,7 +191,6 @@ namespace GCodeServer
             cmdReceiver.Run();
             do
             {
-
                 var cmd = cmdReceiver.MessageReceive();
                 if (cmd == null)
                 {
@@ -197,6 +198,10 @@ namespace GCodeServer
                     cmdReceiver.Stop();
                     StatusMachine.Stop();
                     Machine.Stop();
+                    commands.Add(new JsonObject
+                    {
+                        ["command"] = "run_finish",
+                    });
                     break;
                 }
                 JsonValue message;
@@ -333,6 +338,7 @@ namespace GCodeServer
             var cmdThread = new Thread(new ThreadStart(ReceiveCmdCycle));
             cmdThread.Start();
             String[] gcodeprogram = { };
+            runFlag = true;
             do
             {
                 var command = commands.Take();
@@ -355,13 +361,20 @@ namespace GCodeServer
                             Machine.Continue();
                             break;
                         }
+                    case "run_finish":
+                        {
+                            runFlag = false;
+                            break;
+                        }
                 }
 
-            } while (true);
+            } while (runFlag);
+            return true;
         }
 
         public void Dispose()
         {
+            runFlag = false;
             if (cmdReceiver != null)
             {
                 cmdReceiver.Dispose();
