@@ -17,8 +17,8 @@ namespace Processor
                 var arcmovecmd = ma.Command as RTArcMoveCommand;
                 if (arcmovecmd == null)
                     continue;
-                double R = arcmovecmd.R;
-                double maxfeed = Math.Sqrt(R*config.max_acceleration);
+                decimal R = arcmovecmd.R;
+                decimal maxfeed = (decimal)Math.Sqrt((double)(R*config.max_acceleration));
                 arcmovecmd.Options.Feed = Math.Min(arcmovecmd.Options.Feed, maxfeed);
             }
         }

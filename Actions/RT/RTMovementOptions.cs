@@ -4,8 +4,8 @@ namespace Actions
 {
     public class RTMovementOptions
     {
-        public double FeedStart, FeedEnd, Feed;
-        public double acceleration;
+        public decimal FeedStart, FeedEnd, Feed;
+        public decimal acceleration;
         public RTMovementOptions()
         {
             this.FeedStart = 0;
@@ -13,7 +13,7 @@ namespace Actions
             this.Feed = 0;
             this.acceleration = 0;
         }
-        public RTMovementOptions(double feed_start, double feed, double feed_end, double acceleration)
+        public RTMovementOptions(decimal feed_start, decimal feed, decimal feed_end, decimal acceleration)
         {
             this.FeedStart = feed_start;
             this.FeedEnd = feed_end;
@@ -21,6 +21,7 @@ namespace Actions
             this.acceleration = acceleration;
         }
 
-        public string Command => $"T{acceleration}P{FeedStart}F{Feed}L{FeedEnd}";
+        public string Command => $"T{acceleration:0.00}P{FeedStart:0.00}F{Feed:0.00}L{FeedEnd:0.00}";
     }
+
 }

@@ -16,7 +16,7 @@ namespace Actions.Tools.SpindleTool
         private readonly UInt16 runReverse = 0x0002;
         private readonly UInt16 runNone = 0x0000;
 
-        public ModbusToolCommand CreateSpindleToolCommand(SpindleState.SpindleRotationState rotation, double speed)
+        public ModbusToolCommand CreateSpindleToolCommand(SpindleState.SpindleRotationState rotation, decimal speed)
         {
             var registers = new ModbusRegister[2];
             int delay = 0;
@@ -35,7 +35,7 @@ namespace Actions.Tools.SpindleTool
                     delay = 3000;
                     break;
             }
-            registers[1] = new ModbusRegister { DeviceId = devid, RegisterId = speedRegister, RegisterValue = (UInt16)(speed / 60.0 * 100) };
+            registers[1] = new ModbusRegister { DeviceId = devid, RegisterId = speedRegister, RegisterValue = (UInt16)(speed / 60.0m * 100) };
             return new ModbusToolCommand { Registers = registers, Delay = delay };
         }
     }

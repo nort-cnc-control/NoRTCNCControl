@@ -11,6 +11,6 @@ namespace Actions
         Vector3 Delta { get; }
         Vector3 DirStart { get; }
         Vector3 DirEnd { get; }
-        double Length { get; }
+        decimal Length { get; }
     }
 }

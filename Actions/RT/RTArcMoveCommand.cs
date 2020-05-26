@@ -19,12 +19,12 @@ namespace Actions
         public RTMovementOptions Options { get; private set; }
         public Vector3 Delta { get; private set; }
         public bool CCW { get; private set; }
-        public double R { get; private set; }
+        public decimal R { get; private set; }
 
         public Vector3 DirStart { get; private set; }
         public Vector3 DirEnd { get; private set; }
-        public double Length { get; private set; }
-        public double Angle { get; private set; }
+        public decimal Length { get; private set; }
+        public decimal Angle { get; private set; }
 
         private readonly double eps = 1e-6;
 
@@ -187,7 +187,7 @@ namespace Actions
             }
         }
 
-        private double VectorPlaneNormalProj(Vector3 delta, AxisState.Plane plane)
+        private decimal VectorPlaneNormalProj(Vector3 delta, AxisState.Plane plane)
         {
             switch (plane)
             {
@@ -228,17 +228,20 @@ namespace Actions
         }
 
         
-        public RTArcMoveCommand(Vector3 delta, double r, bool ccw, AxisState.Plane plane,
+        public RTArcMoveCommand(Vector3 delta, decimal r, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
-            double h = VectorPlaneNormalProj(delta, plane);
-            if (Math.Abs(h) > eps)
+            decimal h = VectorPlaneNormalProj(delta, plane);
+            if (Math.Abs((double)h) > eps)
             {
                 throw new ArgumentOutOfRangeException("Only arc supported, not helix");
             }
 
             Config = config;
-            R = Math.Abs(r);
+            if (r < 0)
+                R = -r;
+            else
+                R = r;
             Delta = delta;
             CCW = ccw;
             Plane = plane;
@@ -246,19 +249,19 @@ namespace Actions
             deltaProj = VectorPlaneProj(Delta, Plane);
             bigArc = (r < 0);
 
-            double d = Delta.Length();
-            double hcl = Math.Sqrt(R*R - d*d/4);
+            decimal d = Delta.Length();
+            decimal hcl = (decimal)Math.Sqrt((double)(R*R - d*d/4));
             if (ccw && !bigArc || !ccw && bigArc)
                 hcl = -hcl;
 
             startToCenterProj = deltaProj / 2 + Vector2.Normalize(deltaProj.Right()) * hcl;
             endToCenterProj = startToCenterProj - deltaProj;
             FillDirs();
-            this.R = Math.Abs(R);
-            Angle = 2*Math.Asin(deltaProj.Length()/2/R);
+
+            Angle = (decimal)(2*Math.Asin((double)(deltaProj.Length()/2/R)));
             if (bigArc)
             {
-                Angle = Math.PI*2 - Angle;
+                Angle = (decimal)(Math.PI*2) - Angle;
             }
             Length = Angle * R;
         }
@@ -266,8 +269,8 @@ namespace Actions
         public RTArcMoveCommand(Vector3 delta, Vector3 startToCenter, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
-            double h = VectorPlaneNormalProj(delta, plane);
-            if (Math.Abs(h) > eps)
+            decimal h = VectorPlaneNormalProj(delta, plane);
+            if (Math.Abs((double)h) > eps)
             {
                 throw new ArgumentOutOfRangeException("Only arc supported, not helix");
             }
@@ -280,7 +283,7 @@ namespace Actions
             startToCenterProj = VectorPlaneProj(startToCenter, Plane);
             endToCenterProj = startToCenterProj - deltaProj;
 
-            double nd = deltaProj.x * startToCenterProj.y - deltaProj.y * startToCenterProj.x;
+            decimal nd = deltaProj.x * startToCenterProj.y - deltaProj.y * startToCenterProj.x;
             if (nd > 0 && CCW || nd < 0 && !CCW)
             {
                 bigArc = false;
@@ -292,10 +295,10 @@ namespace Actions
 
             FillDirs();
             R = startToCenter.Length();
-            Angle = 2*Math.Asin(deltaProj.Length()/2/R);
+            Angle = (decimal)(2*Math.Asin((double)(deltaProj.Length()/2/R)));
             if (bigArc)
             {
-                Angle = Math.PI*2 - Angle;
+                Angle = (decimal)(Math.PI*2) - Angle;
             }
             Length = Angle * R;
         }

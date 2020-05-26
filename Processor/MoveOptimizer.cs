@@ -37,7 +37,7 @@ namespace Processor
                 {
                     Vector3 dir_cur = cmd.DirStart;
                     Vector3 dir_prev = prevCmd.DirEnd;
-                    if (dir_cur * dir_prev <= 1e-3)
+                    if (dir_cur * dir_prev <= 1e-3m)
                     {
                         chains.Add(chain);
                         chain = new MoveActionChain();
@@ -53,13 +53,13 @@ namespace Processor
             return chains;
         }
 
-        private double MaxFeed(double cosa, double maxLeap)
+        private decimal MaxFeed(decimal cosa, decimal maxLeap)
         {
             if (cosa > 1)
                 cosa = 1;
-            double deltaDir = Math.Sqrt(2 * (1-cosa));
-            if (deltaDir < 1e-8)
-                return Double.PositiveInfinity;
+            decimal deltaDir = (decimal)Math.Sqrt((double)(2 * (1-cosa)));
+            if (deltaDir < 1e-8m)
+                return Decimal.MaxValue;
             return maxLeap / deltaDir;
         }
 
@@ -86,34 +86,34 @@ namespace Processor
         //
         // Note: actually f(x) is not a linear function! f(t) is.
         // But due to limitations of pseudo-graphics f(x) on image above is also drawed as linear.
-        private (double x, double feed) AcceletationDecelerationIntersection(double x0, double feed0,
-                                                                             double x1, double feed1,
-                                                                             double acc)
+        private (decimal x, decimal feed) AcceletationDecelerationIntersection(decimal x0, decimal feed0,
+                                                                             decimal x1, decimal feed1,
+                                                                             decimal acc)
         {
             //Console.WriteLine("x0 = {0}, x1 = {1}", x0, x1);
             if (x0 >= x1)
                 throw new ArgumentOutOfRangeException("x0 must be lower than x1");
-            double x = (x0 + x1)/2 + (feed1*feed1-feed0*feed0) / (4*acc);
-            double f = Math.Sqrt(acc*(x1-x0) + (feed1*feed1+feed0*feed0)/2);
+            decimal x = (x0 + x1)/2 + (feed1*feed1-feed0*feed0) / (4*acc);
+            decimal f = (decimal)Math.Sqrt((double)(acc*(x1-x0) + (feed1*feed1+feed0*feed0)/2));
             return (x, f);
         }
 
         // Found initial feed of acceleration path from end of acceleration and end feed
-        private double AccelerationInitialFeed(double x, double feed, double x0, double acc)
+        private decimal AccelerationInitialFeed(decimal x, decimal feed, decimal x0, decimal acc)
         {
-            double D = feed*feed - 2*acc * (x-x0);
+            decimal D = feed*feed - 2*acc * (x-x0);
             if (D < 0)
                 return 0;
-            return Math.Sqrt(D);
+            return (decimal)Math.Sqrt((double)D);
         }
 
         // Found end feed of deceleration path from begin of deceleration and begin feed
-        private double DecelerationInitialFeed(double x, double feed, double x1, double acc)
+        private decimal DecelerationInitialFeed(decimal x, decimal feed, decimal x1, decimal acc)
         {
-            double D = feed*feed - 2*acc * (x1-x);
+            decimal D = feed*feed - 2*acc * (x1-x);
             if (D < 0)
                 return 0;
-            return Math.Sqrt(D);
+            return (decimal)Math.Sqrt((double)D);
         }
         #endregion
 
@@ -122,9 +122,9 @@ namespace Processor
             var actions = chain.Actions;
             int len = actions.Count;
             // Maximal feed at segment
-            double[] maxFeedAtSegment = new double[len];
+            decimal[] maxFeedAtSegment = new decimal[len];
             // Distance of joints from chain begin
-            double[] X = new double[len + 1];
+            decimal[] X = new decimal[len + 1];
             X[0] = 0;
             for (int i = 0; i < len; ++i)
             {
@@ -134,7 +134,7 @@ namespace Processor
             }
 
             // Maximal feed at the ends of segments
-            double[] maxFeedAtJoint = new double[len + 1];
+            decimal[] maxFeedAtJoint = new decimal[len + 1];
             maxFeedAtJoint[0] = 0;
             maxFeedAtJoint[len] = 0;
             for (int i = 1; i < len; ++i)
@@ -143,32 +143,32 @@ namespace Processor
                 int m2 = i;
                 Vector3 dirEnd   = actions[m1].DirEnd;
                 Vector3 dirStart = actions[m2].DirStart;
-                double mf = MaxFeed(dirEnd*dirStart, config.max_movement_leap);
+                decimal mf = MaxFeed(dirEnd*dirStart, config.max_movement_leap);
                 maxFeedAtJoint[m2] = Math.Min(mf, Math.Min(maxFeedAtSegment[m1], maxFeedAtSegment[m2]));
             }
 
             // Calculate feeds
-            double[] feedAtSegment = new double[len];
-            double[] feedAtJoint = new double[len+1];
+            decimal[] feedAtSegment = new decimal[len];
+            decimal[] feedAtJoint = new decimal[len+1];
             feedAtJoint[0] = 0;
             feedAtJoint[len] = 0;
             // Find minimal intersection point for segments
             for (int i = 0; i < maxFeedAtSegment.Length; ++i)
             {
-                double xmin = Double.NaN;
-                double fmin = Double.PositiveInfinity;
+                decimal xmin = 0;
+                decimal fmin = Decimal.MaxValue;
                 
                 // Find minimum from all pairs of acceleration and deceleration intersections
                 for (int j = 0; j <= i; ++j)
                 for (int k = i+1; k < maxFeedAtJoint.Length; ++k)
                 {
-                    double x0 = X[j];
-                    double feed0 = maxFeedAtJoint[j];
-                    double x1 = X[k];
-                    double feed1 = maxFeedAtJoint[k];
+                    decimal x0 = X[j];
+                    decimal feed0 = maxFeedAtJoint[j];
+                    decimal x1 = X[k];
+                    decimal feed1 = maxFeedAtJoint[k];
                     
                     var intersection = AcceletationDecelerationIntersection(x0, feed0, x1, feed1, config.max_acceleration);
-                    double feed = intersection.feed;
+                    decimal feed = intersection.feed;
                     if (feed < fmin)
                     {
                         fmin = feed;
@@ -177,9 +177,9 @@ namespace Processor
                 }
 
                 // Fill segment begin, end and center feeds
-                double segmentFeedStart;
-                double segmentFeedEnd;
-                double segmentFeed;
+                decimal segmentFeedStart;
+                decimal segmentFeedEnd;
+                decimal segmentFeed;
                 if (xmin < X[i])
                 {
                     segmentFeedStart = DecelerationInitialFeed(xmin, fmin, X[i], config.max_acceleration);

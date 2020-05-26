@@ -14,7 +14,7 @@ namespace CNCState
 
         public SpindleRotationState RotationState { get; set; }
 
-        public double SpindleSpeed { get; set; }
+        public decimal SpindleSpeed { get; set; }
 
         public SpindleState()
         {

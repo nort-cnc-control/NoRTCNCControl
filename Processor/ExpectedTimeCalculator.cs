@@ -6,7 +6,7 @@ namespace Processor
 {
     public class ExpectedTimeCalculator : IProcessor
     {
-        public double ExecutionTime { get; private set; }
+        public decimal ExecutionTime { get; private set; }
         public ActionProgram.ActionProgram ExecutionProgram { get; private set; }
 
         public ExpectedTimeCalculator()
@@ -23,7 +23,7 @@ namespace Processor
                 ExecutionTime = 0;
                 return;
             }
-            double time = 0;
+            decimal time = 0;
             foreach (var action in program.Actions)
             {
                 if (!(action.action is RTAction ma))

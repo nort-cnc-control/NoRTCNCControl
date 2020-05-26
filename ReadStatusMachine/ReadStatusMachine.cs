@@ -85,9 +85,9 @@ namespace ReadStatusMachine
                     var xs = action.ActionResult["X"];
                     var ys = action.ActionResult["Y"];
                     var zs = action.ActionResult["Z"];
-                    var pos = new Vector3(double.Parse(xs, CultureInfo.InvariantCulture),
-                                          double.Parse(ys, CultureInfo.InvariantCulture),
-                                          double.Parse(zs, CultureInfo.InvariantCulture));
+                    var pos = new Vector3(decimal.Parse(xs, CultureInfo.InvariantCulture),
+                                          decimal.Parse(ys, CultureInfo.InvariantCulture),
+                                          decimal.Parse(zs, CultureInfo.InvariantCulture));
                     pos.x /= config.steps_per_x;
                     pos.y /= config.steps_per_y;
                     pos.z /= config.steps_per_z;

@@ -11,7 +11,7 @@ namespace Actions
         public Vector3 DirStart { get; private set; }
         public Vector3 DirEnd { get; private set; }
         public Vector3 Delta { get; private set; }
-        public double Length { get; private set; }
+        public decimal Length { get; private set; }
         public RTMovementOptions Options { get; private set; }
 
         public RTLineMoveCommand(Vector3 delta, RTMovementOptions opts, MachineParameters config)
@@ -23,7 +23,7 @@ namespace Actions
             Length = Delta.Length();
         }
 
-        public RTLineMoveCommand(double dx, double dy, double dz, RTMovementOptions opts, MachineParameters config)
+        public RTLineMoveCommand(decimal dx, decimal dy, decimal dz, RTMovementOptions opts, MachineParameters config)
         {
             this.config = config;
             this.Delta = new Vector3(dx, dy, dz);
@@ -32,7 +32,7 @@ namespace Actions
             Length = Delta.Length();
         }
 
-        private string FormatD(double x)
+        private string FormatD(decimal x)
         {
             return x.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
         }

@@ -40,32 +40,32 @@ namespace CNCState
                 return new Vector3(ToGlobalX(P.x), ToGlobalY(P.y), ToGlobalZ(P.z));
             }
 
-            private double ToGlobalX(double x)
+            private decimal ToGlobalX(decimal x)
             {
                 return x * Sign.x + Offset.x;
             }
 
-            private double ToGlobalY(double y)
+            private decimal ToGlobalY(decimal y)
             {
                 return y * Sign.y + Offset.y;
             }
 
-            private double ToGlobalZ(double z)
+            private decimal ToGlobalZ(decimal z)
             {
                 return z * Sign.z + Offset.z;
             }
 
-            private double ToLocalX(double x)
+            private decimal ToLocalX(decimal x)
             {
                 return (x - Offset.x) * Sign.x;
             }
 
-            private double ToLocalY(double y)
+            private decimal ToLocalY(decimal y)
             {
                 return (y - Offset.y) * Sign.y;
             }
 
-            private double ToLocalZ(double z)
+            private decimal ToLocalZ(decimal z)
             {
                 return (z - Offset.z) * Sign.z;
             }
@@ -90,7 +90,7 @@ namespace CNCState
 
             public bool Absolute { get; set; }
 
-            public double Feed { get; set; }
+            public decimal Feed { get; set; }
 
             public Plane CurrentPlane { get; set; }
 
@@ -115,7 +115,7 @@ namespace CNCState
             }
         }
 
-        public double Feed
+        public decimal Feed
         {
             get => Params.Feed;
             set { Params.Feed = value; }

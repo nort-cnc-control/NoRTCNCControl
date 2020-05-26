@@ -5,25 +5,25 @@ namespace Config
 {
     public class MachineParameters
     {
-        public double maxfeed { get; set; }
-        public double fastfeed { get; set; }
-        public double slowfeed { get; set; }
+        public decimal maxfeed { get; set; }
+        public decimal fastfeed { get; set; }
+        public decimal slowfeed { get; set; }
 
-        public double size_x { get; set; }
-        public double step_back_x { get; set; }
+        public decimal size_x { get; set; }
+        public decimal step_back_x { get; set; }
         public bool invert_x { get; set; }
 
-        public double size_y { get; set; }
-        public double step_back_y { get; set; }
+        public decimal size_y { get; set; }
+        public decimal step_back_y { get; set; }
         public bool invert_y { get; set; }
 
-        public double size_z { get; set; }
-        public double step_back_z { get; set; }
+        public decimal size_z { get; set; }
+        public decimal step_back_z { get; set; }
         public bool invert_z { get; set; }
 
-        public double steps_per_x { get; set; }
-        public double steps_per_y { get; set; }
-        public double steps_per_z { get; set; }
+        public decimal steps_per_x { get; set; }
+        public decimal steps_per_y { get; set; }
+        public decimal steps_per_z { get; set; }
 
         [JsonIgnore]
         public int SignX => invert_x ? -1 : 1;
@@ -32,8 +32,8 @@ namespace Config
         [JsonIgnore]
         public int SignZ => invert_z ? -1 : 1;
 
-        public double max_movement_leap { get; set; }
-        public double max_acceleration { get; set; }
+        public decimal max_movement_leap { get; set; }
+        public decimal max_acceleration { get; set; }
 
         public int state_refresh_timeout { get; set; }
 

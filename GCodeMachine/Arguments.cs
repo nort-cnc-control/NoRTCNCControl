@@ -13,7 +13,7 @@ namespace GCodeMachine
             public int ivalue1;
             public String value2;
             public int ivalue2;
-            public double value;
+            public decimal value;
             public bool dot;
         }
 
@@ -58,7 +58,7 @@ namespace GCodeMachine
                 }
                 opt.value2 = val;
                 opt.ivalue2 = Int32.Parse(val);
-                opt.value = Double.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
+                opt.value = Decimal.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
             }
             else
             {

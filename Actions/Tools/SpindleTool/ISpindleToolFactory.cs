@@ -6,6 +6,6 @@ namespace Actions.Tools.SpindleTool
 {
     public interface ISpindleToolFactory
     {
-        ModbusToolCommand CreateSpindleToolCommand(SpindleState.SpindleRotationState rotation, double speed);
+        ModbusToolCommand CreateSpindleToolCommand(SpindleState.SpindleRotationState rotation, decimal speed);
     }
 }

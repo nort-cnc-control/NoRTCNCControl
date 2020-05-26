@@ -169,7 +169,7 @@ namespace GCodeServer
         private void RunGcode(String[] prg)
         {
             ActionProgram.ActionProgram program;
-            double time;
+            decimal time;
             try
             {
                 (program, _, starts, time) = programBuilder.BuildProgram(prg, Machine.LastState);

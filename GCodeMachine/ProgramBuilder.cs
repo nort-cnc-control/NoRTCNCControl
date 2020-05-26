@@ -75,7 +75,7 @@ namespace GCodeMachine
             state = state.BuildCopy();
             if (block.Feed != null)
             {
-                state.AxisState.Feed = ConvertSizes(block.Feed.value, state) / 60.0; // convert from min to sec
+                state.AxisState.Feed = ConvertSizes(block.Feed.value, state) / 60.0m; // convert from min to sec
             }
             if (block.Speed != null)
             {
@@ -281,9 +281,9 @@ namespace GCodeMachine
                         }
                         else
                         {
-                            double i = 0;
-                            double j = 0;
-                            double k = 0;
+                            decimal i = 0;
+                            decimal j = 0;
+                            decimal k = 0;
                             if (I != null)
                                 i = ConvertSizes(I.value, state);
                             if (J != null)
@@ -409,14 +409,14 @@ namespace GCodeMachine
             return arguments;
         }
 
-        private double ConvertSizes(double value, CNCState.CNCState state)
+        private decimal ConvertSizes(decimal value, CNCState.CNCState state)
         {
             switch (state.AxisState.Params.SizeUnits)
             {
                 case AxisState.Units.Millimeters:
                     return value;
                 case AxisState.Units.Inches:
-                    return value * 25.4;
+                    return value * 25.4m;
                 default:
                     throw new ArgumentException("Invalid units");
             }
@@ -485,7 +485,7 @@ namespace GCodeMachine
                         break;
                     case 4:
                         {
-                            double dt = 0;
+                            decimal dt = 0;
                             try
                             {
                                 var P = block.SingleOptions['P'];
@@ -739,7 +739,7 @@ namespace GCodeMachine
         public (ActionProgram.ActionProgram program,
                 CNCState.CNCState state,
                 IReadOnlyDictionary<IAction, int> starts,
-                double executionTime)
+                decimal executionTime)
             BuildProgram(String[] frames, CNCState.CNCState state)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
@@ -775,7 +775,7 @@ namespace GCodeMachine
             return (program, state, starts, timeCalculator.ExecutionTime);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts, double executionTime)
+        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts, decimal executionTime)
                 BuildProgram(String frame, CNCState.CNCState state)
         {
             return BuildProgram(frame.Split('\n'), state);

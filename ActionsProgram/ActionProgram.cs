@@ -97,7 +97,7 @@ namespace ActionProgram
         {
             var gz1 = -config.size_z;
             var gz2 = config.step_back_z;
-            var gz3 = -config.step_back_z*1.2;
+            var gz3 = -config.step_back_z*1.2m;
             if (config.invert_z)
             {
                 gz1 *= -1;
@@ -114,7 +114,7 @@ namespace ActionProgram
 
             var gx1 = -config.size_x;
             var gx2 = config.step_back_x;
-            var gx3 = -config.step_back_x*1.2;
+            var gx3 = -config.step_back_x*1.2m;
             if (config.invert_x)
             {
                 gx1 *= -1;
@@ -130,7 +130,7 @@ namespace ActionProgram
 
             var gy1 = -config.size_x;
             var gy2 = config.step_back_y;
-            var gy3 = -config.step_back_y*1.2;
+            var gy3 = -config.step_back_y*1.2m;
             if(config.invert_y)
             {
                 gy1 *= -1;
@@ -152,7 +152,7 @@ namespace ActionProgram
         {
             var gz1 = -config.size_z;
             var gz2 = config.step_back_z;
-            var gz3 = -config.step_back_z*1.2;
+            var gz3 = -config.step_back_z*1.2m;
 
             AddRTEnableBreakOnProbe(currentState);
             AddRTDisableFailOnEndstops(null);
@@ -167,32 +167,32 @@ namespace ActionProgram
             AddRTEnableFailOnEndstops(null);
         }
 
-        private (double feed, double acc) MaxLineFeedAcc(Vector3 dir)
+        private (decimal feed, decimal acc) MaxLineFeedAcc(Vector3 dir)
         {
-            double maxacc = config.max_acceleration;
-            double feed, acc;
-            acc = Double.PositiveInfinity;
-            if (Math.Abs(dir.x) > 1e-8)
+            decimal maxacc = config.max_acceleration;
+            decimal feed, acc;
+            acc = Decimal.MaxValue;
+            if (Math.Abs(dir.x) > 1e-8m)
                 acc = Math.Min(acc, maxacc / Math.Abs(dir.x));
-            if (Math.Abs(dir.y) > 1e-8)
+            if (Math.Abs(dir.y) > 1e-8m)
                 acc = Math.Min(acc, maxacc / Math.Abs(dir.y));
-            if (Math.Abs(dir.z) > 1e-8)
+            if (Math.Abs(dir.z) > 1e-8m)
                 acc = Math.Min(acc, maxacc / Math.Abs(dir.z));
 
-            double maxf = config.maxfeed;
-            feed = Double.PositiveInfinity;
-            if (Math.Abs(dir.x) > 1e-8)
+            decimal maxf = config.maxfeed;
+            feed = Decimal.MaxValue;
+            if (Math.Abs(dir.x) > 1e-8m)
                 feed = Math.Min(feed, maxf / Math.Abs(dir.x));
-            if (Math.Abs(dir.y) > 1e-8)
+            if (Math.Abs(dir.y) > 1e-8m)
                 feed = Math.Min(feed, maxf / Math.Abs(dir.y));
-            if (Math.Abs(dir.z) > 1e-8)
+            if (Math.Abs(dir.z) > 1e-8m)
                 feed = Math.Min(feed, maxf / Math.Abs(dir.z));
             return (feed, acc);
         }
 
-        public CNCState.CNCState AddLineMovement(Vector3 delta, double feed, CNCState.CNCState currentState)
+        public CNCState.CNCState AddLineMovement(Vector3 delta, decimal feed, CNCState.CNCState currentState)
         {
-            if (Math.Abs(delta.x) < 1e-12 && Math.Abs(delta.y) < 1e-12 && Math.Abs(delta.z) < 1e-12)
+            if (Math.Abs(delta.x) < 1e-12m && Math.Abs(delta.y) < 1e-12m && Math.Abs(delta.z) < 1e-12m)
                 return currentState;
             var dir = Vector3.Normalize(delta);
             var fa = MaxLineFeedAcc(dir);
@@ -209,7 +209,7 @@ namespace ActionProgram
 
         public CNCState.CNCState AddFastLineMovement(Vector3 delta, CNCState.CNCState currentState)
         {
-            if (Math.Abs(delta.x) < 1e-12 && Math.Abs(delta.y) < 1e-12 && Math.Abs(delta.z) < 1e-12)
+            if (Math.Abs(delta.x) < 1e-12m && Math.Abs(delta.y) < 1e-12m && Math.Abs(delta.z) < 1e-12m)
                 return currentState;
             var dir = Vector3.Normalize(delta);
             var fa = MaxLineFeedAcc(dir);
@@ -223,32 +223,32 @@ namespace ActionProgram
             return stateAfter;
         }
 
-        private void MaxArcAcc(out double acc)
+        private void MaxArcAcc(out decimal acc)
         {
             //TODO: calculate
             acc = config.max_acceleration;
         }
 
-        public CNCState.CNCState AddArcMovement(Vector3 delta, double R, bool ccw, AxisState.Plane axis, double feed, CNCState.CNCState currentState)
+        public CNCState.CNCState AddArcMovement(Vector3 delta, decimal R, bool ccw, AxisState.Plane axis, decimal feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
             stateAfter.AxisState.Position.x += delta.x;
             stateAfter.AxisState.Position.y += delta.y;
             stateAfter.AxisState.Position.z += delta.z;
-            MaxArcAcc(out double acc);
+            MaxArcAcc(out decimal acc);
 
             AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState, stateAfter);
             return stateAfter;
         }
 
-        public CNCState.CNCState AddArcMovement(Vector3 delta, Vector3 center, bool ccw, AxisState.Plane axis, double feed, CNCState.CNCState currentState)
+        public CNCState.CNCState AddArcMovement(Vector3 delta, Vector3 center, bool ccw, AxisState.Plane axis, decimal feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
             stateAfter.AxisState.Position.x += delta.x;
             stateAfter.AxisState.Position.y += delta.y;
             stateAfter.AxisState.Position.z += delta.z;
 
-            MaxArcAcc(out double acc);
+            MaxArcAcc(out decimal acc);
             AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState, stateAfter);
             return stateAfter;
         }
