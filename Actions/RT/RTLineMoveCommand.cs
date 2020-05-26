@@ -75,6 +75,7 @@ namespace Actions
             this.DirStart = this.DirEnd = Vector3.Normalize(this.Delta);
             this.Options = opts;
             Length = Delta.Length();
+            FindPhysicalParameters();
         }
 
         private string FormatD(decimal x)

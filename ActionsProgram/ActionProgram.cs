@@ -61,10 +61,6 @@ namespace ActionProgram
             AddAction(new RTAction(rtSender, new RTLockCommand(true)), currentState, currentState);
         }
 
-        public void AddRTForgetResidual(CNCState.CNCState currentState)
-        {
-            AddAction(new RTAction(rtSender, new RTForgetResidualCommand()), currentState, currentState);
-        }
 
         public void AddRTSetZero(CNCState.CNCState currentState, CNCState.CNCState stateAfter)
         {
@@ -93,6 +89,11 @@ namespace ActionProgram
         #endregion
 
         #region Movements
+        private void ForgetResidual(CNCState.CNCState currentState)
+        {
+            currentState.AxisState.TargetPosition = currentState.AxisState.Position;
+        }
+
         public void AddHoming(CNCState.CNCState currentState, CNCState.CNCState stateAfter)
         {
             var gz1 = -config.size_z;
@@ -104,12 +105,13 @@ namespace ActionProgram
                 gz2 *= -1;
                 gz3 *= -1;
             }
-            AddRTForgetResidual(currentState);
+
             AddRTDisableFailOnEndstops(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
 
             var gx1 = -config.size_x;
@@ -121,14 +123,14 @@ namespace ActionProgram
                 gx2 *= -1;
                 gx3 *= -1;
             }
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx1, 0, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx2, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx3, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
 
-            var gy1 = -config.size_x;
+            var gy1 = -config.size_y;
             var gy2 = config.step_back_y;
             var gy3 = -config.step_back_y*1.2m;
             if(config.invert_y)
@@ -137,14 +139,14 @@ namespace ActionProgram
                 gy2 *= -1;
                 gy3 *= -1;
             }
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy1, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy2, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy3, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
+            ForgetResidual(currentState);
             AddRTSetZero(null, stateAfter);
-            AddRTForgetResidual(null);
             AddRTEnableFailOnEndstops(null);
         }
 
@@ -156,13 +158,13 @@ namespace ActionProgram
 
             AddRTEnableBreakOnProbe(currentState);
             AddRTDisableFailOnEndstops(null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz1, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz2, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, stateAfter);
-            AddRTForgetResidual(null);
+            ForgetResidual(currentState);
             AddRTDisableBreakOnProbe(null);
             AddRTEnableFailOnEndstops(null);
         }

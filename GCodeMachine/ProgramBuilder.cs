@@ -366,7 +366,7 @@ namespace GCodeMachine
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
                     state.AxisState.Position.z - ConvertSizes(Z.value, state);
             }
-            program.AddRTForgetResidual(state);
+            state.AxisState.TargetPosition = state.AxisState.Position;
             return state;
         }
 
