@@ -185,8 +185,8 @@ namespace GCodeMachine
         }
 
         private CNCState.CNCState ProcessDirectMove(Arguments block,
-                                              ActionProgram.ActionProgram program,
-                                              CNCState.CNCState state)
+                                                    ActionProgram.ActionProgram program,
+                                                    CNCState.CNCState state)
         {
             var X = block.X;
             var Y = block.Y;
@@ -222,45 +222,43 @@ namespace GCodeMachine
                 return state;
 
             var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
-            Vector3 currentPositionLocal = coordinateSystem.ToLocal(state.AxisState.Position);
 
-            Vector3 targetPositionLocal = new Vector3(currentPositionLocal);
+            Vector3 currentTargetPositionLocal = coordinateSystem.ToLocal(state.AxisState.TargetPosition);
+            Vector3 nextTargetPositionLocal = new Vector3(currentTargetPositionLocal);
 
             if (state.AxisState.Absolute)
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x = ConvertSizes(X.value, state);
+                    nextTargetPositionLocal.x = ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y = ConvertSizes(Y.value, state);
+                    nextTargetPositionLocal.y = ConvertSizes(Y.value, state);
                 }
                 if (Z != null)
                 {
-                    targetPositionLocal.z = ConvertSizes(Z.value, state);
+                    nextTargetPositionLocal.z = ConvertSizes(Z.value, state);
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x += ConvertSizes(X.value, state);
+                    nextTargetPositionLocal.x += ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y += ConvertSizes(Y.value, state);
+                    nextTargetPositionLocal.y += ConvertSizes(Y.value, state);
                 }
                 if (Z != null)
                 {
-                    targetPositionLocal.z += ConvertSizes(Z.value, state);
+                    nextTargetPositionLocal.z += ConvertSizes(Z.value, state);
                 }
             }
 
-
-
-            var targetPosition = coordinateSystem.ToGlobal(targetPositionLocal);
-            var delta = targetPosition - state.AxisState.Position;
+            var nextTargetPositionGlobal = coordinateSystem.ToGlobal(nextTargetPositionLocal);
+            var delta = nextTargetPositionGlobal - state.AxisState.Position;
 
             switch (state.AxisState.MoveType)
             {
@@ -277,7 +275,7 @@ namespace GCodeMachine
                         if (R == null && I == null && J == null && K == null)
                         {
                             var r = delta.Length() / 2;
-
+                            state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else if (R != null)
                         {

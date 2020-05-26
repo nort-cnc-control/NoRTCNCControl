@@ -18,6 +18,7 @@ namespace Actions
         public AxisState.Plane Plane { get; private set; }
         public RTMovementOptions Options { get; private set; }
         public Vector3 Delta { get; private set; }
+        public Vector3 PhysicalDelta { get; private set; }
         public bool CCW { get; private set; }
         public decimal R { get; private set; }
 
@@ -76,7 +77,7 @@ namespace Actions
                 }
             }
         }
-    
+
         private String MoveCmd
         {
             get
@@ -94,68 +95,12 @@ namespace Actions
             }
         }
 
+        private int dx, dy, dz, a, b;
+
         public String Command
         {
             get
             {   
-                bool hwccw;
-
-                Vector3 hwdelta = new Vector3();
-
-                if (Config.invert_x)
-                    hwdelta.x = -Delta.x;
-                else
-                    hwdelta.x = Delta.x;
-                
-                if (Config.invert_y)
-                    hwdelta.y = -Delta.y;
-                else
-                    hwdelta.y = Delta.y;
-
-                if (Config.invert_z)
-                    hwdelta.z = -Delta.z;
-                else
-                    hwdelta.z = Delta.z;
-
-                int dx = (int)(hwdelta.x * Config.steps_per_x);
-                int dy = (int)(hwdelta.y * Config.steps_per_y);
-                int dz = (int)(hwdelta.z * Config.steps_per_z);
-
-                if (left_basis)
-                {
-                    hwccw = !CCW;
-                }
-                else
-                {
-                    hwccw = CCW;
-                }
-
-                double a;
-                double b;
-                switch (Plane)
-                {
-                    case AxisState.Plane.XY:
-                        a = (int)(R * Config.steps_per_x);
-                        b = (int)(R * Config.steps_per_y);
-                        break;
-                    case AxisState.Plane.YZ:
-                        a = (int)(R * Config.steps_per_y);
-                        b = (int)(R * Config.steps_per_z);
-                        break;
-                    case AxisState.Plane.ZX:
-                        a = (int)(R * Config.steps_per_z);
-                        b = (int)(R * Config.steps_per_x);
-                        break;
-                    default:
-                        throw new InvalidOperationException("Invalid plane");
-                }
-
-                if (bigArc)
-                {
-                    a = -a;
-                    b = -b;
-                }
-
                 return $"{MoveCmd} {plane_cmd} {Options.Command} X{dx}Y{dy}Z{dz} A{a}B{b}";
             }
         }
@@ -227,7 +172,81 @@ namespace Actions
             }
         }
 
-        
+        private void FindPhysicalParameters()
+        {
+            Vector3 hwdelta = new Vector3();
+
+            if (Config.invert_x)
+                hwdelta.x = -Delta.x;
+            else
+                hwdelta.x = Delta.x;
+
+            if (Config.invert_y)
+                hwdelta.y = -Delta.y;
+            else
+                hwdelta.y = Delta.y;
+
+            if (Config.invert_z)
+                hwdelta.z = -Delta.z;
+            else
+                hwdelta.z = Delta.z;
+
+            dx = (int)(hwdelta.x * Config.steps_per_x);
+            dy = (int)(hwdelta.y * Config.steps_per_y);
+            dz = (int)(hwdelta.z * Config.steps_per_z);
+
+            bool hwccw;
+            if (left_basis)
+            {
+                hwccw = !CCW;
+            }
+            else
+            {
+                hwccw = CCW;
+            }
+
+            switch (Plane)
+            {
+                case AxisState.Plane.XY:
+                    a = (int)(R * Config.steps_per_x);
+                    b = (int)(R * Config.steps_per_y);
+                    break;
+                case AxisState.Plane.YZ:
+                    a = (int)(R * Config.steps_per_y);
+                    b = (int)(R * Config.steps_per_z);
+                    break;
+                case AxisState.Plane.ZX:
+                    a = (int)(R * Config.steps_per_z);
+                    b = (int)(R * Config.steps_per_x);
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid plane");
+            }
+
+            if (bigArc)
+            {
+                a = -a;
+                b = -b;
+            }
+
+            PhysicalDelta = new Vector3();
+
+            if (!Config.invert_x)
+                PhysicalDelta.x = dx / Config.steps_per_x;
+            else
+                PhysicalDelta.x = -dx / Config.steps_per_x;
+
+            if (!Config.invert_y)
+                PhysicalDelta.y = dy / Config.steps_per_y;
+            else
+                PhysicalDelta.y = -dy / Config.steps_per_y;
+
+            if (!Config.invert_z)
+                PhysicalDelta.z = dz / Config.steps_per_z;
+            else
+                PhysicalDelta.z = -dz / Config.steps_per_z;
+        }
+
         public RTArcMoveCommand(Vector3 delta, decimal r, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
@@ -264,6 +283,7 @@ namespace Actions
                 Angle = (decimal)(Math.PI*2) - Angle;
             }
             Length = Angle * R;
+            FindPhysicalParameters();
         }
 
         public RTArcMoveCommand(Vector3 delta, Vector3 startToCenter, bool ccw, AxisState.Plane plane,
@@ -301,6 +321,7 @@ namespace Actions
                 Angle = (decimal)(Math.PI*2) - Angle;
             }
             Length = Angle * R;
+            FindPhysicalParameters();
         }
     }
 }

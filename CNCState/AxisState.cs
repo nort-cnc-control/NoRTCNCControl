@@ -133,6 +133,7 @@ namespace CNCState
             set { Params.CurrentPlane = value; }
         }
 
+        public Vector3 TargetPosition { get; set; }
         public Vector3 Position { get; set; }
         public Parameters Params { get; set; }
 
@@ -152,6 +153,7 @@ namespace CNCState
                 Params.CoordinateSystems[i] = new CoordinateSystem();
             }
             Position = new Vector3(0, 0, 0);
+            TargetPosition = new Vector3(0, 0, 0);
         }
 
         public enum MType
