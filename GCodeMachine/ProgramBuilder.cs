@@ -274,7 +274,12 @@ namespace GCodeMachine
                 case AxisState.MType.ArcCCW:
                     {
                         bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
-                        if (R != null)
+                        if (R == null && I == null && J == null && K == null)
+                        {
+                            var r = delta.Length() / 2;
+
+                        }
+                        else if (R != null)
                         {
                             var r = ConvertSizes(R.value, state);
                             state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
