@@ -173,6 +173,7 @@ namespace CNCState
                 MoveType = MoveType,
                 Params = Params.BuildCopy(),
                 Position = new Vector3(Position.x, Position.y, Position.z),
+                TargetPosition = new Vector3(TargetPosition.x, TargetPosition.y, TargetPosition.z),
             };
             return copy;
         }

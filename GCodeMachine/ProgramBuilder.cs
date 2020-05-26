@@ -300,6 +300,7 @@ namespace GCodeMachine
                 default:
                     break;
             }
+            state.AxisState.TargetPosition = nextTargetPositionGlobal;
             return state;
         }
 
