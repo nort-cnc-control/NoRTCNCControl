@@ -202,10 +202,9 @@ namespace ActionProgram
             var acc = config.max_acceleration;
             feed = Math.Min(feed, maxfeed);
             var stateAfter = currentState.BuildCopy();
-            stateAfter.AxisState.Position.x += delta.x;
-            stateAfter.AxisState.Position.y += delta.y;
-            stateAfter.AxisState.Position.z += delta.z;
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(delta, new RTMovementOptions(0, feed, 0, acc), config)), currentState, stateAfter);
+            var command = new RTLineMoveCommand(delta, new RTMovementOptions(0, feed, 0, acc), config);
+            stateAfter.AxisState.Position += command.PhysicalDelta;
+            AddAction(new RTAction(rtSender, command), currentState, stateAfter);
             return stateAfter;
         }
 
@@ -218,10 +217,9 @@ namespace ActionProgram
             var maxfeed = fa.feed;
             var acc = fa.acc;
             var stateAfter = currentState.BuildCopy();
-            stateAfter.AxisState.Position.x += delta.x;
-            stateAfter.AxisState.Position.y += delta.y;
-            stateAfter.AxisState.Position.z += delta.z;
-            AddAction(new RTAction(rtSender, new RTLineMoveCommand(delta, new RTMovementOptions(0, maxfeed, 0, acc), config)), currentState, stateAfter);
+            var command = new RTLineMoveCommand(delta, new RTMovementOptions(0, maxfeed, 0, acc), config);
+            stateAfter.AxisState.Position += command.PhysicalDelta;
+            AddAction(new RTAction(rtSender, command), currentState, stateAfter);
             return stateAfter;
         }
 
@@ -234,24 +232,22 @@ namespace ActionProgram
         public CNCState.CNCState AddArcMovement(Vector3 delta, decimal R, bool ccw, AxisState.Plane axis, decimal feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
-            stateAfter.AxisState.Position.x += delta.x;
-            stateAfter.AxisState.Position.y += delta.y;
-            stateAfter.AxisState.Position.z += delta.z;
             MaxArcAcc(out decimal acc);
 
-            AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState, stateAfter);
+            var cmd = new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config);
+            stateAfter.AxisState.Position += cmd.PhysicalDelta;
+            AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
             return stateAfter;
         }
 
         public CNCState.CNCState AddArcMovement(Vector3 delta, Vector3 center, bool ccw, AxisState.Plane axis, decimal feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
-            stateAfter.AxisState.Position.x += delta.x;
-            stateAfter.AxisState.Position.y += delta.y;
-            stateAfter.AxisState.Position.z += delta.z;
-
             MaxArcAcc(out decimal acc);
-            AddAction(new RTAction(rtSender, new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config)), currentState, stateAfter);
+
+            var cmd = new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config);
+            stateAfter.AxisState.Position += cmd.PhysicalDelta;
+            AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
             return stateAfter;
         }
 

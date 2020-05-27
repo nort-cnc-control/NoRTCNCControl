@@ -85,9 +85,11 @@ namespace GCodeMachine
             return state;
         }
 
+
+
         private CNCState.CNCState ProcessDrillingMove(Arguments block,
-                                              ActionProgram.ActionProgram program,
-                                              CNCState.CNCState state)
+                                                      ActionProgram.ActionProgram program,
+                                                      CNCState.CNCState state)
         {
             state = state.BuildCopy();
 
@@ -98,90 +100,117 @@ namespace GCodeMachine
             var Z = block.Z;
             var R = block.R;
 
+            Vector3 delta;
+            Vector3 topPosition;
             var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
-            Vector3 currentPositionLocal = coordinateSystem.ToLocal(state.AxisState.Position);
 
             #region Positioning
-            Vector3 targetPositionLocal = new Vector3(currentPositionLocal);
+            (delta, topPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, null);
+            state.AxisState.TargetPosition = topPosition;
+            state = program.AddFastLineMovement(delta, state);
+            #endregion
 
+            #region R height
+            Vector3 rPosition = new Vector3(topPosition);
+            if (R != null)
+            {
+                Vector3 targetPositionLocal = coordinateSystem.ToLocal(topPosition);
+                (delta, rPosition) = FindMovement(state, topPosition, state.AxisState.Position, null, null, R);
+                state.DrillingState.RetractHeightGlobal = rPosition.z;
+            }
+            else
+            {
+                rPosition.z = state.DrillingState.RetractHeightGlobal;
+                delta = rPosition - state.AxisState.Position;
+            }
+            state.AxisState.TargetPosition = rPosition;
+            state = program.AddFastLineMovement(delta, state);
+            #endregion
+
+            // TODO: add pecking, dwelling, etc
+
+            #region drilling
+            Vector3 bottomPosition = new Vector3(rPosition);
+            if (Z != null)
+            {
+                Vector3 targetPositionLocal = coordinateSystem.ToLocal(topPosition);
+                (delta, bottomPosition) = FindMovement(state, rPosition, state.AxisState.Position, null, null, Z);
+                state.DrillingState.DrillHeightGlobal = bottomPosition.z;
+            }
+            else
+            {
+                bottomPosition.z = state.DrillingState.DrillHeightGlobal;
+                delta = bottomPosition - state.AxisState.Position;
+            }
+            state.AxisState.TargetPosition = bottomPosition;
+            state = program.AddLineMovement(delta, state.AxisState.Feed, state);
+            #endregion
+
+            #region Retract
+            Vector3 retractPosition;
+            switch (state.DrillingState.RetractDepth)
+            {
+                case DrillingState.RetractDepthType.InitialHeight:
+                    retractPosition = topPosition;
+                    break;
+                case DrillingState.RetractDepthType.RHeight:
+                    retractPosition = rPosition;
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown retract depth state");
+            }
+            state.AxisState.TargetPosition = retractPosition;
+            delta = retractPosition - bottomPosition;
+            state = program.AddFastLineMovement(delta, state);
+            #endregion
+
+            return state;
+        }
+
+        private Vector3 MakeMove(CNCState.CNCState state, Vector3 pos, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
+        {
+            pos = new Vector3(pos.x, pos.y, pos.z);
             if (state.AxisState.Absolute)
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x = ConvertSizes(X.value, state);
+                    pos.x = ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y = ConvertSizes(Y.value, state);
+                    pos.y = ConvertSizes(Y.value, state);
+                }
+                if (Z != null)
+                {
+                    pos.z = ConvertSizes(Z.value, state);
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    targetPositionLocal.x += ConvertSizes(X.value, state);
+                    pos.x += ConvertSizes(X.value, state);
                 }
                 if (Y != null)
                 {
-                    targetPositionLocal.y += ConvertSizes(Y.value, state);
+                    pos.y += ConvertSizes(Y.value, state);
+                }
+                if (Z != null)
+                {
+                    pos.z += ConvertSizes(Z.value, state);
                 }
             }
+            return pos;
+        }
 
-            var targetPosition = coordinateSystem.ToGlobal(targetPositionLocal);
-            state = program.AddFastLineMovement(targetPosition - state.AxisState.Position, state);
-            #endregion
-
-            #region R height
-            if (R != null)
-            {
-                if (state.AxisState.Absolute)
-                    state.DrillingState.RHeightLocal = ConvertSizes(R.value, state);
-                else
-                    state.DrillingState.RHeightLocal = currentPositionLocal.z + ConvertSizes(R.value, state);
-            }
-            var rPositionLocal = new Vector3(targetPositionLocal)
-            {
-                z = state.DrillingState.RHeightLocal
-            };
-            var rPosition = coordinateSystem.ToGlobal(rPositionLocal);
-            state = program.AddFastLineMovement(rPosition - targetPosition, state);
-            #endregion
-
-            // TODO: add pecking, dwelling, etc
-
-            #region drilling
-            if (Z != null)
-            {
-                if (state.AxisState.Absolute)
-                    state.DrillingState.DrillDepthLocal = ConvertSizes(Z.value, state);
-                else
-                    state.DrillingState.DrillDepthLocal = targetPositionLocal.z + ConvertSizes(Z.value, state);
-            }
-            var drillPositionLocal = new Vector3(targetPositionLocal)
-            {
-                z = state.DrillingState.DrillDepthLocal
-            };
-            var drillPosition = coordinateSystem.ToGlobal(drillPositionLocal);
-            state = program.AddLineMovement(drillPosition - rPosition, state.AxisState.Feed, state);
-            #endregion
-
-            #region Retract
-            Vector3 retract;
-            switch (state.DrillingState.RetractDepth)
-            {
-                case DrillingState.RetractDepthType.InitialHeight:
-                    retract = targetPosition - drillPosition;
-                    break;
-                case DrillingState.RetractDepthType.RHeight:
-                    retract = rPosition - drillPosition;
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown retract depth state");
-            }
-            state = program.AddFastLineMovement(retract, state);
-            #endregion
-
-            return state;
+        private (Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
+        {
+            var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
+            Vector3 currentTargetPositionLocal = coordinateSystem.ToLocal(currentTargetPosition);
+            Vector3 nextTargetPositionLocal = MakeMove(state, currentTargetPositionLocal, X, Y, Z);
+            Vector3 nextTargetPositionGlobal = coordinateSystem.ToGlobal(nextTargetPositionLocal);
+            Vector3 delta = nextTargetPositionGlobal - currentPhysicalPosition;
+            return (delta, nextTargetPositionGlobal);
         }
 
         private CNCState.CNCState ProcessDirectMove(Arguments block,
@@ -221,44 +250,10 @@ namespace GCodeMachine
             if (X == null && Y == null && Z == null)
                 return state;
 
-            var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
-
-            Vector3 currentTargetPositionLocal = coordinateSystem.ToLocal(state.AxisState.TargetPosition);
-            Vector3 nextTargetPositionLocal = new Vector3(currentTargetPositionLocal);
-
-            if (state.AxisState.Absolute)
-            {
-                if (X != null)
-                {
-                    nextTargetPositionLocal.x = ConvertSizes(X.value, state);
-                }
-                if (Y != null)
-                {
-                    nextTargetPositionLocal.y = ConvertSizes(Y.value, state);
-                }
-                if (Z != null)
-                {
-                    nextTargetPositionLocal.z = ConvertSizes(Z.value, state);
-                }
-            }
-            else
-            {
-                if (X != null)
-                {
-                    nextTargetPositionLocal.x += ConvertSizes(X.value, state);
-                }
-                if (Y != null)
-                {
-                    nextTargetPositionLocal.y += ConvertSizes(Y.value, state);
-                }
-                if (Z != null)
-                {
-                    nextTargetPositionLocal.z += ConvertSizes(Z.value, state);
-                }
-            }
-
-            var nextTargetPositionGlobal = coordinateSystem.ToGlobal(nextTargetPositionLocal);
-            var delta = nextTargetPositionGlobal - state.AxisState.Position;
+            Vector3 delta;
+            Vector3 targetPosition;
+            (delta, targetPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, Z);
+            state.AxisState.TargetPosition = targetPosition;
 
             switch (state.AxisState.MoveType)
             {
@@ -300,7 +295,6 @@ namespace GCodeMachine
                 default:
                     break;
             }
-            state.AxisState.TargetPosition = nextTargetPositionGlobal;
             return state;
         }
 
