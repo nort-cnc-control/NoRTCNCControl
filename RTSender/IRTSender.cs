@@ -16,6 +16,7 @@ namespace RTSender
         event Action<int, IReadOnlyDictionary<String, String>> Completed;
         event Action<int, String> Failed;
         event Action<String> Error;
+        event Action<String> Debug;
 
         bool HasSlots { get; }
         void SendCommand(String command);

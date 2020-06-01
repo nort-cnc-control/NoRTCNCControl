@@ -29,8 +29,8 @@ namespace RTSender
         public event Action<int> Started;
         public event Action<int, IReadOnlyDictionary<String, String>> Completed;
         public event Action<int> SlotsNumberReceived;
-        public event Action<string> Error
-        { add { } remove { } }
+        public event Action<string> Error { add { } remove { } }
+        public event Action<string> Debug { add { } remove { } }
 
         public event Action Reseted;
 
