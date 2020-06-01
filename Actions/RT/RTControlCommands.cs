@@ -59,13 +59,6 @@ namespace Actions
         }
     }
 
-    public class RTForgetResidualCommand : IRTCommand
-    {
-        public String Command {get { return "M998"; }}
-
-        public bool CommandIsCached { get { return false; } }
-    }
-
     public class RTSetZeroCommand : IRTCommand
     {
         public String Command {get { return "M997"; }}

@@ -84,6 +84,8 @@ All sizes should be specified in millimeters (mm).
 - M06 - change tool
 - M120 - push state
 - M121 - pop state
+- M703 - start syncronous tool
+- M705 - stop syncronous tool
 
 ### Options
 

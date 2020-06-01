@@ -337,6 +337,46 @@ namespace GCodeMachine
             return state;
         }
 
+        private CNCState.CNCState ProcessSyncToolCommand(Arguments block,
+                                                         ActionProgram.ActionProgram program,
+                                                         CNCState.CNCState state)
+        {
+            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'M'));
+            if (cmd == null)
+                return state;
+            var newstate = state.BuildCopy();
+            switch (cmd.ivalue1)
+            {
+                case 703:
+                case 705:
+                    {
+                        int tool;
+                        if (block.SingleOptions.ContainsKey('T'))
+                        {
+                            tool = block.SingleOptions['T'].ivalue1;
+                            newstate.SyncToolState.Tool = tool;
+                        }
+                        else
+                        {
+                            tool = state.SyncToolState.Tool;
+                        }
+                        if (cmd.ivalue1 == 703)
+                        {
+                            newstate.SyncToolState.Enabled = true;
+                            program.EnableRTTool(tool, state, newstate);
+                        }
+                        else
+                        {
+                            newstate.SyncToolState.Enabled = false;
+                            program.DisableRTTool(tool, state, newstate);
+                        }
+                    }
+
+                    break;
+            }
+            return newstate;
+        }
+
         private CNCState.CNCState ProcessCoordinatesSet(Arguments args,
                                                         ActionProgram.ActionProgram program,
                                                         CNCState.CNCState state)
@@ -694,6 +734,10 @@ namespace GCodeMachine
                         break;
                     case 121:
                         PopState(state.AxisState);
+                        break;
+                    case 703:
+                    case 705:
+                        state = ProcessSyncToolCommand(block, program, state);
                         break;
                 }
             }

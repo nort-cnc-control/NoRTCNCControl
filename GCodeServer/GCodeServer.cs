@@ -78,7 +78,7 @@ namespace GCodeServer
 
         private void Init()
         {
-            var newState = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var newState = new CNCState.CNCState();
             Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
 
             var crds = StatusMachine.ReadHardwareCoordinates();

@@ -278,6 +278,19 @@ namespace ActionProgram
             var cmd = new SelectToolCommand(toolId, machine, toolManager);
             AddAction(new MachineControlAction(cmd, machine), null, null);
         }
+
+        public void EnableRTTool(int tool, CNCState.CNCState currentState, CNCState.CNCState stateAfter)
+        {
+            var cmd = new RTToolCommand(tool, true);
+            AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
+        }
+
+        public void DisableRTTool(int tool, CNCState.CNCState currentState, CNCState.CNCState stateAfter)
+        {
+            var cmd = new RTToolCommand(tool, false);
+            AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
+        }
+
         #endregion
 
         public void AddPlaceholder(CNCState.CNCState currentState)

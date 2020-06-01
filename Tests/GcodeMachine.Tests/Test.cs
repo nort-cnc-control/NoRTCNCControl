@@ -51,7 +51,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
             var spindleState = new SpindleState();
 
             var sender = new EmulationRTSender(Console.Out);
@@ -87,7 +87,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -122,7 +122,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -161,7 +161,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -200,7 +200,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -239,7 +239,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var sender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -278,7 +278,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -317,7 +317,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -356,7 +356,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
@@ -395,7 +395,7 @@ namespace GCodeMachine.Tests
             };
 
             var output = new MemoryStream();
-            var state = new CNCState.CNCState(new AxisState(), new SpindleState(), new DrillingState());
+            var state = new CNCState.CNCState();
 
             var rtSender = new EmulationRTSender(Console.Out);
             var modbusSender = new EmulationModbusSender(Console.Out);
