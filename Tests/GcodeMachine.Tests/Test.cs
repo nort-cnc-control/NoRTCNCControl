@@ -65,6 +65,7 @@ namespace GCodeMachine.Tests
             var (program,_,_, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -100,6 +101,7 @@ namespace GCodeMachine.Tests
             var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -134,6 +136,7 @@ namespace GCodeMachine.Tests
             var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -173,6 +176,7 @@ namespace GCodeMachine.Tests
             var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -212,6 +216,7 @@ namespace GCodeMachine.Tests
             var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -251,6 +256,7 @@ namespace GCodeMachine.Tests
             var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -290,6 +296,7 @@ namespace GCodeMachine.Tests
             var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -329,6 +336,7 @@ namespace GCodeMachine.Tests
             var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -368,6 +376,7 @@ namespace GCodeMachine.Tests
             var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             { }
@@ -407,6 +416,7 @@ namespace GCodeMachine.Tests
             var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
+            machine.Continue();
 
             while (machine.IsRunning())
             {}

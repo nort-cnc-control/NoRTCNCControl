@@ -157,7 +157,6 @@ namespace GCodeMachine
             }
             index = 0;
             SwitchToState(MachineState.Ready, true);
-            Continue();
         }
 
         public void Continue()
@@ -383,5 +382,7 @@ namespace GCodeMachine
         {
             this.program = program;
         }
+
+
     }
 }

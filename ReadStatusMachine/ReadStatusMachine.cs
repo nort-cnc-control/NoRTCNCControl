@@ -137,7 +137,6 @@ namespace ReadStatusMachine
         public void Start()
         {
             Logger.Instance.Debug(this, "action", "start");
-            Continue();
         }
 
         public void Stop()

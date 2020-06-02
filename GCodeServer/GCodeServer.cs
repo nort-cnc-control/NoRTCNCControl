@@ -52,6 +52,9 @@ namespace GCodeServer
         private IToolManager toolManager;
         private bool serverRun;
 
+        private int currentLine;
+        private int initialLine;
+
         private BlockingCollection<JsonObject> commands;
 
         public GCodeServer(IRTSender rtSender,
@@ -149,12 +152,12 @@ namespace GCodeServer
                 return;
             try
             {
-                int index = starts[action];
+                currentLine = starts[action];
 
                 var response = new JsonObject
                 {
                     ["type"] = "line",
-                    ["line"] = index
+                    ["line"] = currentLine,
                 };
                 responseSender.MessageSend(response.ToString());
             }
@@ -166,7 +169,7 @@ namespace GCodeServer
 
 
         #region gcode machine methods
-        private void RunGcode(String[] prg)
+        private void LoadGcode(String[] prg)
         {
             ActionProgram.ActionProgram program;
             decimal time;
@@ -181,7 +184,6 @@ namespace GCodeServer
             }
             Logger.Instance.Info(this, "compile", String.Format("Expected execution time = {0}", time));
             Machine.LoadProgram(program);
-            Machine.Start();
         }
         #endregion
 
@@ -256,6 +258,7 @@ namespace GCodeServer
                                         Machine.Dispose();
                                         Init();
                                         StatusMachine.Start();
+                                        StatusMachine.Continue();
                                         break;
                                     }
                                 case "stop":
@@ -283,6 +286,8 @@ namespace GCodeServer
                                             ["lines"] = message["program"]
                                         };
                                         responseSender.MessageSend(response.ToString());
+                                        currentLine = 0;
+                                        initialLine = 0;
                                         break;
                                     }
                                 case "continue":
@@ -296,7 +301,8 @@ namespace GCodeServer
                                     }
                                 case "start":
                                     {
-                                        var lines = gcodeprogram.Select(line => new JsonPrimitive(line));
+                                        var program = gcodeprogram.Skip(initialLine);
+                                        var lines = program.Select(line => new JsonPrimitive(line));
                                         commands.Add(new JsonObject
                                             {
                                                 ["command"] = "start",
@@ -334,6 +340,7 @@ namespace GCodeServer
         public bool Run()
         {
             StatusMachine.Start();
+            StatusMachine.Continue();
             serverRun = true;
             var cmdThread = new Thread(new ThreadStart(ReceiveCmdCycle));
             cmdThread.Start();
@@ -353,7 +360,9 @@ namespace GCodeServer
                                 string str = line;
                                 program.Add(str);
                             }
-                            RunGcode(program.ToArray());
+                            LoadGcode(program.ToArray());
+                            Machine.Start();
+                            Machine.Continue();
                             break;
                         }
                     case "continue":
