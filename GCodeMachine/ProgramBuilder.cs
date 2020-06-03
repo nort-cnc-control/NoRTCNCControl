@@ -27,8 +27,7 @@ namespace GCodeMachine
         private readonly GCodeMachine machine;
         private readonly IToolManager toolManager;
         private ArcMoveFeedLimiter arcMoveFeedLimiter;
-        private MoveOptimizer optimizer;
-        private ExpectedTimeCalculator timeCalculator;
+
         private Stack<AxisState.Parameters> axisStateStack;
         private readonly IStateSyncManager stateSyncManager;
 
@@ -52,8 +51,6 @@ namespace GCodeMachine
             this.toolManager = toolManager;
             this.config = config;
             arcMoveFeedLimiter = new ArcMoveFeedLimiter(this.config);
-            optimizer = new MoveOptimizer(this.config);
-            timeCalculator = new ExpectedTimeCalculator();
             axisStateStack = new Stack<AxisState.Parameters>();
             spindleCommandPending = false;
         }
@@ -779,24 +776,24 @@ namespace GCodeMachine
         }
 
         public (ActionProgram.ActionProgram program,
-                CNCState.CNCState state,
-                IReadOnlyDictionary<IAction, int> starts,
-                decimal executionTime)
-            BuildProgram(String[] frames, CNCState.CNCState state)
+                CNCState.CNCState finalState,
+                IReadOnlyDictionary<IAction, int> actionLines)
+            BuildProgram(String[] frames, CNCState.CNCState initialState)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
-            var starts = new Dictionary<IAction, int>();
+            var actionLines = new Dictionary<IAction, int>();
             int index = 0;
             int len = frames.Length;
+            var state = initialState;
             program.AddRTUnlock(state);
-            starts[program.Actions[0].action] = index;
+            actionLines[program.Actions[0].action] = index;
             while (index < len)
             {
                 var frame = frames[index];
                 int next;
                 try
                 {
-                    (next, state) = Process(frame, program, state, starts, index);
+                    (next, state) = Process(frame, program, state, actionLines, index);
                     if (next < 0)
                         break;
                     else
@@ -811,16 +808,13 @@ namespace GCodeMachine
 
             program.AddPlaceholder(state);
             arcMoveFeedLimiter.ProcessProgram(program);
-            optimizer.ProcessProgram(program);
-            timeCalculator.ProcessProgram(program);
-
-            return (program, state, starts, timeCalculator.ExecutionTime);
+            return (program, state, actionLines);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> starts, decimal executionTime)
-                BuildProgram(String frame, CNCState.CNCState state)
+        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> actionLines)
+                BuildProgram(String frame, CNCState.CNCState initialState)
         {
-            return BuildProgram(frame.Split('\n'), state);
+            return BuildProgram(frame.Split('\n'), initialState);
         }
     }
 }

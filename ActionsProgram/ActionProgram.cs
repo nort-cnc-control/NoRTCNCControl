@@ -306,5 +306,27 @@ namespace ActionProgram
             }
             AddAction(new FunctionAction(delayf), currentState, currentState);
         }
+
+        public ActionProgram Subprogram(IAction begin, IAction end)
+        {
+            ActionProgram subprogram = new ActionProgram(rtSender, modbusSender, config, machine, toolManager);
+            int index = 0;
+            if (begin != null)
+            {
+                while (index < actions.Count && actions[index].action != begin)
+                    index++;
+            }
+            if (index == actions.Count)
+                return subprogram;
+            while (index < actions.Count && actions[index].action != end)
+            {
+                IAction action;
+                CNCState.CNCState before, after;
+                (action, before, after) = actions[index];
+                subprogram.AddAction(action, before, after);
+                index++;
+            }
+            return subprogram;
+        }
     }
 }

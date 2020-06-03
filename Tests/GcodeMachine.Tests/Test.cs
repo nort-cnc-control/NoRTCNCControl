@@ -62,7 +62,7 @@ namespace GCodeMachine.Tests
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
             Console.WriteLine("BUILDING");
-            var (program,_,_, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_,_) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -98,7 +98,7 @@ namespace GCodeMachine.Tests
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
             Console.WriteLine("BUILDING");
-            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -133,7 +133,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -173,7 +173,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -213,7 +213,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -253,7 +253,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(sender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, sender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -293,7 +293,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -333,7 +333,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -373,7 +373,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program,_, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program,_, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
@@ -413,7 +413,7 @@ namespace GCodeMachine.Tests
             var machine = new GCodeMachine(rtSender, new DummyMessageRouter(), state, config);
             var programBuilder = new ProgramBuilder(machine, null, rtSender, modbusSender, spindleCmdFactory, new DummyToolManager(), config);
 
-            var (program, _, _, _) = programBuilder.BuildProgram(programGcode, state);
+            var (program, _, _) = programBuilder.BuildProgram(programGcode, state);
             machine.LoadProgram(program);
             machine.Start();
             machine.Continue();
