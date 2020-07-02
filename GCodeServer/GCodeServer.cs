@@ -28,6 +28,8 @@ namespace GCodeServer
         public GCodeMachine.GCodeMachine Machine { get; private set; }
         public ReadStatusMachine.ReadStatusMachine StatusMachine { get; private set; }
 
+        private StateValidator stateValidator;
+
         public string Name => "gcode server";
 
         private ProgramBuilder programBuilder;
@@ -77,6 +79,8 @@ namespace GCodeServer
 
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
+
+            stateValidator = new StateValidator();
         }
 
         private void Init()
@@ -251,6 +255,7 @@ namespace GCodeServer
                                         break;
                                     }
                                 case "reset":
+                                case "stop":
                                     {
                                         StatusMachine.Stop();
                                         Machine.Abort();
@@ -261,18 +266,13 @@ namespace GCodeServer
                                         StatusMachine.Continue();
                                         break;
                                     }
-                                case "stop":
-                                    {
-                                        Machine.Stop();
-                                        break;
-                                    }
                                 case "pause":
                                     {
+                                        // TODO: implement
                                         break;
                                     }
                                 case "load":
                                     {
-
                                         List<string> program = new List<string>();
                                         foreach (JsonPrimitive line in message["program"])
                                         {
@@ -280,12 +280,6 @@ namespace GCodeServer
                                             program.Add(str);
                                         }
                                         gcodeprogram = program.ToArray();
-                                        var response = new JsonObject
-                                        {
-                                            ["type"] = "loadlines",
-                                            ["lines"] = message["program"]
-                                        };
-                                        responseSender.MessageSend(response.ToString());
                                         currentLine = 0;
                                         initialLine = 0;
                                         break;
