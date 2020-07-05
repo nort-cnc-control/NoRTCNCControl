@@ -23,4 +23,7 @@
   <ItemGroup>
     <None Include="..\..\test.gcode" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ProgramBuilder\" />
+  </ItemGroup>
 </Project>

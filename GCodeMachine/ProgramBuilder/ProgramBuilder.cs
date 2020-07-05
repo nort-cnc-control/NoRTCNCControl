@@ -492,11 +492,8 @@ namespace GCodeMachine
             return (index, callStack);
         }
 
-        private (int, Stack<int>) CallSubprogram(Arguments args,
-                                   int currentIndex,
-                                   CNCState.CNCState state,
-                                   Stack<int> callStack,
-                                   IReadOnlyDictionary<int, int> subprograms)
+        private (int, int) CallSubprogram(Arguments args,
+                                          CNCState.CNCState state)
         {
             if (!args.SingleOptions.ContainsKey('P'))
                 throw new InvalidOperationException("Subprogram id not specified");
@@ -506,39 +503,16 @@ namespace GCodeMachine
             if (args.SingleOptions.ContainsKey('L'))
                 amount = args.SingleOptions['L'].ivalue1;
 
-            callStack = PushPosition(currentIndex + 1, callStack);
-            int prgindex = subprograms[prgid];
-            while (amount > 1)
-            {
-                PushPosition(prgindex, callStack);
-                amount--;
-            }
-
-            return (prgindex, callStack);
+            return (prgid, amount);
         }
 
-        private (int, Stack<int>) ReturnFromSubprogram(Arguments args,
-                                         ActionProgram.ActionProgram program,
-                                         CNCState.CNCState state,
-                                         Stack<int> callStack)
-        {
-            int pos;
-            (pos, callStack) = PopPosition(callStack);
-            if (pos < 0)
-                program.AddStop();
-            return (pos, callStack);
-        }
-
-        private (int, CNCState.CNCState, Stack<int>, bool) ProcessBlock(Arguments block,
-                                                      int index,
-                                                      ActionProgram.ActionProgram program,
-                                                      CNCState.CNCState state,
-                                                      Stack<int> callStack,
-                                                      IReadOnlyDictionary<int, int> subPrograms)
+        private (CNCState.CNCState state, int pid, int amount, bool end) ProcessBlock(Arguments block,
+                                                                          ActionProgram.ActionProgram program,
+                                                                          CNCState.CNCState state)
         {
             var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G' || arg.letter == 'M'));
-            int next = -1;
             bool finish = false;
+            int pid = -1, amount = -1;
             state = state.BuildCopy();
             state = ProcessParameters(block, program, state);
 
@@ -760,10 +734,10 @@ namespace GCodeMachine
                             program.AddToolChange(block.SingleOptions['T'].ivalue1);
                         break;
                     case 97:
-                        (next, callStack) = CallSubprogram(block, index, state, callStack, subPrograms);
+                        (pid, amount) = CallSubprogram(block, state);
                         break;
                     case 99:
-                        (next, callStack) = ReturnFromSubprogram(block, program, state, callStack);
+                        pid = -2;
                         break;
                     case 120:
                         PushState(state.AxisState);
@@ -779,89 +753,95 @@ namespace GCodeMachine
             }
 
             CommitPendingCommands(program, state);
-
-            return (next, state, callStack, finish);
+            return (state, pid, amount, finish);
         }
 
-        private (int, CNCState.CNCState) Process(String frame,
-                                                 ActionProgram.ActionProgram program,
-                                                 CNCState.CNCState state,
-                                                 Dictionary<IAction, int> starts,
-                                                 int index,
-                                                 Stack<int> callStack,
-                                                 IReadOnlyDictionary<int, int> subPrograms)
+        private (CNCState.CNCState, int programid, int amount) Process( Arguments args,
+                                                                        ActionProgram.ActionProgram program,
+                                                                        CNCState.CNCState state,
+                                                                        int curprogram, int curline,
+                                                                        Dictionary<IAction, (int,int)> starts)
         {
-            Arguments args = new Arguments(frame);
+            bool finish = false;
+            int pid = -1, amount = -1;
+
             var line_number = args.LineNumber;
             var len0 = program.Actions.Count;
-            var next = index + 1;
             var sargs = SplitFrame(args);
             foreach (var block in sargs)
             {
-                int si;
-                bool finish;
-                (si, state, callStack, finish) = ProcessBlock(block, index, program, state, callStack, subPrograms);
-                if (finish)
-                {
-                    return (-1, state);
-                }
-                if (si >= 0)
-                {
-                    next = si;
-                    break;
-                }
+                (state, pid, amount, finish) = ProcessBlock(block, program, state);
+            }
+
+            if (finish)
+            {
+                pid = -3;
             }
 
             var len1 = program.Actions.Count;
             if (len1 > len0)
             {
                 var (first, _, _) = program.Actions[len0];
-                starts[first] = index;
+                starts[first] = (curprogram, curline);
             }
-            return (next, state);
+            return (state, pid, amount);
         }
 
-        public IReadOnlyDictionary<int, int> FindSubprograms(String[] frames)
-        {
-            Dictionary<int, int> subprograms = new Dictionary<int, int>();
-            for (int index = 0; index < frames.Length; index++)
-            {
-                var frame = frames[index];
-                Arguments args = new Arguments(frame);
-                if (args.SingleOptions.ContainsKey('N'))
-                {
-                    int prgid = args.SingleOptions['N'].ivalue1;
-                    subprograms.Add(prgid, index);
-                }
-            }
-            return subprograms;
-        }
-
-        public (ActionProgram.ActionProgram program,
-                CNCState.CNCState finalState,
-                IReadOnlyDictionary<IAction, int> actionLines)
-            BuildProgram(String[] frames, CNCState.CNCState initialState)
+        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines)
+                
+            BuildProgram(Sequence mainSequence, ProgramSequencer programs, CNCState.CNCState initialState)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
-            var actionLines = new Dictionary<IAction, int>();
-            int index = 0;
-            int len = frames.Length;
+            var actionLines = new Dictionary<IAction, (int, int)>();
+            int programid = 0, lineid = 0;
+            Sequence sequence = mainSequence;
             var state = initialState;
-            Stack<int> callStack = new Stack<int>();
-            var subPrograms = FindSubprograms(frames);
+            Stack<(int, int)> callStack = new Stack<(int, int)>();
+
             program.AddRTUnlock(state);
-            actionLines[program.Actions[0].action] = index;
-            while (index < len)
+            actionLines[program.Actions[0].action] = (-1, -1);
+            while (true)
             {
-                var frame = frames[index];
-                int next;
+                if (lineid >= sequence.Lines.Count)
+                    break;
+
+                Arguments frame = sequence.Lines[lineid];
                 try
                 {
-                    (next, state) = Process(frame, program, state, actionLines, index, callStack, subPrograms);
-                    if (next < 0)
-                        break;
+                    int newpid, amount;
+                    (state, newpid, amount) = Process(frame, program, state, programid, lineid, actionLines);
+                    if (newpid >= 0)
+                    {
+                        callStack.Push((programid, lineid + 1));
+                        while (amount > 1)
+                        {
+                            callStack.Push((newpid, 0));
+                            amount--;
+                        }
+                        programid = newpid;
+                        lineid = 0;
+                    }
+                    else if (newpid == -1)
+                    {
+                        lineid += 1;
+                    }
+                    else if (newpid == -2)
+                    {
+                        if (callStack.Count == 0)
+                        {
+                            break;
+                        }
+                        (programid, lineid) = callStack.Pop();
+                    }
+                    else if (newpid == -3)
+                    {
+                        break; // END
+                    }
+
+                    if (programid == 0)
+                        sequence = mainSequence;
                     else
-                        index = next;
+                        sequence = programs.Subprograms[programid];
                 }
                 catch (Exception e)
                 {
@@ -877,10 +857,13 @@ namespace GCodeMachine
             return (program, state, actionLines);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState state, IReadOnlyDictionary<IAction, int> actionLines)
-                BuildProgram(String frame, CNCState.CNCState initialState)
+        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines)
+
+            BuildProgram(String code, CNCState.CNCState initialState)
         {
-            return BuildProgram(frame.Split('\n'), initialState);
+            var seq = new ProgramSequencer();
+            seq.SequenceProgram(code.Split('\n'));
+            return BuildProgram(seq.MainProgram, seq, initialState);
         }
     }
 }

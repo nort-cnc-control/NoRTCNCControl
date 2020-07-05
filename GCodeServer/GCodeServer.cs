@@ -40,7 +40,7 @@ namespace GCodeServer
         private readonly IModbusSender modbusSender;
         private readonly ISpindleToolFactory spindleToolFactory;
 
-        private IReadOnlyDictionary<IAction, int> starts;
+        private IReadOnlyDictionary<IAction, (int, int)> starts;
 
         private CNCState.CNCState State => Machine.LastState;
         private AxisState.CoordinateSystem hwCoordinateSystem;
@@ -54,8 +54,9 @@ namespace GCodeServer
         private IToolManager toolManager;
         private bool serverRun;
 
-        private int currentLine;
-        private int initialLine;
+        private int currentProgram, currentLine;
+
+        private ProgramSequencer sequencer;
 
         private BlockingCollection<JsonObject> commands;
 
@@ -85,6 +86,7 @@ namespace GCodeServer
 
         private void Init()
         {
+            sequencer = new ProgramSequencer();
             var newState = new CNCState.CNCState();
             Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
 
@@ -156,7 +158,7 @@ namespace GCodeServer
                 return;
             try
             {
-                currentLine = starts[action];
+                (currentProgram, currentLine) = starts[action];
 
                 var response = new JsonObject
                 {
@@ -175,19 +177,17 @@ namespace GCodeServer
         #region gcode machine methods
         private void LoadGcode(String[] prg)
         {
-            ActionProgram.ActionProgram program;
-            //decimal time;
             try
             {
-                (program, _, starts) = programBuilder.BuildProgram(prg, Machine.LastState);
+                sequencer = new ProgramSequencer();
+                sequencer.SequenceProgram(prg);
             }
             catch (Exception e)
             {
-                Logger.Instance.Error(this, "compile", String.Format("Exception: {0}", e));
+                Logger.Instance.Error(this, "sequence", String.Format("Exception: {0}", e));
                 return;
             }
             //Logger.Instance.Info(this, "compile", String.Format("Expected execution time = {0}", time));
-            Machine.LoadProgram(program);
         }
         #endregion
 
@@ -210,10 +210,10 @@ namespace GCodeServer
                     });
                     break;
                 }
-                JsonValue message;
+                JsonObject message;
                 try
                 {
-                    message = JsonValue.Parse(cmd);
+                    message = JsonValue.Parse(cmd) as JsonObject;
                 }
                 catch
                 {
@@ -272,52 +272,11 @@ namespace GCodeServer
                                         break;
                                     }
                                 case "load":
-                                    {
-                                        List<string> program = new List<string>();
-                                        foreach (JsonPrimitive line in message["program"])
-                                        {
-                                            string str = line;
-                                            program.Add(str);
-                                        }
-                                        gcodeprogram = program.ToArray();
-                                        currentLine = 0;
-                                        initialLine = 0;
-                                        break;
-                                    }
-                                case "continue":
-                                    {
-                                        commands.Add(new JsonObject
-                                            {
-                                                ["command"] = "continue",
-                                            }
-                                        );
-                                        break;
-                                    }
                                 case "start":
-                                    {
-                                        var program = gcodeprogram.Skip(initialLine);
-                                        var lines = program.Select(line => new JsonPrimitive(line));
-                                        commands.Add(new JsonObject
-                                            {
-                                                ["command"] = "start",
-                                                ["program"] = new JsonArray(lines),
-                                            }
-                                        );
-                                        break;
-                                    }
                                 case "execute":
+                                case "contuinue":
                                     {
-                                        var lines = new List<JsonValue>
-                                        {
-                                            message["program"]
-                                        };
-
-                                        commands.Add(new JsonObject
-                                            {
-                                                ["command"] = "start",
-                                                ["program"] = new JsonArray(lines),
-                                            }
-                                        );
+                                        commands.Add(message);
                                         break;
                                     }
                                 default:
@@ -346,7 +305,7 @@ namespace GCodeServer
                 string cmd = command["command"];
                 switch (cmd)
                 {
-                    case "start":
+                    case "load":
                         {
                             List<string> program = new List<string>();
                             foreach (JsonPrimitive line in command["program"])
@@ -355,6 +314,24 @@ namespace GCodeServer
                                 program.Add(str);
                             }
                             LoadGcode(program.ToArray());
+                            break;
+                        }
+                    case "execute":
+                        {
+                            ActionProgram.ActionProgram program;
+                            Sequence excommand = new Sequence();
+                            excommand.AddLine(new Arguments(command["program"]));
+                            (program, _, starts) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
+                            Machine.LoadProgram(program);
+                            Machine.Start();
+                            Machine.Continue();
+                            break;
+                        }
+                    case "start":
+                        {
+                            ActionProgram.ActionProgram program;
+                            (program, _, starts) = programBuilder.BuildProgram(sequencer.MainProgram, sequencer, Machine.LastState);
+                            Machine.LoadProgram(program);
                             Machine.Start();
                             Machine.Continue();
                             break;
