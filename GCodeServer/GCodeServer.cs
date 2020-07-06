@@ -159,11 +159,11 @@ namespace GCodeServer
             try
             {
                 (currentProgram, currentLine) = starts[action];
-
+                int line = sequencer.SubprogramStart[currentProgram] + currentLine;
                 var response = new JsonObject
                 {
                     ["type"] = "line",
-                    ["line"] = currentLine,
+                    ["line"] = line
                 };
                 responseSender.MessageSend(response.ToString());
             }

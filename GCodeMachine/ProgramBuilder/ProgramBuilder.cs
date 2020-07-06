@@ -806,6 +806,7 @@ namespace GCodeMachine
                     break;
 
                 Arguments frame = sequence.Lines[lineid];
+
                 try
                 {
                     int newpid, amount;

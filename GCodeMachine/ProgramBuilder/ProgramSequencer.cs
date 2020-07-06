@@ -9,8 +9,12 @@ namespace GCodeMachine
         private readonly Dictionary<int, Sequence> subprograms;
         public IReadOnlyDictionary<int, Sequence> Subprograms => subprograms;
 
+        private readonly Dictionary<int, int> subbegin;
+        public IReadOnlyDictionary<int, int> SubprogramStart => subbegin;
+
         public ProgramSequencer()
 		{
+            subbegin = new Dictionary<int, int>();
             subprograms = new Dictionary<int, Sequence>();
             MainProgram = new Sequence();
 		}
@@ -18,24 +22,25 @@ namespace GCodeMachine
         public void SequenceProgram(String[] lines)
         {
             Sequence program = new Sequence();
-            foreach (var line in lines)
+            for (int id = 0; id < lines.Length; id++)
             {
-                Arguments args = new Arguments(line);
+                Arguments args = new Arguments(lines[id]);
                 program.AddLine(args);
             }
 
             List<int> cursubs = new List<int>();
             Sequence current_sequence = MainProgram;
-            foreach (var args in program.Lines)
+            for (int line = 0; line < program.Lines.Count; line++)
             {
+                var arg = program.Lines[line];
                 int prgid = -1;
-                if (args.SingleOptions.ContainsKey('N'))
+                if (arg.SingleOptions.ContainsKey('N'))
                 {
-                    prgid = args.SingleOptions['N'].ivalue1;
+                    prgid = arg.SingleOptions['N'].ivalue1;
                 }
-                else if (args.SingleOptions.ContainsKey('O'))
+                else if (arg.SingleOptions.ContainsKey('O'))
                 {
-                    prgid = args.SingleOptions['O'].ivalue1;
+                    prgid = arg.SingleOptions['O'].ivalue1;
                 }
 
                 if (prgid >= 0)
@@ -44,14 +49,15 @@ namespace GCodeMachine
                     current_sequence.AddLine(new Arguments("M99"));
 
                     cursubs.Add(prgid);
+                    subbegin[prgid] = line;
 
                     current_sequence = new Sequence();
                     subprograms[prgid] = current_sequence;
                 }
 
-                current_sequence.AddLine(args);
+                current_sequence.AddLine(arg);
 
-                foreach (var mcmd in args.MCommands)
+                foreach (var mcmd in arg.MCommands)
                 {
                     if (mcmd.ivalue1 == 99)
                     {
