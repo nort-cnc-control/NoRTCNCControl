@@ -113,6 +113,7 @@ namespace GCodeMachine
 
         public Arguments(String line)
         {
+            line = line.ToUpper();
             options = new List<Option>();
             singleOptions = new Dictionary<char, Option>();
             line = CutComments(line);
