@@ -47,12 +47,6 @@ namespace GCodeMachine
 
         private bool machineIsRunning;
 
-        public AxisState.CoordinateSystem CurrentCoordinateSystem =>
-                LastState.AxisState.Params.CurrentCoordinateSystem;
-        public int CurrentCoordinateSystemIndex =>
-                LastState.AxisState.Params.CurrentCoordinateSystemIndex;
-        public AxisState.CoordinateSystem HwCoordinateSystem { get; private set; }
-
         private EventWaitHandle currentWait;
         public State RunState { get; private set; }
 
@@ -71,7 +65,6 @@ namespace GCodeMachine
             this.config = config;
             this.messageRouter = messageRouter;
             lastState = state.BuildCopy();
-            HwCoordinateSystem = null;
             this.rtSender = sender;
             this.rtSender.Reseted += OnReseted;
             machineIsRunning = false;
@@ -107,19 +100,6 @@ namespace GCodeMachine
             if (!run)
                 reseted.Set();
         }
-
-        public (Vector3 loc, string cs)
-            ConvertCoordinates(Vector3 glob)
-        {
-            Vector3 loc;
-            if (CurrentCoordinateSystem == null)
-                loc = new Vector3();
-            else
-                loc = CurrentCoordinateSystem.ToLocal(glob);
-            var id = CurrentCoordinateSystemIndex;
-            return (loc, String.Format("G5{0}", 3 + id));
-        }
-
 
         private void Wait(EventWaitHandle waitHandle)
         {

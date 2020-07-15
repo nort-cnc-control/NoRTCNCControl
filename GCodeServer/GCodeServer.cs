@@ -124,29 +124,93 @@ namespace GCodeServer
         private void OnStatusUpdate(Vector3 hw_crds, bool ex, bool ey, bool ez, bool ep)
         {
             var gl_crds = hwCoordinateSystem.ToLocal(hw_crds);
-            var (loc_crds, crd_system) = Machine.ConvertCoordinates(gl_crds);
+            var state = Machine.LastState;
+
+            var loc_crds = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(gl_crds);
+            var crd_system = String.Format("G5{0}", 3+state.AxisState.Params.CurrentCoordinateSystemIndex);
+
+            string movecmd = "";
+            switch (state.AxisState.MoveType)
+            {
+                case AxisState.MType.FastLine:
+                    movecmd = "G0";
+                    break;
+                case AxisState.MType.Line:
+                    movecmd = "G1";
+                    break;
+                case AxisState.MType.ArcCW:
+                    movecmd = "G2";
+                    break;
+                case AxisState.MType.ArcCCW:
+                    movecmd = "G3";
+                    break;
+            }
+
+            string spindlestatus = "";
+            string spindledir = "";
+            switch (state.SpindleState.RotationState)
+            {
+                case SpindleState.SpindleRotationState.Clockwise:
+                    spindledir = "CW";
+                    spindlestatus = "ON";
+                    break;
+                case SpindleState.SpindleRotationState.CounterClockwise:
+                    spindledir = "CCW";
+                    spindlestatus = "ON";
+                    break;
+                case SpindleState.SpindleRotationState.Off:
+                    spindledir = "-";
+                    spindlestatus = "OFF";
+                    break;
+            }
+
             var response = new JsonObject
             {
-                ["type"] = "coordinates",
-                ["hardware"] = new JsonArray
+                ["type"] = "machine_state",
+                ["coordinates"] = new JsonObject
                     {
-                        hw_crds.x,
-                        hw_crds.y,
-                        hw_crds.z
+                        ["hardware"] = new JsonArray
+                            {
+                                hw_crds.x,
+                                hw_crds.y,
+                                hw_crds.z
+                            },
+                        ["global"] = new JsonArray
+                            {
+                                gl_crds.x,
+                                gl_crds.y,
+                                gl_crds.z
+                            },
+                        ["local"] = new JsonArray
+                            {
+                                loc_crds.x,
+                                loc_crds.y,
+                                loc_crds.z
+                            },
+                        ["cs"] = crd_system,
                     },
-                ["global"] = new JsonArray
+                ["endstops"] = new JsonObject
                     {
-                        gl_crds.x,
-                        gl_crds.y,
-                        gl_crds.z
+                        ["axes"] = new JsonArray
+                            {
+                                ex,
+                                ey,
+                                ez,
+                            },
+                        ["probe"] = ep,
                     },
-                ["local"] = new JsonArray
+                ["movement"] = new JsonObject
                     {
-                        loc_crds.x,
-                        loc_crds.y,
-                        loc_crds.z
+                        ["status"] = "",
+                        ["feed"] = state.AxisState.Feed * 60m,
+                        ["command"] = movecmd,
                     },
-                ["cs"] = crd_system,
+                ["spindel"] = new JsonObject
+                    {
+                        ["status"] = spindlestatus,
+                        ["speed"] = state.SpindleState.SpindleSpeed,
+                        ["direction"] = spindledir,
+                    },
             };
             var resp = response.ToString();
             responseSender.MessageSend(resp);
