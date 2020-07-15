@@ -15,6 +15,7 @@ namespace GCodeMachine
     public class GCodeMachine : IMachine, IActionExecutor, ILoggerSource
     {
         public event Action<IAction> ActionStarted;
+        public event Action<IAction, CNCState.CNCState, CNCState.CNCState> ActionFinished;
 
         public enum MachineState
         {
@@ -311,6 +312,8 @@ namespace GCodeMachine
         {
             if (states[action].after != null)
                 lastState = states[action].after;
+
+            ActionFinished?.Invoke(action, states[action].before, states[action].after);
         }
 
         public void Stop()

@@ -24,11 +24,16 @@ namespace GCodeServer
 
     public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager, ILoggerSource
     {
+        public class IncostistensStateException : Exception
+        {
+            public IncostistensStateException(string message) : base(message)
+            {
+            }
+        }
+
         public MachineParameters Config { get; private set; }
         public GCodeMachine.GCodeMachine Machine { get; private set; }
         public ReadStatusMachine.ReadStatusMachine StatusMachine { get; private set; }
-
-        private StateValidator stateValidator;
 
         public string Name => "gcode server";
 
@@ -80,8 +85,6 @@ namespace GCodeServer
 
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
-
-            stateValidator = new StateValidator();
         }
 
         private void Init()
@@ -101,6 +104,7 @@ namespace GCodeServer
             };
 
             Machine.ActionStarted += Machine_ActionStarted;
+            Machine.ActionFinished += Machine_ActionCompleted;
             toolManager = new ManualToolManager(this, Machine);
             programBuilder = new ProgramBuilder(Machine,
                                                 this,
@@ -237,6 +241,40 @@ namespace GCodeServer
             }
         }
 
+        private void Machine_ActionCompleted(IAction action, CNCState.CNCState before, CNCState.CNCState after)
+        {
+            if (action is RTAction rtaction)
+            {
+                if (rtaction.ActionResult.ContainsKey("X") && rtaction.ActionResult.ContainsKey("Y") && rtaction.ActionResult.ContainsKey("Z"))
+                {
+                    int x = int.Parse(rtaction.ActionResult["X"]);
+                    int y = int.Parse(rtaction.ActionResult["Y"]);
+                    int z = int.Parse(rtaction.ActionResult["Z"]);
+
+                    Vector3 hwpos = new Vector3
+                    {
+                        x = x / Config.steps_per_x,
+                        y = y / Config.steps_per_y,
+                        z = z / Config.steps_per_z,
+                    };
+
+                    Vector3 actualPos = hwCoordinateSystem.ToLocal(hwpos);
+                    Vector3 expectedPos = after.AxisState.Position;
+
+                    if (Math.Abs(actualPos.x - expectedPos.x) > (decimal)1e-6 ||
+                        Math.Abs(actualPos.x - expectedPos.x) > (decimal)1e-6 ||
+                        Math.Abs(actualPos.x - expectedPos.x) > (decimal)1e-6)
+                    {
+                        var err = String.Format("Expected position: {0}, {1}, {2}. Actual position: {3}, {4}, {5}",
+                                                    expectedPos.x, expectedPos.y, expectedPos.z,
+                                                    actualPos.x, actualPos.y, actualPos.z);
+
+                        Logger.Instance.Error(this, "position error", err);
+                        // TODO: stop execution
+                    }
+                }
+            }
+        }
 
         #region gcode machine methods
         private void LoadGcode(String[] prg)
@@ -323,6 +361,7 @@ namespace GCodeServer
                                     {
                                         StatusMachine.Stop();
                                         Machine.Abort();
+                                        Machine.ActionFinished -= Machine_ActionCompleted;
                                         Machine.ActionStarted -= Machine_ActionStarted;
                                         Machine.Dispose();
                                         Init();
@@ -330,7 +369,7 @@ namespace GCodeServer
                                         StatusMachine.Continue();
                                         break;
                                     }
-                                case "pause":
+                                case "pause": 
                                     {
                                         // TODO: implement
                                         break;
