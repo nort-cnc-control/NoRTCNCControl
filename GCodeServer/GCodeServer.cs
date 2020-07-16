@@ -377,7 +377,7 @@ namespace GCodeServer
                                 case "load":
                                 case "start":
                                 case "execute":
-                                case "contuinue":
+                                case "continue":
                                     {
                                         commands.Add(message);
                                         break;

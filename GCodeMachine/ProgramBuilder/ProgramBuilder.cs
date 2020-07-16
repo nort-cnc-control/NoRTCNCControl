@@ -731,7 +731,12 @@ namespace GCodeMachine
                         break;
                     case 6:
                         if (block.SingleOptions.ContainsKey('T'))
-                            program.AddToolChange(block.SingleOptions['T'].ivalue1);
+                        {
+                            state.SpindleState.RotationState = SpindleState.SpindleRotationState.Off;
+                            var command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
+                            program.AddModbusToolCommand(command, state, state);        // Stop spindel before change
+                            program.AddToolChange(block.SingleOptions['T'].ivalue1);    // change tool
+                        }
                         break;
                     case 97:
                         (pid, amount) = CallSubprogram(block, state);
