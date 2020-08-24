@@ -227,7 +227,22 @@ namespace GCodeServer
             try
             {
                 (currentProgram, currentLine) = starts[action];
-                int line = sequencer.SubprogramStart[currentProgram] + currentLine;
+                int line;
+                if (currentLine >= 0)
+                {
+                    if (currentProgram > 0)
+                    {
+                        line = sequencer.SubprogramStart[currentProgram] + currentLine;
+                    }
+                    else
+                    {
+                        line = currentLine;
+                    }
+                }
+                else
+                {
+                    line = -1;
+                }
                 var response = new JsonObject
                 {
                     ["type"] = "line",
