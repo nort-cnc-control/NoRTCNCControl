@@ -243,6 +243,7 @@ namespace GCodeServer
                 {
                     line = -1;
                 }
+                Logger.Instance.Debug(this, "line selected", line.ToString());
                 var response = new JsonObject
                 {
                     ["type"] = "line",
