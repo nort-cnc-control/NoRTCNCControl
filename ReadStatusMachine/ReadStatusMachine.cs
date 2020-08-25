@@ -48,7 +48,7 @@ namespace ReadStatusMachine
         {
             Logger.Instance.Debug(this, "action", "continue");
             run = true;
-            askPosThread = new Thread(new ThreadStart(AskPosition));
+            askPosThread = new Thread(new ThreadStart(AskHardwareState));
             askPosThread.Start();
         }
 
@@ -103,17 +103,29 @@ namespace ReadStatusMachine
 
         public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
         {
-            RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
-            // action.ReadyToRun.WaitOne();
-            action.Run();
-            action.Finished.WaitOne();
-            return (action.ActionResult["EX"] == "1",
-                    action.ActionResult["EY"] == "1",
-                    action.ActionResult["EZ"] == "1",
-                    action.ActionResult["EP"] == "1");
+            Logger.Instance.Debug(this, "readhw", "read coordinates");
+            while (true)
+            {
+                try
+                {
+                    RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
+                    // action.ReadyToRun.WaitOne();
+                    action.Run();
+                    action.Finished.WaitOne();
+                    return (action.ActionResult["EX"] == "1",
+                            action.ActionResult["EY"] == "1",
+                            action.ActionResult["EZ"] == "1",
+                            action.ActionResult["EP"] == "1");
+                }
+                catch (Exception e)
+                {
+                    Logger.Instance.Warning(this, "readhw", String.Format("Can not read position, retry. {0}", e));
+                    Thread.Sleep(300);
+                }
+            }
         }
 
-        private void AskPosition()
+        private void AskHardwareState()
         {
             Logger.Instance.Debug(this, "run", "start reading thread");
             while (run)
@@ -121,8 +133,7 @@ namespace ReadStatusMachine
                 try
                 {
                     var hw_crds = ReadHardwareCoordinates();
-                    //var (ex, ey, ez, ep) = ReadCurrentEndstops();
-                    var (ex, ey, ez, ep) = (false, false, false, false);
+                    var (ex, ey, ez, ep) = ReadCurrentEndstops();
                     CurrentStatusUpdate?.Invoke(hw_crds, ex, ey, ez, ep);
                 }
                 catch

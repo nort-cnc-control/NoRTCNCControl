@@ -341,8 +341,9 @@ namespace NoRTServer
             bool run = true;
             do
             {
-
                 Socket tcpClient = tcpServer.AcceptSocket();
+                Console.WriteLine("Connection from client");
+
                 Stream stream = new SocketStream(tcpClient);
 
                 var machineServer = new GCodeServer.GCodeServer(rtSender, modbusSender, spindleCommandFactory,
@@ -360,6 +361,7 @@ namespace NoRTServer
                 machineServer.Dispose();
                 stream.Close();
                 tcpClient.Close();
+                Console.WriteLine("Client disconnected");
             } while (run);
             rtSender.Dispose();
             tcpServer.Stop();

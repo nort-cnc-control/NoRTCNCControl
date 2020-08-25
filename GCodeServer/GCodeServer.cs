@@ -440,7 +440,7 @@ namespace GCodeServer
                             ActionProgram.ActionProgram program;
                             Sequence excommand = new Sequence();
                             excommand.AddLine(new Arguments(command["program"]));
-                            (program, _, starts) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
+                            (program, _, _) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
                             Machine.LoadProgram(program);
                             Machine.Start();
                             Machine.Continue();
