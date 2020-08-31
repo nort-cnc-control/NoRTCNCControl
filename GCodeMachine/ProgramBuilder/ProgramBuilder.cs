@@ -792,7 +792,7 @@ namespace GCodeMachine
             return (state, pid, amount);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines)
+        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines, string errorMessage)
                 
             BuildProgram(Sequence mainSequence, ProgramSequencer programs, CNCState.CNCState initialState)
         {
@@ -800,7 +800,7 @@ namespace GCodeMachine
             var actionLines = new Dictionary<IAction, (int, int)>();
             int programid = 0, lineid = 0;
             Sequence sequence = mainSequence;
-            var state = initialState;
+            var state = initialState.BuildCopy();
             Stack<(int, int)> callStack = new Stack<(int, int)>();
 
             program.AddRTUnlock(state);
@@ -851,8 +851,9 @@ namespace GCodeMachine
                 }
                 catch (Exception e)
                 {
-                    Logger.Instance.Error(this, "compile error", String.Format("{0} : {1}", frame, e.ToString()));
-                    throw e;
+                    var msg = String.Format("{0} : {1}", frame, e.ToString());
+                    Logger.Instance.Error(this, "compile error", msg);
+                    return (null, initialState, new Dictionary<IAction, (int, int)>(), e.Message);
                 }
             }
 
@@ -860,10 +861,10 @@ namespace GCodeMachine
             arcMoveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
             timeCalculator.ProcessProgram(program);
-            return (program, state, actionLines);
+            return (program, state, actionLines, "");
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines)
+        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines, string errorMessage)
 
             BuildProgram(String code, CNCState.CNCState initialState)
         {

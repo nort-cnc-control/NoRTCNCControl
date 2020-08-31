@@ -409,6 +409,18 @@ namespace GCodeServer
             cmdReceiver.Stop();
         }
 
+        private void CompileErrorMessageSend(String msg)
+        {
+            Logger.Instance.Warning(this, "compile error message", msg);
+            var response = new JsonObject
+            {
+                ["type"] = "message",
+                ["message"] = msg,
+                ["message_type"] = "compile error",
+            };
+            responseSender.MessageSend(response.ToString());
+        }
+
         public bool Run()
         {
             StatusMachine.Start();
@@ -437,22 +449,39 @@ namespace GCodeServer
                         }
                     case "execute":
                         {
+                            string errorMsg;
                             ActionProgram.ActionProgram program;
                             Sequence excommand = new Sequence();
                             excommand.AddLine(new Arguments(command["program"]));
-                            (program, _, _) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
-                            Machine.LoadProgram(program);
-                            Machine.Start();
-                            Machine.Continue();
+                            (program, _, _, errorMsg) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
+                            if (program != null)
+                            {
+                                Machine.LoadProgram(program);
+                                Machine.Start();
+                                Machine.Continue();
+                            }
+                            else
+                            {
+                                CompileErrorMessageSend(errorMsg);
+                            }
                             break;
                         }
                     case "start":
                         {
+                            string errorMsg;
+
                             ActionProgram.ActionProgram program;
-                            (program, _, starts) = programBuilder.BuildProgram(sequencer.MainProgram, sequencer, Machine.LastState);
-                            Machine.LoadProgram(program);
-                            Machine.Start();
-                            Machine.Continue();
+                            (program, _, starts, errorMsg) = programBuilder.BuildProgram(sequencer.MainProgram, sequencer, Machine.LastState);
+                            if (program != null)
+                            {
+                                Machine.LoadProgram(program);
+                                Machine.Start();
+                                Machine.Continue();
+                            }
+                            else
+                            {
+                                CompileErrorMessageSend(errorMsg);
+                            }
                             break;
                         }
                     case "continue":

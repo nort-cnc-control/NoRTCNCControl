@@ -229,6 +229,7 @@ namespace GCodeMachine
                             {
                                 ["type"] = "message",
                                 ["message"] = String.Format("Command has failed : {0}", fail),
+                                ["message_type"] = "command fail",
                             };
                             messageRouter.Message(message);
                             SwitchToState(MachineState.End);

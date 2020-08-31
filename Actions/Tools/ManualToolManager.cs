@@ -23,6 +23,7 @@ namespace Actions.Tools
             {
                 ["type"] = "message",
                 ["message"] = msg,
+                ["message_type"] = "tool change",
             };
             router.Message(message);
         }
