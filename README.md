@@ -55,10 +55,10 @@ All sizes should be specified in millimeters (mm).
 
 ### G commands
 
-- G00 - fast movement. Moves by line.
-- G01 - linear movement with specified
-- G02 - clockwise arc movement. Only flat move is now supported.
-- G03 - counterclockwise arc movement. Only flat move is now supported.
+- G00 - fast movement. Moves by line. Args: X Y Z - coordinates of movement
+- G01 - linear movement with specified. . Args: X Y Z - coordinates of movement
+- G02 - clockwise arc movement. Only flat move is now supported. Args: X Y Z - coordinates of movement, R - radius of moving, I J K - relative coordinates of arc center
+- G03 - counterclockwise arc movement. Only flat move is now supported. Args: X Y Z - coordinates of movement, R - radius of moving, I J K - relative coordinates of arc center
 - G09 - finish current movement with feedrate = 0
 - G17 - select XY plane for arc movement
 - G18 - select XZ plane for arc movement
@@ -67,7 +67,7 @@ All sizes should be specified in millimeters (mm).
 - G30 - probe Z axis
 - G53-G59 - select one of the coordinate systems
 - G80 - finish drilling cycle
-- G81 - drill without pecking, dwelling, tapping, retract with fast feed
+- G81 - drill without pecking, dwelling, tapping, retract with fast feed. Args: R - retract depth. Z - drilling depth, X Y - coordinates of drilling
 - G90 - select absolute positioning
 - G91 - select relative positioning
 - G92 - set current position
@@ -78,8 +78,8 @@ All sizes should be specified in millimeters (mm).
 
 - M00 - pause until 'Continue' pressed
 - M02 - program end
-- M03 - start spindel clockwise
-- M04 - start spindel counterclockwise
+- M03 - start spindel clockwise. Args: S - rpm
+- M04 - start spindel counterclockwise. Args: S - rpm
 - M05 - stop spindel
 - M06 - change tool
 - M120 - push state
@@ -97,7 +97,7 @@ All sizes should be specified in millimeters (mm).
 
 - X, Y, Z - coordinates of target position
 - I, J, K - coordinates of arc center when G02/G03 specified
-- R - radius of arc, when G02/G03 specified. R < 0 means make big arc, with angle > 180
+- R - For G2/G3: radius of arc, when G02/G03 specified. R < 0 means make big arc, with angle > 180. For G81: retract depth
 
 ## Reseting
 
