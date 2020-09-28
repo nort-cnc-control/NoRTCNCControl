@@ -4,4 +4,11 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PacketSender\PacketSender.csproj" />
+    <ProjectReference Include="..\Log\Log.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="ILoggerSource.cs" />
+  </ItemGroup>
 </Project>

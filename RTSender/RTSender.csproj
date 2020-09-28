@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Log\Log.csproj" />
+    <ProjectReference Include="..\PacketSender\PacketSender.csproj" />
   </ItemGroup>
 </Project>

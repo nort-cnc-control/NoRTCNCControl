@@ -9,6 +9,7 @@ using Actions.Tools.SpindleTool;
 using Gnu.Getopt;
 using System.Json;
 using Newtonsoft.Json;
+using PacketSender;
 
 namespace NoRTServer
 {
@@ -144,6 +145,32 @@ namespace NoRTServer
             }
         }
 
+        static bool BuildSR(string proto, string addr, int port, out IPacketSender writer, out IPacketReceiver reader)
+        {
+            if (proto == "TCP")
+            {
+                TcpClient tcpClient = new TcpClient();
+                tcpClient.Connect(IPAddress.Parse(addr), port);
+                NetworkStream stream = tcpClient.GetStream();
+                reader = new StreamPacketReceiver(new StreamReader(stream));
+                writer = new StreamPacketSender(new StreamWriter(stream));
+            }
+            else if (proto == "UDP")
+            {
+                UdpClient udpClient = new UdpClient();
+                udpClient.Connect(IPAddress.Parse(addr), port);
+                reader = new UDPPacketReceiver(udpClient, addr, port);
+                writer = new UDPPacketSender(udpClient);
+            }
+            else
+            {
+                writer = null;
+                reader = null;
+                Console.WriteLine("Unknown protocol {0}", proto);
+                return false;
+            }
+            return true;
+        }
 
         static void Main(string[] args)
         {
@@ -152,8 +179,6 @@ namespace NoRTServer
             string machineConfigName = "";
             string runConfigName = "";
             int controlPort = 8888;
-            string proxyAddress = "127.0.0.1";
-            int proxyPort = 8889;
 
             int arg;
             while ((arg = opts.getopt()) != -1)
@@ -173,11 +198,6 @@ namespace NoRTServer
                     case 'r':
                         {
                             runConfigName = opts.Optarg;
-                            break;
-                        }
-                    case 'x':
-                        {
-                            proxyAddress = opts.Optarg;
                             break;
                         }
                     case 'l':
@@ -252,27 +272,33 @@ namespace NoRTServer
             TcpListener tcpServer = new TcpListener(localAddr, controlPort);
             tcpServer.Start();
 
-            bool packetModbus = false;
-            IModbusSender modbusSender = null;
+            bool packetRT = false;
+            string addrRT = null;
+            int portRT = -1;
+            string protoRT = null;
+            IRTSender senderRT = null;
+
+            bool packetMB = false;
+            string addrMB = null;
+            int portMB = -1;
+            string protoMB = null;
+            IModbusSender senderMB = null;
+
             string modbus_sender = runConfig["modbus_sender"]["sender"];
             Console.WriteLine("Using {0} modbus sender", modbus_sender);
             switch (modbus_sender)
             {
                 case "EmulationModbusSender":
                     {
-                        modbusSender = new EmulationModbusSender(Console.Out);
+                        senderMB = new EmulationModbusSender(Console.Out);
                         break;
                     }
                 case "PacketModbusSender":
                     {
-                        string address = runConfig["modbus_sender"]["address"];
-                        int port = runConfig["modbus_sender"]["port"];
-                        TcpClient tcpClient = new TcpClient();
-                        tcpClient.Connect(IPAddress.Parse(address), port);
-                        var stream = tcpClient.GetStream();
-                        var reader = new StreamReader(stream);
-                        var writer = new StreamWriter(stream);
-                        modbusSender = new PacketModbusSender(writer, reader);
+                        packetMB = true;
+                        addrMB = runConfig["modbus_sender"]["address"];
+                        portMB = runConfig["modbus_sender"]["port"];
+                        protoMB = runConfig["modbus_sender"]["protocol"];
                         break;
                     }
                 default:
@@ -280,27 +306,21 @@ namespace NoRTServer
                     return;
             }
 
-            bool packetRT = false;
-            IRTSender rtSender = null;
             string rt_sender = runConfig["rt_sender"]["sender"];
             Console.WriteLine("Using {0} rt sender", rt_sender);
             switch (rt_sender)
             {
                 case "EmulationRTSender":
                     {
-                        rtSender = new EmulationRTSender(Console.Out);
+                        senderRT = new EmulationRTSender(Console.Out);
                         break;
                     }
                 case "PacketRTSender":
                     {
-                        string address = runConfig["rt_sender"]["address"];
-                        int port = runConfig["rt_sender"]["port"];
-                        TcpClient tcpClient = new TcpClient();
-                        tcpClient.Connect(IPAddress.Parse(address), port);
-                        var stream = tcpClient.GetStream();
-                        var reader = new StreamReader(stream);
-                        var writer = new StreamWriter(stream);
-                        rtSender = new PacketRTSender(writer, reader);
+                        packetRT = true;
+                        addrRT = runConfig["rt_sender"]["address"];
+                        portRT = runConfig["rt_sender"]["port"];
+                        protoRT = runConfig["rt_sender"]["protocol"];
                         break;
                     }
                 default:
@@ -308,18 +328,28 @@ namespace NoRTServer
                     return;
             }
 
-            if (packetModbus || packetRT)
+            if (packetMB && packetRT && (protoMB == protoRT) && (portMB == portRT) && (addrMB == addrRT))
             {
-                var proxy = IPAddress.Parse(proxyAddress);
-                TcpClient tcpClient = new TcpClient();
-                tcpClient.Connect(proxy, proxyPort);
-                var stream = tcpClient.GetStream();
-                var reader = new StreamReader(stream);
-                var writer = new StreamWriter(stream);
+                if (!BuildSR(protoMB, addrMB, portMB, out IPacketSender writer, out IPacketReceiver reader))
+                    return;
+                senderRT = new PacketRTSender(writer, reader);
+                senderMB = new PacketModbusSender(writer, reader);
+
+            }
+            else
+            {
+                if (packetMB)
+                {
+                    if (!BuildSR(protoMB, addrMB, portMB, out IPacketSender writer, out IPacketReceiver reader))
+                        return;
+                    senderMB = new PacketModbusSender(writer, reader);
+                }
                 if (packetRT)
-                    rtSender = new PacketRTSender(writer, reader);
-                if (packetModbus)
-                    modbusSender = new PacketModbusSender(writer, reader);
+                {
+                    if (!BuildSR(protoRT, addrRT, portRT, out IPacketSender writer, out IPacketReceiver reader))
+                        return;
+                    senderRT = new PacketRTSender(writer, reader);
+                }
             }
 
             ISpindleToolFactory spindleCommandFactory;
@@ -346,7 +376,7 @@ namespace NoRTServer
 
                 Stream stream = new SocketStream(tcpClient);
 
-                var machineServer = new GCodeServer.GCodeServer(rtSender, modbusSender, spindleCommandFactory,
+                var machineServer = new GCodeServer.GCodeServer(senderRT, senderMB, spindleCommandFactory,
                                                                 machineConfig, stream, stream);
 
                 try
@@ -363,7 +393,7 @@ namespace NoRTServer
                 tcpClient.Close();
                 Console.WriteLine("Client disconnected");
             } while (run);
-            rtSender.Dispose();
+            senderRT.Dispose();
             tcpServer.Stop();
         }
     }

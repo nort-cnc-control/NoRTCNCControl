@@ -109,6 +109,10 @@
       <Project>{505E0AB1-E3E1-4FF4-9C71-19E5D862FC13}</Project>
       <Name>Log</Name>
     </ProjectReference>
+    <ProjectReference Include="..\PacketSender\PacketSender.csproj">
+      <Project>{17387644-2394-4BF4-BDC7-1F61D9340126}</Project>
+      <Name>PacketSender</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

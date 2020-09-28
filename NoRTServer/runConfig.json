@@ -1,14 +1,16 @@
 ﻿{
     "modbus_sender" : {
-        "sender" : "EmulationModbusSender",
-        "address" : "127.0.0.1",
-        "port" : 8890
+        "sender" : "PacketModbusSender",
+        "address" : "10.55.1.110",
+        "port" : 8889,
+        "protocol" : "UDP"
     },
 
     "rt_sender" : {
         "sender" : "PacketRTSender",
-        "address" : "127.0.0.1",
-        "port" : 8889
+        "address" : "10.55.1.110",
+        "port" : 8889,
+        "protocol" : "UDP"
     },
 
     "spindle_driver" : "N700E"

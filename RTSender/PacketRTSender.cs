@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Log;
+using PacketSender;
 
 namespace RTSender
 {
@@ -22,8 +23,8 @@ namespace RTSender
         public event Action<String> Debug;
         public event Action<int> SlotsNumberReceived;
 
-        StreamReader input;
-        StreamWriter output;
+        private IPacketReceiver input;
+        private IPacketSender output;
         private int index;
         private int q;
         private int Q
@@ -46,7 +47,7 @@ namespace RTSender
         }
         public bool HasSlots { get { return Q > 0; } }
 
-        public string Name => "packet sender";
+        public string Name => "packet rt sender";
 
         private readonly object lockObj = new object();
         private Thread receiveThread;
@@ -56,7 +57,7 @@ namespace RTSender
         {
             while (running)
             {
-                var line = input.ReadLine();
+                var line = input.ReceivePacket();
                 Logger.Instance.Debug(this, "receive", line);
                 try
                 {
@@ -102,7 +103,7 @@ namespace RTSender
             }
         }
 
-        public PacketRTSender(StreamWriter output, StreamReader input)
+        public PacketRTSender(IPacketSender output, IPacketReceiver input)
         {
             this.input = input;
             this.output = output;
@@ -111,6 +112,20 @@ namespace RTSender
             receiveThread = new Thread(new ThreadStart(ReceiveThreadProc));
             running = true;
             receiveThread.Start();
+            var cmd = String.Format("START:");
+            Logger.Instance.Debug(this, "send", cmd);
+            lock (lockObj)
+            {
+                Logger.Instance.Debug(this, "lock", "success");
+                try
+                {
+                    output.SendPacket(cmd);
+                }
+                catch (Exception e)
+                {
+                    Logger.Instance.Error(this, "send", e.ToString());
+                }
+            }
         }
 
         public void SendCommand(String command)
@@ -123,8 +138,7 @@ namespace RTSender
                 try
                 {
                     Indexed?.Invoke(index);
-                    output.WriteLine(cmd);
-                    output.Flush();
+                    output.SendPacket(cmd);
                     index++;
                 }
                 catch (Exception e)
