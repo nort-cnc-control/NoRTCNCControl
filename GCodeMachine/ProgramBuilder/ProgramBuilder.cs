@@ -26,7 +26,7 @@ namespace GCodeMachine
         private readonly MachineParameters config;
         private readonly GCodeMachine machine;
         private readonly IToolManager toolManager;
-        private ArcMoveFeedLimiter arcMoveFeedLimiter;
+        private MoveFeedLimiter moveFeedLimiter;
         private MoveOptimizer optimizer;
         private ExpectedTimeCalculator timeCalculator;
 
@@ -53,7 +53,7 @@ namespace GCodeMachine
             this.toolManager = toolManager;
             this.config = config;
 
-            arcMoveFeedLimiter = new ArcMoveFeedLimiter(this.config);
+            moveFeedLimiter = new MoveFeedLimiter(this.config);
             optimizer = new MoveOptimizer(this.config);
             timeCalculator = new ExpectedTimeCalculator();
             axisStateStack = new Stack<AxisState.Parameters>();
@@ -858,7 +858,7 @@ namespace GCodeMachine
             }
 
             program.AddPlaceholder(state);
-            arcMoveFeedLimiter.ProcessProgram(program);
+            moveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
             timeCalculator.ProcessProgram(program);
             return (program, state, actionLines, "");

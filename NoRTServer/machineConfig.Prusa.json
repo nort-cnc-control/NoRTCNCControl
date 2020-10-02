@@ -1,5 +1,8 @@
 ﻿{
-    "maxfeed" : 150,
+    "maxfeed_x" : 50,
+    "maxfeed_y" : 50,
+    "maxfeed_z" : 3,
+
     "fastfeed" : 150,
     "slowfeed" : 2,
 

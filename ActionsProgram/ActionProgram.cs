@@ -169,40 +169,12 @@ namespace ActionProgram
             AddRTEnableFailOnEndstops(null);
         }
 
-        private (decimal feed, decimal acc) MaxLineFeedAcc(Vector3 dir)
-        {
-            decimal maxacc = config.max_acceleration;
-            decimal feed, acc;
-            acc = Decimal.MaxValue;
-            if (Math.Abs(dir.x) > 1e-8m)
-                acc = Math.Min(acc, maxacc / Math.Abs(dir.x));
-            if (Math.Abs(dir.y) > 1e-8m)
-                acc = Math.Min(acc, maxacc / Math.Abs(dir.y));
-            if (Math.Abs(dir.z) > 1e-8m)
-                acc = Math.Min(acc, maxacc / Math.Abs(dir.z));
-
-            decimal maxf = config.maxfeed;
-            feed = Decimal.MaxValue;
-            if (Math.Abs(dir.x) > 1e-8m)
-                feed = Math.Min(feed, maxf / Math.Abs(dir.x));
-            if (Math.Abs(dir.y) > 1e-8m)
-                feed = Math.Min(feed, maxf / Math.Abs(dir.y));
-            if (Math.Abs(dir.z) > 1e-8m)
-                feed = Math.Min(feed, maxf / Math.Abs(dir.z));
-            return (feed, acc);
-        }
-
         public CNCState.CNCState AddLineMovement(Vector3 delta, decimal feed, CNCState.CNCState currentState)
         {
             if (Math.Abs(delta.x) < 1e-12m && Math.Abs(delta.y) < 1e-12m && Math.Abs(delta.z) < 1e-12m)
                 return currentState;
-            var dir = Vector3.Normalize(delta);
-            var fa = MaxLineFeedAcc(dir);
-            var maxfeed = fa.feed;
-            var acc = config.max_acceleration;
-            feed = Math.Min(feed, maxfeed);
             var stateAfter = currentState.BuildCopy();
-            var command = new RTLineMoveCommand(delta, new RTMovementOptions(0, feed, 0, acc), config);
+            var command = new RTLineMoveCommand(delta, new RTMovementOptions(0, feed, 0, config.max_acceleration), config);
             stateAfter.AxisState.Position += command.PhysicalDelta;
             AddAction(new RTAction(rtSender, command), currentState, stateAfter);
             return stateAfter;
@@ -212,29 +184,18 @@ namespace ActionProgram
         {
             if (Math.Abs(delta.x) < 1e-12m && Math.Abs(delta.y) < 1e-12m && Math.Abs(delta.z) < 1e-12m)
                 return currentState;
-            var dir = Vector3.Normalize(delta);
-            var fa = MaxLineFeedAcc(dir);
-            var maxfeed = fa.feed;
-            var acc = fa.acc;
             var stateAfter = currentState.BuildCopy();
-            var command = new RTLineMoveCommand(delta, new RTMovementOptions(0, maxfeed, 0, acc), config);
+            var command = new RTLineMoveCommand(delta, new RTMovementOptions(0, Decimal.MaxValue, 0, config.max_acceleration), config);
             stateAfter.AxisState.Position += command.PhysicalDelta;
             AddAction(new RTAction(rtSender, command), currentState, stateAfter);
             return stateAfter;
         }
 
-        private void MaxArcAcc(out decimal acc)
-        {
-            //TODO: calculate
-            acc = config.max_acceleration;
-        }
-
         public CNCState.CNCState AddArcMovement(Vector3 delta, decimal R, bool ccw, AxisState.Plane axis, decimal feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
-            MaxArcAcc(out decimal acc);
 
-            var cmd = new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config);
+            var cmd = new RTArcMoveCommand(delta, R, ccw, axis, new RTMovementOptions(0, feed, 0, config.max_acceleration), config);
             stateAfter.AxisState.Position += cmd.PhysicalDelta;
             AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
             return stateAfter;
@@ -243,9 +204,8 @@ namespace ActionProgram
         public CNCState.CNCState AddArcMovement(Vector3 delta, Vector3 center, bool ccw, AxisState.Plane axis, decimal feed, CNCState.CNCState currentState)
         {
             var stateAfter = currentState.BuildCopy();
-            MaxArcAcc(out decimal acc);
 
-            var cmd = new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, acc), config);
+            var cmd = new RTArcMoveCommand(delta, center, ccw, axis, new RTMovementOptions(0, feed, 0, config.max_acceleration), config);
             stateAfter.AxisState.Position += cmd.PhysicalDelta;
             AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
             return stateAfter;

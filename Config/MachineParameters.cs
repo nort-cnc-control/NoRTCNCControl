@@ -5,7 +5,10 @@ namespace Config
 {
     public class MachineParameters
     {
-        public decimal maxfeed { get; set; }
+        public decimal maxfeed_x { get; set; }
+        public decimal maxfeed_y { get; set; }
+        public decimal maxfeed_z { get; set; }
+
         public decimal fastfeed { get; set; }
         public decimal slowfeed { get; set; }
 
