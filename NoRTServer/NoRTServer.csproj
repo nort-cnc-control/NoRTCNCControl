@@ -48,6 +48,10 @@
     <Reference Include="System.Json">
       <HintPath>..\packages\System.Json.4.6.0\lib\netstandard2.0\System.Json.dll</HintPath>
     </Reference>
+    <Reference Include="System.IO.Ports">
+      <HintPath>..\packages\System.IO.Ports.4.7.0\lib\net461\System.IO.Ports.dll</HintPath>
+    </Reference>
+    <Reference Include="mscorlib" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -56,9 +60,12 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <None Include="machineConfig.json" />
-    <None Include="runConfig.json" />
+    <None Include="machineConfig.Prusa.json" />
+    <None Include="runConfig.UART.json" />
     <None Include="runConfig.Emu.json" />
+    <None Include="debug.log" />
+    <None Include="runConfig.UDP.json" />
+    <None Include="machineConfig.PLRA4.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj">

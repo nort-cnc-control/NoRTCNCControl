@@ -18,11 +18,12 @@ namespace ReadStatusMachine
         private readonly int timeout;
         private EventWaitHandle timeoutWait;
         private MachineParameters config;
-
+        private int maxretry;
         public event Action<Vector3, bool, bool, bool, bool> CurrentStatusUpdate;
 
         public ReadStatusMachine(MachineParameters config, IRTSender rtSender, int updateT)
         {
+            maxretry = 10;
             this.config = config;
             this.rtSender = rtSender;
             timeout = updateT;
@@ -74,6 +75,7 @@ namespace ReadStatusMachine
         public Vector3 ReadHardwareCoordinates()
         {
             Logger.Instance.Debug(this, "readhw", "read coordinates");
+            int retry = 0;
             while (true)
             {
                 try
@@ -96,6 +98,12 @@ namespace ReadStatusMachine
                 catch (Exception e)
                 {
                     Logger.Instance.Warning(this, "readhw", String.Format("Can not read coordinates, retry. {0}", e));
+                    retry++;
+                    if (retry >= maxretry)
+                    {
+                        Logger.Instance.Warning(this, "readhw", String.Format("Max retry exceed"));
+                        throw e;
+                    }
                     Thread.Sleep(300);
                 }
             }
@@ -104,6 +112,7 @@ namespace ReadStatusMachine
         public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
         {
             Logger.Instance.Debug(this, "readhw", "read coordinates");
+            int retry = 0;
             while (true)
             {
                 try
@@ -120,6 +129,12 @@ namespace ReadStatusMachine
                 catch (Exception e)
                 {
                     Logger.Instance.Warning(this, "readhw", String.Format("Can not read position, retry. {0}", e));
+                    retry++;
+                    if (retry >= maxretry)
+                    {
+                        Logger.Instance.Warning(this, "readhw", String.Format("Max retry exceed"));
+                        throw e;
+                    }
                     Thread.Sleep(300);
                 }
             }

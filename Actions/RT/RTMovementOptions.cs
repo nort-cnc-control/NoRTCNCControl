@@ -23,5 +23,4 @@ namespace Actions
 
         public string Command => $"T{acceleration:0.00}P{FeedStart:0.00}F{Feed:0.00}L{FeedEnd:0.00}";
     }
-
 }

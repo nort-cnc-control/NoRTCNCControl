@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using CNCState;
 using Log;
 using Vector;
+using System.Threading.Tasks;
 
 namespace GCodeMachine
 {
@@ -335,6 +336,8 @@ namespace GCodeMachine
         {
             reseted.Reset();
             rtSender.SendCommand("M999");
+            Thread.Sleep(3000);
+            rtSender.Init();
             reseted.WaitOne();
         }
 
@@ -342,6 +345,8 @@ namespace GCodeMachine
         {
             reseted.Reset();
             rtSender.SendCommand("M999");
+            Thread.Sleep(3000);
+            rtSender.Init();
             reseted.WaitOne();
         }
 

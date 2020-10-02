@@ -15,6 +15,10 @@ namespace ModbusSender
         public PacketModbusSender(IPacketSender output, IPacketReceiver input)
         {
             this.output = output;
+        }
+
+        public void Init()
+        {
             var cmd = String.Format("START:");
             Logger.Instance.Debug(this, "send", cmd);
             lock (lockObj)

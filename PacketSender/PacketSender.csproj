@@ -7,4 +7,10 @@
 <!--  <ItemGroup>
     <Reference Include="mscorlib" />
   </ItemGroup>-->
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="4.7.0" />
+  </ItemGroup>
 </Project>

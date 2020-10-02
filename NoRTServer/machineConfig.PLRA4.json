@@ -3,17 +3,17 @@
     "fastfeed" : 15,
     "slowfeed" : 1,
 
-    "size_x" : 224,
+    "size_x" : 220,
     "step_back_x" : 1.5,
     "invert_x" : false,
 
-    "size_y" : 330,
+    "size_y" : 320,
     "step_back_y" : 1.5,
-    "invert_y" : true,
+    "invert_y" : false,
 
     "size_z" : 105,
     "step_back_z" : 1.5,
-    "invert_z" : true,
+    "invert_z" : false,
 
     "steps_per_x" : 400,
     "steps_per_y" : 400,

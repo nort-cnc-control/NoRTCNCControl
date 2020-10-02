@@ -10,6 +10,7 @@ using Gnu.Getopt;
 using System.Json;
 using Newtonsoft.Json;
 using PacketSender;
+using System.IO.Ports;
 
 namespace NoRTServer
 {
@@ -145,12 +146,12 @@ namespace NoRTServer
             }
         }
 
-        static bool BuildSR(string proto, string addr, int port, out IPacketSender writer, out IPacketReceiver reader)
+        static bool BuildSR(string proto, string addr, string port, out IPacketSender writer, out IPacketReceiver reader)
         {
             if (proto == "TCP")
             {
                 TcpClient tcpClient = new TcpClient();
-                tcpClient.Connect(IPAddress.Parse(addr), port);
+                tcpClient.Connect(IPAddress.Parse(addr), int.Parse(port));
                 NetworkStream stream = tcpClient.GetStream();
                 reader = new StreamPacketReceiver(new StreamReader(stream));
                 writer = new StreamPacketSender(new StreamWriter(stream));
@@ -158,9 +159,22 @@ namespace NoRTServer
             else if (proto == "UDP")
             {
                 UdpClient udpClient = new UdpClient();
-                udpClient.Connect(IPAddress.Parse(addr), port);
-                reader = new UDPPacketReceiver(udpClient, addr, port);
+                udpClient.Connect(IPAddress.Parse(addr), int.Parse(port));
+                reader = new UDPPacketReceiver(udpClient, addr, int.Parse(port));
                 writer = new UDPPacketSender(udpClient);
+            }
+            else if (proto == "UART")
+            {
+                SerialPort sport = new SerialPort(port)
+                {
+                    StopBits = StopBits.One,
+                    BaudRate = 38400,
+                    Parity = Parity.None,
+                    DataBits = 8
+                };
+                sport.Open();
+                reader = new SerialPacketReceiver(sport);
+                writer = new SerialPacketSender(sport);
             }
             else
             {
@@ -274,13 +288,13 @@ namespace NoRTServer
 
             bool packetRT = false;
             string addrRT = null;
-            int portRT = -1;
+            string portRT = null;
             string protoRT = null;
             IRTSender senderRT = null;
 
             bool packetMB = false;
             string addrMB = null;
-            int portMB = -1;
+            string portMB = null;
             string protoMB = null;
             IModbusSender senderMB = null;
 
@@ -296,9 +310,16 @@ namespace NoRTServer
                 case "PacketModbusSender":
                     {
                         packetMB = true;
-                        addrMB = runConfig["modbus_sender"]["address"];
-                        portMB = runConfig["modbus_sender"]["port"];
                         protoMB = runConfig["modbus_sender"]["protocol"];
+                        if (protoMB == "TCP" || protoMB == "UDP")
+                        {
+                            addrMB = runConfig["modbus_sender"]["address"];
+                            portMB = runConfig["modbus_sender"]["port"];
+                        }
+                        else if (protoMB == "UART")
+                        {
+                            portMB = runConfig["modbus_sender"]["port"];
+                        }
                         break;
                     }
                 default:
@@ -318,9 +339,16 @@ namespace NoRTServer
                 case "PacketRTSender":
                     {
                         packetRT = true;
-                        addrRT = runConfig["rt_sender"]["address"];
-                        portRT = runConfig["rt_sender"]["port"];
                         protoRT = runConfig["rt_sender"]["protocol"];
+                        if (protoRT == "TCP" || protoRT == "UDP")
+                        {
+                            addrRT = runConfig["rt_sender"]["address"];
+                            portRT = runConfig["rt_sender"]["port"];
+                        }
+                        else if (protoRT == "UART")
+                        {
+                            portRT = runConfig["rt_sender"]["port"];
+                        }
                         break;
                     }
                 default:
@@ -351,6 +379,9 @@ namespace NoRTServer
                     senderRT = new PacketRTSender(writer, reader);
                 }
             }
+
+            senderRT.Init();
+            senderMB.Init();
 
             ISpindleToolFactory spindleCommandFactory;
             string spindle_driver = runConfig["spindle_driver"];

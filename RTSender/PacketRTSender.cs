@@ -112,6 +112,10 @@ namespace RTSender
             receiveThread = new Thread(new ThreadStart(ReceiveThreadProc));
             running = true;
             receiveThread.Start();
+        }
+
+        public void Init()
+        {
             var cmd = String.Format("START:");
             Logger.Instance.Debug(this, "send", cmd);
             lock (lockObj)

@@ -20,5 +20,6 @@ namespace RTSender
 
         bool HasSlots { get; }
         void SendCommand(String command);
+        void Init();
     }
 }

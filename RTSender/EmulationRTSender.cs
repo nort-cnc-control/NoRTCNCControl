@@ -150,5 +150,9 @@ namespace RTSender
             queueThread.Join();
             runThread.Join();
         }
-    }    
+
+        public void Init()
+        {
+        }
+    }
 }
