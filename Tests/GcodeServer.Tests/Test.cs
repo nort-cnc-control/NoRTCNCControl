@@ -27,7 +27,9 @@ namespace GCodeServer.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
             };
 
             var rtSender = new EmulationRTSender(Console.Out);
@@ -68,7 +70,9 @@ namespace GCodeServer.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
             };
             var stream = new MemoryStream();
             var output = new MemoryStream();
@@ -114,7 +118,9 @@ namespace GCodeServer.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
             };
             var stream = new MemoryStream();
             var output = new MemoryStream();

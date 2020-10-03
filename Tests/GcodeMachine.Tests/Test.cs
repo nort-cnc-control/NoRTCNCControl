@@ -46,7 +46,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800
             };
 
             var output = new MemoryStream();
@@ -83,7 +85,10 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
+
             };
 
             var output = new MemoryStream();
@@ -118,7 +123,10 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
+
                 max_movement_leap = 40
             };
 
@@ -158,7 +166,10 @@ namespace GCodeMachine.Tests
                 max_acceleration        = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
+
                 max_movement_leap = 40
             };
 
@@ -198,7 +209,10 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
+
                 max_movement_leap = 40,
             };
 
@@ -238,7 +252,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40
             };
 
@@ -278,7 +294,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40
             };
 
@@ -318,7 +336,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40
             };
 
@@ -358,7 +378,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40
             };
 
@@ -398,7 +420,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40 * 60 * 60,
                 fastfeed = 600,
                 slowfeed = 100,
-                maxfeed = 800,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40
             };
 
@@ -447,7 +471,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40,
                 fastfeed = 15,
                 slowfeed = 1,
-                maxfeed = 15,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40,
                 steps_per_x = 400,
                 steps_per_y = 400,
@@ -499,7 +525,9 @@ namespace GCodeMachine.Tests
                 max_acceleration = 40,
                 fastfeed = 15,
                 slowfeed = 1,
-                maxfeed = 15,
+                maxfeed_x = 800,
+                maxfeed_y = 800,
+                maxfeed_z = 800,
                 max_movement_leap = 40,
                 steps_per_x = 400,
                 steps_per_y = 400,
