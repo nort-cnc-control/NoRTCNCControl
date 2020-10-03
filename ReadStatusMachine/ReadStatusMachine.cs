@@ -15,19 +15,26 @@ namespace ReadStatusMachine
         private bool run;
         private readonly IRTSender rtSender;
         private Thread askPosThread;
-        private readonly int timeout;
-        private EventWaitHandle timeoutWait;
+
+        private readonly int timeoutT;
+        private readonly int updateT;
+        private readonly int maxretry;
+
+        private EventWaitHandle updateWait;
         private MachineParameters config;
-        private int maxretry;
+
         public event Action<Vector3, bool, bool, bool, bool> CurrentStatusUpdate;
 
-        public ReadStatusMachine(MachineParameters config, IRTSender rtSender, int updateT)
+        public ReadStatusMachine(MachineParameters config, IRTSender rtSender, int updateT, int timeoutT, int maxretry)
         {
-            maxretry = 10;
+            this.maxretry = maxretry;
+            this.updateT = updateT;
+            this.timeoutT = timeoutT;
+
             this.config = config;
             this.rtSender = rtSender;
-            timeout = updateT;
-            timeoutWait = new EventWaitHandle(false, EventResetMode.AutoReset);
+
+            updateWait = new EventWaitHandle(false, EventResetMode.AutoReset);
         }
 
         public State RunState { get; private set; }
@@ -37,7 +44,7 @@ namespace ReadStatusMachine
         public void Abort()
         {
             run = false;
-            timeoutWait.Set();
+            updateWait.Set();
             askPosThread.Join();
         }
 
@@ -56,7 +63,7 @@ namespace ReadStatusMachine
         public void Dispose()
         {
             run = false;
-            timeoutWait.Set();
+            updateWait.Set();
             askPosThread.Join();
         }
 
@@ -64,7 +71,7 @@ namespace ReadStatusMachine
         {
             Logger.Instance.Debug(this, "action", "pause");
             run = false;
-            timeoutWait.Set();
+            updateWait.Set();
             askPosThread.Join();
         }
 
@@ -83,7 +90,7 @@ namespace ReadStatusMachine
                     RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
                     // action.ReadyToRun.WaitOne();
                     action.Run();
-                    action.Finished.WaitOne(500);
+                    action.Finished.WaitOne(timeoutT);
                     var xs = action.ActionResult["X"];
                     var ys = action.ActionResult["Y"];
                     var zs = action.ActionResult["Z"];
@@ -111,7 +118,7 @@ namespace ReadStatusMachine
 
         public (bool ex, bool ey, bool ez, bool ep) ReadCurrentEndstops()
         {
-            Logger.Instance.Debug(this, "readhw", "read coordinates");
+            Logger.Instance.Debug(this, "readhw", "read endstops");
             int retry = 0;
             while (true)
             {
@@ -120,7 +127,7 @@ namespace ReadStatusMachine
                     RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
                     // action.ReadyToRun.WaitOne();
                     action.Run();
-                    action.Finished.WaitOne();
+                    action.Finished.WaitOne(timeoutT);
                     return (action.ActionResult["EX"] == "1",
                             action.ActionResult["EY"] == "1",
                             action.ActionResult["EZ"] == "1",
@@ -153,9 +160,9 @@ namespace ReadStatusMachine
                 }
                 catch
                 {
-                    ;
+                    Logger.Instance.Error(this, "timeout", "Can not read state");
                 }
-                timeoutWait.WaitOne(timeout);
+                updateWait.WaitOne(updateT);
             }
             Logger.Instance.Debug(this, "run", "finish reading thread");
         }

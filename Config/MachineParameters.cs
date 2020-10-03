@@ -38,7 +38,9 @@ namespace Config
         public decimal max_movement_leap { get; set; }
         public decimal max_acceleration { get; set; }
 
+        public int state_refresh_update { get; set; }
         public int state_refresh_timeout { get; set; }
+        public int state_refresh_maxretry { get; set; }
 
         public static MachineParameters LoadConfig(string config)
         {
