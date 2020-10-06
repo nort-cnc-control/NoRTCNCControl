@@ -131,7 +131,7 @@ namespace GCodeServer
             var state = Machine.LastState;
 
             var loc_crds = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(gl_crds);
-            var crd_system = String.Format("G5{0}", 3+state.AxisState.Params.CurrentCoordinateSystemIndex);
+            var crd_system = String.Format("G5{0}", 3 + state.AxisState.Params.CurrentCoordinateSystemIndex);
 
             string movecmd = "";
             switch (state.AxisState.MoveType)
@@ -172,49 +172,49 @@ namespace GCodeServer
             {
                 ["type"] = "machine_state",
                 ["coordinates"] = new JsonObject
-                    {
-                        ["hardware"] = new JsonArray
+                {
+                    ["hardware"] = new JsonArray
                             {
                                 hw_crds.x,
                                 hw_crds.y,
                                 hw_crds.z
                             },
-                        ["global"] = new JsonArray
+                    ["global"] = new JsonArray
                             {
                                 gl_crds.x,
                                 gl_crds.y,
                                 gl_crds.z
                             },
-                        ["local"] = new JsonArray
+                    ["local"] = new JsonArray
                             {
                                 loc_crds.x,
                                 loc_crds.y,
                                 loc_crds.z
                             },
-                        ["cs"] = crd_system,
-                    },
+                    ["cs"] = crd_system,
+                },
                 ["endstops"] = new JsonObject
-                    {
-                        ["axes"] = new JsonArray
+                {
+                    ["axes"] = new JsonArray
                             {
                                 ex,
                                 ey,
                                 ez,
                             },
-                        ["probe"] = ep,
-                    },
+                    ["probe"] = ep,
+                },
                 ["movement"] = new JsonObject
-                    {
-                        ["status"] = "",
-                        ["feed"] = state.AxisState.Feed * 60m,
-                        ["command"] = movecmd,
-                    },
+                {
+                    ["status"] = "",
+                    ["feed"] = state.AxisState.Feed * 60m,
+                    ["command"] = movecmd,
+                },
                 ["spindel"] = new JsonObject
-                    {
-                        ["status"] = spindlestatus,
-                        ["speed"] = state.SpindleState.SpindleSpeed,
-                        ["direction"] = spindledir,
-                    },
+                {
+                    ["status"] = spindlestatus,
+                    ["speed"] = state.SpindleState.SpindleSpeed,
+                    ["direction"] = spindledir,
+                },
             };
             var resp = response.ToString();
             responseSender.MessageSend(resp);
@@ -385,7 +385,7 @@ namespace GCodeServer
                                         StatusMachine.Continue();
                                         break;
                                     }
-                                case "pause": 
+                                case "pause":
                                     {
                                         // TODO: implement
                                         break;
@@ -452,7 +452,15 @@ namespace GCodeServer
                             string errorMsg;
                             ActionProgram.ActionProgram program;
                             Sequence excommand = new Sequence();
-                            excommand.AddLine(new Arguments(command["program"]));
+                            try
+                            {
+                                excommand.AddLine(new Arguments(command["program"]));
+                            }
+                            catch (Exception e)
+                            {
+                                CompileErrorMessageSend("Parse error: " + e.Message);
+                                break;
+                            }
                             (program, _, _, errorMsg) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
                             if (program != null)
                             {
