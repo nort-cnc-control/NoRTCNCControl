@@ -29,11 +29,12 @@ namespace Log
 
         public void Log(ILoggerSource source, string type, string message, int level)
         {
-            lock(writer)
+            String timeStamp = DateTime.Now.ToLongTimeString();
+            lock (writer)
             {
-                writer.WriteLine("{0} | {1,16} : {2,16} : {3}", level, source.Name, type, message);
+                writer.WriteLine("[{0}] {1} | {2,16} : {3,16} : {4}", timeStamp, level, source.Name, type, message);
             }
-	}
+	    }
 
         public void Debug(ILoggerSource source, string type, string message)
         {
