@@ -105,6 +105,7 @@ namespace GCodeServer
 
             Machine.ActionStarted += Machine_ActionStarted;
             Machine.ActionFinished += Machine_ActionCompleted;
+            Machine.ActionFailed += Machine_ActionFailed;
             toolManager = new ManualToolManager(this, Machine);
             programBuilder = new ProgramBuilder(Machine,
                                                 this,
@@ -292,6 +293,18 @@ namespace GCodeServer
             }
         }
 
+        private void Machine_ActionFailed(IAction action, CNCState.CNCState before)
+        {
+            if (action is RTAction rtaction)
+            {
+                var hw_crds = StatusMachine.ReadHardwareCoordinates();
+                var global_crds = hwCoordinateSystem.ToLocal(hw_crds);
+                CNCState.CNCState current = before.BuildCopy();
+                current.AxisState.Position = global_crds;
+                Machine.ConfigureState(current);
+            }
+        }
+
         #region gcode machine methods
         private void LoadGcode(String[] prg)
         {
@@ -379,6 +392,7 @@ namespace GCodeServer
                                         Machine.Abort();
                                         Machine.ActionFinished -= Machine_ActionCompleted;
                                         Machine.ActionStarted -= Machine_ActionStarted;
+                                        Machine.ActionFailed -= Machine_ActionFailed;
                                         Machine.Dispose();
                                         Init();
                                         StatusMachine.Start();

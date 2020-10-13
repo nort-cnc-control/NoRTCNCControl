@@ -53,52 +53,62 @@ namespace RTSender
         private Thread receiveThread;
         private bool running;
 
+        private void ReceiveHandle(object arg)
+        {
+            var line = arg as String;
+            try
+            {
+                var args = new Answer(line);
+                switch (args.Message)
+                {
+                    case "Hello":
+                        Reseted?.Invoke();
+                        break;
+                    case "dropped":
+                        Dropped?.Invoke(int.Parse(args.Values["N"]));
+                        break;
+                    case "queued":
+                        Queued?.Invoke(int.Parse(args.Values["N"]));
+                        break;
+                    case "started":
+                        Started?.Invoke(int.Parse(args.Values["N"]));
+                        break;
+                    case "completed":
+                        Completed?.Invoke(int.Parse(args.Values["N"]), args.Values);
+                        break;
+                    case "failed":
+                        Failed?.Invoke(int.Parse(args.Values["N"]), line);
+                        break;
+                    case "debug":
+                        Debug?.Invoke(line);
+                        break;
+                    case "error":
+                        Error?.Invoke(line);
+                        break;
+                    default:
+                        break;
+                }
+                if (args.Values.ContainsKey("Q"))
+                {
+                    SetQ(int.Parse(args.Values["Q"]), int.Parse(args.Values["N"]));
+                }
+            }
+            catch
+            {
+                Logger.Instance.Error(this, "parse error", line);
+            }
+        }
+
         private void ReceiveThreadProc()
         {
             while (running)
             {
                 var line = input.ReceivePacket();
-                Logger.Instance.Debug(this, "receive", line);
-                try
+                if (!string.IsNullOrEmpty(line))
                 {
-                    var args = new Answer(line);
-                    switch (args.Message)
-                    {
-                        case "Hello":
-                            Reseted?.Invoke();
-                            break;
-                        case "dropped":
-                            Dropped?.Invoke(int.Parse(args.Values["N"]));
-                            break;
-                        case "queued":
-                            Queued?.Invoke(int.Parse(args.Values["N"]));
-                            break;
-                        case "started":
-                            Started?.Invoke(int.Parse(args.Values["N"]));
-                            break;
-                        case "completed":
-                            Completed?.Invoke(int.Parse(args.Values["N"]), args.Values);
-                            break;
-                        case "failed":
-                            Failed?.Invoke(int.Parse(args.Values["N"]), line);
-                            break;
-                        case "debug":
-                            Debug?.Invoke(line);
-                            break;
-                        case "error":
-                            Error?.Invoke(line);
-                            break;
-                        default:
-                            break;
-                    }
-                    if (args.Values.ContainsKey("Q"))
-                    {
-                        SetQ(int.Parse(args.Values["Q"]), int.Parse(args.Values["N"]));
-                    }
-                }
-                catch
-                {
-                    Logger.Instance.Error(this, "parse error", line);
+                    Thread handleThread = new Thread(ReceiveHandle);
+                    Logger.Instance.Debug(this, "receive", line);
+                    handleThread.Start(line);
                 }
             }
         }

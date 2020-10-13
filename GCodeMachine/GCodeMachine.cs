@@ -17,6 +17,7 @@ namespace GCodeMachine
     {
         public event Action<IAction> ActionStarted;
         public event Action<IAction, CNCState.CNCState, CNCState.CNCState> ActionFinished;
+        public event Action<IAction, CNCState.CNCState> ActionFailed;
 
         public enum MachineState
         {
@@ -39,6 +40,7 @@ namespace GCodeMachine
         private int index;
         private IAction currentAction;
         private IAction previousAction;
+        private IAction failedAction;
         private CNCState.CNCState lastState;
         public CNCState.CNCState LastState => lastState.BuildCopy();
         private readonly Config.MachineParameters config;
@@ -73,9 +75,19 @@ namespace GCodeMachine
             states = new Dictionary<IAction, (CNCState.CNCState before, CNCState.CNCState after)>();
         }
 
+        public void ConfigureState(CNCState.CNCState state)
+        {
+            lastState = state;
+        }
+
+        private bool IsErrorState(MachineState state)
+        {
+            return state == MachineState.Aborted || state == MachineState.Failed;
+        }
+
         private void SwitchToState(MachineState state, bool force=false)
         {
-            if (StateMachine != MachineState.Aborted || force)
+            if (!IsErrorState(StateMachine) || force)
                 StateMachine = state;
         }
 
@@ -203,11 +215,6 @@ namespace GCodeMachine
                             {
                                 Logger.Instance.Debug(this, "action", "Wait for previous end");
                                 Wait(previousAction.Finished);
-                                if (previousAction.Failed)
-                                {
-                                    SwitchToState(MachineState.Failed);
-                                    break;
-                                }
                             }
                         }
                         else
@@ -221,7 +228,7 @@ namespace GCodeMachine
                             String fail = "";
                             Logger.Instance.Warning(this, "failed", "Command has failed");
                             Stop();
-                            if (previousAction is RTAction pa)
+                            if (failedAction is RTAction pa)
                             {
                                 if (pa.ActionResult.ContainsKey("error"))
                                     fail = pa.ActionResult["error"];
@@ -233,7 +240,7 @@ namespace GCodeMachine
                                 ["message_type"] = "command fail",
                             };
                             messageRouter.Message(message);
-                            SwitchToState(MachineState.End);
+                            SwitchToState(MachineState.End, true);
                         }
                         break;
                     case MachineState.WaitActionReady:
@@ -267,6 +274,9 @@ namespace GCodeMachine
                         wasReset = true;
                         break;
                     case MachineState.End:
+                        failedAction = null;
+                        currentAction = null;
+                        previousAction = null;
                         Logger.Instance.Debug(this, "action", "End");
                         break;
                     case MachineState.Error:
@@ -312,10 +322,19 @@ namespace GCodeMachine
 
         private void Action_OnFinished(IAction action)
         {
-            if (states[action].after != null)
-                lastState = states[action].after;
-
-            ActionFinished?.Invoke(action, states[action].before, states[action].after);
+            if (action.Failed)
+            {
+                failedAction = action;
+                SwitchToState(MachineState.Failed);
+                currentWait.Set();
+                ActionFailed?.Invoke(action, states[action].before);
+            }
+            else
+            {
+                if (states[action].after != null)
+                    lastState = states[action].after;
+                ActionFinished?.Invoke(action, states[action].before, states[action].after);
+            }
         }
 
         public void Stop()

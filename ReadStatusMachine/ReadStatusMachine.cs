@@ -81,8 +81,9 @@ namespace ReadStatusMachine
 
         public Vector3 ReadHardwareCoordinates()
         {
-            Logger.Instance.Debug(this, "readhw", "read coordinates");
+            Logger.Instance.Debug(this, "readhw", "wait for lock");
             int retry = 0;
+            Logger.Instance.Debug(this, "readhw", "read coordinates");
             while (true)
             {
                 try
@@ -91,6 +92,7 @@ namespace ReadStatusMachine
                     // action.ReadyToRun.WaitOne();
                     action.Run();
                     action.Finished.WaitOne(timeoutT);
+
                     var xs = action.ActionResult["X"];
                     var ys = action.ActionResult["Y"];
                     var zs = action.ActionResult["Z"];
