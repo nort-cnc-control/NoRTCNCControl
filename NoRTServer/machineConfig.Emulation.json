@@ -1,0 +1,31 @@
+﻿{
+    "maxfeed_x" : 15,
+    "maxfeed_y" : 15,
+    "maxfeed_z" : 15,
+
+    "fastfeed" : 15,
+    "slowfeed" : 1,
+
+    "size_x" : 220,
+    "step_back_x" : 1.5,
+    "invert_x" : false,
+
+    "size_y" : 320,
+    "step_back_y" : 1.5,
+    "invert_y" : false,
+
+    "size_z" : 105,
+    "step_back_z" : 1.5,
+    "invert_z" : false,
+
+    "steps_per_x" : 400,
+    "steps_per_y" : 400,
+    "steps_per_z" : 400,
+
+    "max_movement_leap" : 40,
+    "max_acceleration" : 40,
+
+    "state_refresh_update" : 500,
+    "state_refresh_timeout" : 3000,
+    "state_refresh_maxretry" : 10
+}
