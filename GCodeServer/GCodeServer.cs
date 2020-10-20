@@ -297,12 +297,22 @@ namespace GCodeServer
         {
             if (action is RTAction rtaction)
             {
-                var hw_crds = StatusMachine.ReadHardwareCoordinates();
-                var global_crds = hwCoordinateSystem.ToLocal(hw_crds);
-                CNCState.CNCState current = before.BuildCopy();
-                current.AxisState.Position = global_crds;
-                Machine.ConfigureState(current);
+                // Queue read position
+                commands.Add(new JsonObject
+                {
+                    ["command"] = "read_position",
+                });
             }
+        }
+
+        private void ReadActualPosition()
+        {
+            CNCState.CNCState before = Machine.LastState;
+            var hw_crds = StatusMachine.ReadHardwareCoordinates();
+            var global_crds = hwCoordinateSystem.ToLocal(hw_crds);
+            CNCState.CNCState current = before.BuildCopy();
+            current.AxisState.Position = global_crds;
+            Machine.ConfigureState(current);
         }
 
         #region gcode machine methods
@@ -514,6 +524,16 @@ namespace GCodeServer
                     case "run_finish":
                         {
                             runFlag = false;
+                            break;
+                        }
+                    case "read_position":
+                        {
+                            ReadActualPosition();
+                            break;
+                        }
+                    default:
+                        {
+                            // ERROR
                             break;
                         }
                 }

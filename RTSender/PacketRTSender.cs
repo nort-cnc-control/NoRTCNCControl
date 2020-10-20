@@ -26,26 +26,27 @@ namespace RTSender
         private IPacketReceiver input;
         private IPacketSender output;
         private int index;
-        private int q;
-        private int Q
-        {
-            get => q;
-        }
+
+        private int Q;
+
         private void SetQ(int value, int nid)
         {
-            int oldq = q;
-            q = value;
-            if (oldq == 0 && value > 0)
+            int oldQ = Q;
+            Q = value;
+            if (oldQ == 0 && Q > 0)
             {
+                Logger.Instance.Debug(this, "empty slot", $"N{nid}: empty slot appeared");
                 EmptySlotAppeared?.Invoke();
             }
-            else if (oldq > 0 && value == 0)
+            else if (oldQ > 0 && value == 0)
             {
+                Logger.Instance.Debug(this, "empty slot", $"N{nid}: empty slots ended");
                 EmptySlotsEnded?.Invoke();
             }
             SlotsNumberReceived?.Invoke(nid);
         }
-        public bool HasSlots { get { return Q > 0; } }
+
+        public bool HasSlots => (Q > 0);
 
         public string Name => "packet rt sender";
 
@@ -106,9 +107,8 @@ namespace RTSender
                 var line = input.ReceivePacket();
                 if (!string.IsNullOrEmpty(line))
                 {
-                    Thread handleThread = new Thread(ReceiveHandle);
                     Logger.Instance.Debug(this, "receive", line);
-                    handleThread.Start(line);
+                    ReceiveHandle(line);
                 }
             }
         }
@@ -118,7 +118,7 @@ namespace RTSender
             this.input = input;
             this.output = output;
             index = 0;
-            q = 1; // placeholder value > 0
+            Q = 1; // placeholder value > 0
             receiveThread = new Thread(new ThreadStart(ReceiveThreadProc));
             running = true;
             receiveThread.Start();
