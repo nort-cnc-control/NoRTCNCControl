@@ -40,7 +40,8 @@ namespace ModbusSender
             lock (lockObj)
             {
                 var cmd = string.Format("MB:{0:X4}:{1:X4}:{2:X4}", devid, index, value);
-                output.SendPacket(cmd);
+                Logger.Instance.Debug(this, "send", cmd);
+		output.SendPacket(cmd);
             }
         }
     }
