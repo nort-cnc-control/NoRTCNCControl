@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Actions;
-using Actions.ModbusTool;
 using RTSender;
 using Config;
 using Machine;
@@ -96,15 +95,9 @@ namespace ActionProgram
 
         public void AddHoming(CNCState.CNCState currentState, CNCState.CNCState stateAfter)
         {
-            var gz1 = -config.size_z;
-            var gz2 = config.step_back_z;
-            var gz3 = -config.step_back_z*1.2m;
-            if (config.invert_z)
-            {
-                gz1 *= -1;
-                gz2 *= -1;
-                gz3 *= -1;
-            }
+            var gz1 = -config.Z_axis.size * config.Z_axis.sign;
+            var gz2 = config.Z_axis.step_back * config.Z_axis.sign;
+            var gz3 = -config.Z_axis.step_back * 1.2m * config.Z_axis.sign;
 
             AddRTDisableFailOnEndstops(null);
             ForgetResidual(currentState);
@@ -114,15 +107,10 @@ namespace ActionProgram
             ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, 0, gz3, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
 
-            var gx1 = -config.size_x;
-            var gx2 = config.step_back_x;
-            var gx3 = -config.step_back_x*1.2m;
-            if (config.invert_x)
-            {
-                gx1 *= -1;
-                gx2 *= -1;
-                gx3 *= -1;
-            }
+            var gx1 = -config.X_axis.size * config.X_axis.sign;
+            var gx2 = config.X_axis.step_back * config.X_axis.sign;
+            var gx3 = -config.X_axis.step_back*1.2m * config.X_axis.sign;
+
             ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx1, 0, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
             ForgetResidual(currentState);
@@ -130,15 +118,10 @@ namespace ActionProgram
             ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(gx3, 0, 0, new RTMovementOptions(0, config.slowfeed, 0, config.max_acceleration), config)), null, null);
 
-            var gy1 = -config.size_y;
-            var gy2 = config.step_back_y;
-            var gy3 = -config.step_back_y*1.2m;
-            if(config.invert_y)
-            {
-                gy1 *= -1;
-                gy2 *= -1;
-                gy3 *= -1;
-            }
+            var gy1 = -config.Y_axis.size * config.Y_axis.sign;
+            var gy2 = config.Y_axis.step_back * config.Y_axis.sign;
+            var gy3 = -config.Y_axis.step_back* 1.2m * config.Y_axis.sign;
+
             ForgetResidual(currentState);
             AddAction(new RTAction(rtSender, new RTLineMoveCommand(0, gy1, 0, new RTMovementOptions(0, config.fastfeed, 0, config.max_acceleration), config)), null, null);
             ForgetResidual(currentState);
@@ -152,9 +135,9 @@ namespace ActionProgram
 
         public void AddZProbe(CNCState.CNCState currentState, CNCState.CNCState stateAfter)
         {
-            var gz1 = -config.size_z;
-            var gz2 = config.step_back_z;
-            var gz3 = -config.step_back_z*1.2m;
+            var gz1 = -config.Z_axis.size;
+            var gz2 = config.Z_axis.step_back;
+            var gz3 = -config.Z_axis.step_back*1.2m;
 
             AddRTEnableBreakOnProbe(currentState);
             AddRTDisableFailOnEndstops(null);
@@ -213,13 +196,6 @@ namespace ActionProgram
 
         #endregion
 
-        #region Tool
-        public void AddModbusToolCommand(ModbusToolCommand command, CNCState.CNCState currentState, CNCState.CNCState stateAfter)
-        {
-            AddAction(new ModbusToolAction(command, modbusSender), currentState, stateAfter);
-        }
-        #endregion
-
         #region stops
         public void AddBreak()
         {
@@ -241,14 +217,14 @@ namespace ActionProgram
 
         public void EnableRTTool(int tool, CNCState.CNCState currentState, CNCState.CNCState stateAfter)
         {
-            var cmd = new RTToolCommand(tool, true);
-            AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
+            var action = new RTAction(rtSender, new RTGPIOCommand(tool, true));
+            AddAction(action, currentState, stateAfter);
         }
 
         public void DisableRTTool(int tool, CNCState.CNCState currentState, CNCState.CNCState stateAfter)
         {
-            var cmd = new RTToolCommand(tool, false);
-            AddAction(new RTAction(rtSender, cmd), currentState, stateAfter);
+            var action = new RTAction(rtSender, new RTGPIOCommand(tool, false));
+            AddAction(action, currentState, stateAfter);
         }
 
         #endregion

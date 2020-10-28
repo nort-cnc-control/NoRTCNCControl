@@ -1,31 +1,51 @@
 ﻿{
-    "maxfeed_x" : 50,
-    "maxfeed_y" : 50,
-    "maxfeed_z" : 3,
-
-    "fastfeed" : 150,
-    "slowfeed" : 2,
-
-    "size_x" : 200,
-    "step_back_x" : 1.5,
-    "invert_x" : false,
-
-    "size_y" : 200,
-    "step_back_y" : 1.5,
-    "invert_y" : false,
-
-    "size_z" : 270,
-    "step_back_z" : 1.5,
-    "invert_z" : false,
-
-    "steps_per_x" : 80,
-    "steps_per_y" : 80,
-    "steps_per_z" : 1600,
-
-    "max_movement_leap" : 40,
-    "max_acceleration" : 40,
-
-    "state_refresh_update" : 500,
-    "state_refresh_timeout" : 3000,
-    "state_refresh_maxretry" : 10
+    "axises" : {
+        "x" : {
+            "maxfeed" : 50,
+            "size" : 200,
+            "step_back" : 1.5,
+            "invert" : false,
+            "steps_per_mm" : 80,
+            "max_acceleration" : 40
+        },
+        "y" : {
+            "maxfeed" : 15,
+            "size" : 200,
+            "step_back" : 1.5,
+            "invert" : true,
+            "steps_per_mm" : 80,
+            "max_acceleration" : 40
+        },
+        "z" : {
+            "maxfeed" : 15,
+            "size" : 270,
+            "step_back" : 1.5,
+            "invert" : true,
+            "steps_per_mm" : 1600,
+            "max_acceleration" : 40
+        }
+    },
+    "tools" : {
+        "default" : 1,
+        "1" : {
+            "name"      : "laser",
+            "driver"    : "gpio",
+            "gpio"      : 0
+        },
+        "2" : {
+            "name"      : "atxpower",
+            "driver"    : "gpio",
+            "gpio"      : 1
+        }
+    },
+    "movement" : {
+        "fastfeed" : 150,
+        "slowfeed" : 2,
+        "max_movement_leap" : 40,
+    },
+    "control" : { 
+        "state_refresh_update" : 500,
+        "state_refresh_timeout" : 3000,
+        "state_refresh_maxretry" : 10
+    }
 }

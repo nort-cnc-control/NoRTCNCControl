@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Actions.Tools
+namespace Actions
 {
     public class PlaceholderAction : IAction
     {

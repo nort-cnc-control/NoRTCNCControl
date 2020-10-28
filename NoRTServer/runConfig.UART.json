@@ -9,7 +9,5 @@
         "sender" : "PacketRTSender",
         "port" : "/dev/ttyACM0",
         "protocol" : "UART"
-    },
-
-    "spindle_driver" : "N700E"
+    }
 }

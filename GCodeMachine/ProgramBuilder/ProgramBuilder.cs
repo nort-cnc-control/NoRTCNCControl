@@ -1,7 +1,6 @@
 using System;
 using Actions;
-using Actions.ModbusTool;
-using Actions.Tools.SpindleTool;
+using Actions.Tools;
 using RTSender;
 using ModbusSender;
 using Config;
@@ -13,7 +12,6 @@ using Processor;
 using Log;
 using System.Collections.Generic;
 using System.Threading;
-using Actions.Tools;
 using Vector;
 
 namespace GCodeMachine
@@ -22,7 +20,6 @@ namespace GCodeMachine
     {
         private readonly IRTSender rtSender;
         private readonly IModbusSender modbusSender;
-        private readonly ISpindleToolFactory spindleToolFactory;
         private readonly MachineParameters config;
         private readonly GCodeMachine machine;
         private readonly IToolManager toolManager;
@@ -33,7 +30,8 @@ namespace GCodeMachine
         private Stack<AxisState.Parameters> axisStateStack;
         private readonly IStateSyncManager stateSyncManager;
 
-        private bool spindleCommandPending;
+        private Dictionary<int, object> tool_drivers;
+        private List<int> toolsPending;
 
         public string Name => "gcode builder";
 
@@ -41,7 +39,6 @@ namespace GCodeMachine
                               IStateSyncManager stateSyncManager,
                               IRTSender rtSender,
                               IModbusSender modbusSender,
-                              ISpindleToolFactory spindleToolFactory,
                               IToolManager toolManager,
                               MachineParameters config)
         {
@@ -49,7 +46,6 @@ namespace GCodeMachine
             this.machine = machine;
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
-            this.spindleToolFactory = spindleToolFactory;
             this.toolManager = toolManager;
             this.config = config;
 
@@ -57,7 +53,47 @@ namespace GCodeMachine
             optimizer = new MoveOptimizer(this.config);
             timeCalculator = new ExpectedTimeCalculator();
             axisStateStack = new Stack<AxisState.Parameters>();
-            spindleCommandPending = false;
+            toolsPending = new List<int>();
+
+            tool_drivers = new Dictionary<int, object>();
+
+            foreach (KeyValuePair<int, IToolDriver> item in config.tools)
+            {
+                int id = item.Key;
+                IToolDriver driverDesc = item.Value;
+                object driver;
+                Logger.Instance.Debug(this, "create tool", "Create tool " + driverDesc.name + " with driver " + driverDesc.driver);
+                switch (driverDesc.driver)
+                {
+                    case "n700e":
+                        {
+                            driver = new N700E_driver(modbusSender, (driverDesc as N700E_Tool).address);
+                            break;
+                        }
+                    case "dummy":
+                        {
+                            driver = new Dummy_driver();
+                            break;
+                        }
+                    case "gpio":
+                        {
+                            driver = new GPIO_driver(rtSender, (driverDesc as GPIO_Tool).gpio);
+                            break;
+                        }
+                    case "modbus":
+                        {
+                            int addr = (driverDesc as RawModbus_Tool).address;
+                            UInt16 reg = (driverDesc as RawModbus_Tool).register;
+                            driver = new RawModbus_driver(modbusSender, addr, reg);
+                            break;
+                        }
+                    default:
+                        {
+                            throw new NotSupportedException("Unsupported driver: " + driverDesc.driver + " : " + driverDesc.name);
+                        }
+                }
+                tool_drivers.Add(id, driver);
+            }
         }
 
         private void PushState(AxisState axisState)
@@ -79,15 +115,8 @@ namespace GCodeMachine
             {
                 state.AxisState.Feed = ConvertSizes(block.Feed.value, state) / 60.0m; // convert from min to sec
             }
-            if (block.Speed != null)
-            {
-                state.SpindleState.SpindleSpeed = block.Speed.value;
-                spindleCommandPending = true;
-            }
             return state;
         }
-
-
 
         private CNCState.CNCState ProcessDrillingMove(Arguments block,
                                                       ActionProgram.ActionProgram program,
@@ -321,19 +350,85 @@ namespace GCodeMachine
             switch (cmd.ivalue1)
             {
                 case 3:
-                    state = state.BuildCopy();
-                    spindleCommandPending = true;
-                    state.SpindleState.RotationState = SpindleState.SpindleRotationState.Clockwise;
+                    {
+                        state = state.BuildCopy();
+                        int toolid;
+                        if (cmd.dot)
+                            toolid = cmd.ivalue2;
+                        else
+                            toolid = config.deftool_id;
+
+                        toolsPending.Add(toolid);
+                        IToolState toolState = state.ToolStates[toolid];
+                        if (toolState is SpindleState ss)
+                        {
+                            if (block.Speed != null)
+                                ss.SpindleSpeed = block.Speed.value;
+                            ss.RotationState = SpindleState.SpindleRotationState.Clockwise;
+                        }
+                        else if (toolState is BinaryState bs)
+                        {
+                            bs.Enabled = true;
+                        }
+                        else
+                            throw new ArgumentOutOfRangeException("Invalid type of state");
+                    }
                     break;
                 case 4:
-                    state = state.BuildCopy();
-                    spindleCommandPending = true;
-                    state.SpindleState.RotationState = SpindleState.SpindleRotationState.CounterClockwise;
+                    {
+                        state = state.BuildCopy();
+                        int toolid;
+                        if (cmd.dot)
+                            toolid = cmd.ivalue2;
+                        else
+                            toolid = config.deftool_id;
+
+                        toolsPending.Add(toolid);
+
+                        state = state.BuildCopy();
+                        toolsPending.Add(toolid);
+                        IToolState toolState = state.ToolStates[toolid];
+                        if (toolState is SpindleState ss)
+                        {
+                            if (block.Speed != null)
+                                ss.SpindleSpeed = block.Speed.value;
+                            ss.RotationState = SpindleState.SpindleRotationState.CounterClockwise;
+                        }
+                        else if (toolState is BinaryState bs)
+                        {
+                            bs.Enabled = true;
+                        }
+                        else
+                            throw new ArgumentOutOfRangeException("Invalid type of state");
+                    }
                     break;
                 case 5:
-                    state = state.BuildCopy();
-                    spindleCommandPending = true;
-                    state.SpindleState.RotationState = SpindleState.SpindleRotationState.Off;
+                    {
+                        state = state.BuildCopy();
+                        int toolid;
+                        if (cmd.dot)
+                            toolid = cmd.ivalue2;
+                        else
+                            toolid = config.deftool_id;
+
+                        toolsPending.Add(toolid);
+
+                        state = state.BuildCopy();
+                        toolsPending.Add(toolid);
+                        IToolState toolState = state.ToolStates[toolid];
+                        if (toolState is SpindleState ss)
+                        {
+                            if (block.Speed != null)
+                                ss.SpindleSpeed = block.Speed.value;
+                            ss.RotationState = SpindleState.SpindleRotationState.Off;
+                        }
+                        else if (toolState is BinaryState bs)
+                        {
+                            bs.Enabled = false;
+                        }
+                        else
+                            throw new ArgumentOutOfRangeException("Invalid type of state");
+                    }
                     break;
             }
             return state;
@@ -467,15 +562,47 @@ namespace GCodeMachine
             return new Vector3(ConvertSizes(value.x, state), ConvertSizes(value.y, state), ConvertSizes(value.z, state));
         }
 
-        private void CommitPendingCommands(ActionProgram.ActionProgram program,
-                                           CNCState.CNCState state)
+        private void CommitPendingCommands(ActionProgram.ActionProgram program, CNCState.CNCState state)
         {
-            if (spindleCommandPending)
+            foreach (int toolPending in toolsPending)
             {
-                var command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
-                program.AddModbusToolCommand(command, state, state);
-                spindleCommandPending = false;
+                IAction action = null;
+                try
+                {
+                    object driver = tool_drivers[toolPending];
+                    if (driver is N700E_driver n700e)
+                    {
+                        SpindleState ss = state.ToolStates[toolPending] as SpindleState;
+                        action = n700e.CreateAction(ss.RotationState, ss.SpindleSpeed);
+                    }
+                    else if (driver is GPIO_driver gpio)
+                    {
+                        BinaryState bs = state.ToolStates[toolPending] as BinaryState;
+                        action = gpio.CreateAction(bs.Enabled);
+                    }
+                    else if (driver is RawModbus_driver modbus)
+                    {
+                        BinaryState bs = state.ToolStates[toolPending] as BinaryState;
+                        action = modbus.CreateAction(bs.Enabled);
+                    }
+                    else if (driver is Dummy_driver dummy)
+                    {
+                        action = dummy.CreateAction();
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("invalid driver: " + driver);
+                    }
+                    if (action != null)
+                        program.AddAction(action, state, state);
+                }
+                catch (Exception e)
+                {
+                    toolsPending.Clear();
+                    throw e;
+                }
             }
+            toolsPending.Clear();
         }
 
         private Stack<int> PushPosition(int index, Stack<int> callStack)
@@ -732,9 +859,7 @@ namespace GCodeMachine
                     case 6:
                         if (block.SingleOptions.ContainsKey('T'))
                         {
-                            state.SpindleState.RotationState = SpindleState.SpindleRotationState.Off;
-                            var command = spindleToolFactory.CreateSpindleToolCommand(state.SpindleState.RotationState, state.SpindleState.SpindleSpeed);
-                            program.AddModbusToolCommand(command, state, state);        // Stop spindel before change
+                            // TODO: stop spindle
                             program.AddToolChange(block.SingleOptions['T'].ivalue1);    // change tool
                         }
                         break;

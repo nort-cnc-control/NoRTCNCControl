@@ -1,4 +1,0 @@
-#!/bin/sh
-PREFIX=$HOME/.local
-exec /usr/bin/mono $PREFIX/lib/NoRTCNCControl/NoRTServer.exe "$@"
-

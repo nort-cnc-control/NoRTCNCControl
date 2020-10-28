@@ -50,7 +50,7 @@
       <Name>Config</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ControlConnection\ControlConnection.csproj">
-      <Project>{A5BAA0F5-1B82-4446-A09D-0B41DEE0497A}</Project>
+      <Project>{9C4C7727-D3BA-4981-AB06-053D6527F939}</Project>
       <Name>ControlConnection</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\GCodeMachine\GCodeMachine.csproj">
