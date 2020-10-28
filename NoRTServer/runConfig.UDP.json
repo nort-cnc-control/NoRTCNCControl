@@ -11,7 +11,5 @@
         "address" : "10.55.1.110",
         "port" : "8889",
         "protocol" : "UDP"
-    },
-
-    "spindle_driver" : "N700E"
+    }
 }

@@ -3,27 +3,27 @@ using System.Threading;
 using ModbusSender;
 using System.Threading.Tasks;
 
-namespace Actions.ModbusTool
+namespace Actions
 {
     public class ModbusRegister
     {
-        public UInt16 DeviceId { get; set; }
+        public int DeviceId { get; set; }
         public UInt16 RegisterId { get; set; }
         public UInt16 RegisterValue { get; set; }
     }
 
-    public class ModbusToolCommand
+    public class ModbusCommand
     {
         public ModbusRegister[] Registers;
         public int Delay;
     }
 
-    public class ModbusToolAction : IAction
+    public class ModbusAction : IAction
     {
         private readonly IModbusSender sender;
-        private readonly ModbusToolCommand toolCommand;
+        private readonly ModbusCommand toolCommand;
 
-        public ModbusToolAction(ModbusToolCommand toolCommand, IModbusSender sender)
+        public ModbusAction(ModbusCommand toolCommand, IModbusSender sender)
         {
             this.sender = sender;
             this.toolCommand = toolCommand;

@@ -37,21 +37,21 @@ namespace Actions
                 switch (Plane)
                 {
                     case AxisState.Plane.XY:
-                        if (Config.invert_x)
+                        if (Config.X_axis.invert)
                             left = !left;
-                        if (Config.invert_y)
+                        if (Config.Y_axis.invert)
                             left = !left;
                         return left;
                     case AxisState.Plane.YZ:
-                        if (Config.invert_y)
+                        if (Config.Y_axis.invert)
                             left = !left;
-                        if (Config.invert_z)
+                        if (Config.Z_axis.invert)
                             left = !left;
                         return left;
                     case AxisState.Plane.ZX:
-                        if (Config.invert_z)
+                        if (Config.Z_axis.invert)
                             left = !left;
-                        if (Config.invert_x)
+                        if (Config.Z_axis.invert)
                             left = !left;
                         return left;
                     default:
@@ -174,26 +174,16 @@ namespace Actions
 
         private void FindPhysicalParameters()
         {
-            Vector3 hwdelta = new Vector3();
+            Vector3 hwdelta = new Vector3
+            {
+                x = Delta.x * Config.X_axis.sign,
+                y = Delta.y * Config.Y_axis.sign,
+                z = Delta.z * Config.Z_axis.sign
+            };
 
-            if (Config.invert_x)
-                hwdelta.x = -Delta.x;
-            else
-                hwdelta.x = Delta.x;
-
-            if (Config.invert_y)
-                hwdelta.y = -Delta.y;
-            else
-                hwdelta.y = Delta.y;
-
-            if (Config.invert_z)
-                hwdelta.z = -Delta.z;
-            else
-                hwdelta.z = Delta.z;
-
-            dx = (int)(hwdelta.x * Config.steps_per_x);
-            dy = (int)(hwdelta.y * Config.steps_per_y);
-            dz = (int)(hwdelta.z * Config.steps_per_z);
+            dx = (int)(hwdelta.x * Config.X_axis.steps_per_mm);
+            dy = (int)(hwdelta.y * Config.Y_axis.steps_per_mm);
+            dz = (int)(hwdelta.z * Config.Z_axis.steps_per_mm);
 
             bool hwccw;
             if (left_basis)
@@ -208,16 +198,16 @@ namespace Actions
             switch (Plane)
             {
                 case AxisState.Plane.XY:
-                    a = (int)(R * Config.steps_per_x);
-                    b = (int)(R * Config.steps_per_y);
+                    a = (int)(R * Config.X_axis.steps_per_mm);
+                    b = (int)(R * Config.Y_axis.steps_per_mm);
                     break;
                 case AxisState.Plane.YZ:
-                    a = (int)(R * Config.steps_per_y);
-                    b = (int)(R * Config.steps_per_z);
+                    a = (int)(R * Config.Y_axis.steps_per_mm);
+                    b = (int)(R * Config.Z_axis.steps_per_mm);
                     break;
                 case AxisState.Plane.ZX:
-                    a = (int)(R * Config.steps_per_z);
-                    b = (int)(R * Config.steps_per_x);
+                    a = (int)(R * Config.Z_axis.steps_per_mm);
+                    b = (int)(R * Config.X_axis.steps_per_mm);
                     break;
                 default:
                     throw new InvalidOperationException("Invalid plane");
@@ -229,22 +219,13 @@ namespace Actions
                 b = -b;
             }
 
-            PhysicalDelta = new Vector3();
+            PhysicalDelta = new Vector3
+            {
+                x = dx / Config.X_axis.steps_per_mm * Config.X_axis.sign,
+                y = dy / Config.Y_axis.steps_per_mm * Config.Y_axis.sign,
+                z = dz / Config.Z_axis.steps_per_mm * Config.Z_axis.sign
+            };
 
-            if (!Config.invert_x)
-                PhysicalDelta.x = dx / Config.steps_per_x;
-            else
-                PhysicalDelta.x = -dx / Config.steps_per_x;
-
-            if (!Config.invert_y)
-                PhysicalDelta.y = dy / Config.steps_per_y;
-            else
-                PhysicalDelta.y = -dy / Config.steps_per_y;
-
-            if (!Config.invert_z)
-                PhysicalDelta.z = dz / Config.steps_per_z;
-            else
-                PhysicalDelta.z = -dz / Config.steps_per_z;
         }
 
         public RTArcMoveCommand(Vector3 delta, decimal r, bool ccw, AxisState.Plane plane,

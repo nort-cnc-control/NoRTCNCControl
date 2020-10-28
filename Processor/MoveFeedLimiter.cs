@@ -20,9 +20,9 @@ namespace Processor
             if (Math.Abs(dir.z) > 1e-8m)
                 acc = Math.Min(acc, maxacc / Math.Abs(dir.z));
 
-            decimal maxf_x = config.maxfeed_x;
-            decimal maxf_y = config.maxfeed_y;
-            decimal maxf_z = config.maxfeed_z;
+            decimal maxf_x = config.X_axis.maxfeed;
+            decimal maxf_y = config.Y_axis.maxfeed;
+            decimal maxf_z = config.Z_axis.maxfeed;
 
             feed = Decimal.MaxValue;
             if (Math.Abs(dir.x) > 1e-8m)

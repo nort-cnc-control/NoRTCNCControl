@@ -53,7 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ControlConnection\ControlConnection.csproj">
-      <Project>{a5baa0f5-1b82-4446-a09d-0b41dee0497a}</Project>
+      <Project>{9C4C7727-D3BA-4981-AB06-053D6527F939}</Project>
       <Name>ControlConnection</Name>
     </ProjectReference>
   </ItemGroup>

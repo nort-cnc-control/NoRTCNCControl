@@ -5,7 +5,7 @@ using RTSender;
 using ModbusSender;
 using System.IO;
 using System;
-using Actions.Tools.SpindleTool;
+using Actions.Tools;
 using Gnu.Getopt;
 using System.Json;
 using Newtonsoft.Json;
@@ -233,7 +233,7 @@ namespace NoRTServer
                 try
                 {
                     string cfg = File.ReadAllText(machineConfigName);
-                    machineConfig = JsonConvert.DeserializeObject<MachineParameters>(cfg);
+                    machineConfig = MachineParameters.ParseConfig(JsonValue.Parse(cfg));
                 }
                 catch (Exception e)
                 {
@@ -243,18 +243,7 @@ namespace NoRTServer
             }
             else
             {
-                machineConfig = new MachineParameters
-                {
-                    max_acceleration = 40,
-                    fastfeed = 600,
-                    slowfeed = 100,
-                    maxfeed_x = 15,
-                    maxfeed_y = 15,
-                    maxfeed_z = 15,
-                    steps_per_x = 400,
-                    steps_per_y = 400,
-                    steps_per_z = 400,
-                };
+                throw new ArgumentNullException("None machine specification");
             }
             JsonValue runConfig;
             if (runConfigName != "")
@@ -279,8 +268,7 @@ namespace NoRTServer
                     },
                     ["modbus_sender"] = new JsonObject {
                         ["sender"] = "EmulationModbusSender",
-                    },
-                    ["spindle_driver"] = "None",
+                    }
                 };
             }
 
@@ -385,22 +373,6 @@ namespace NoRTServer
             senderRT.Init();
             senderMB.Init();
 
-            ISpindleToolFactory spindleCommandFactory;
-            string spindle_driver = runConfig["spindle_driver"];
-            switch (spindle_driver)
-            {
-                case "N700E":
-                    spindleCommandFactory = new N700ESpindleToolFactory();
-                    break;
-                case "None":
-                    spindleCommandFactory = new NoneSpindleToolFactory();
-                    break;
-                default:
-                    Console.WriteLine("Invalid spindle driver: {0}", spindle_driver);
-                    return;
-            }
-            
-
             bool run = true;
             do
             {
@@ -409,8 +381,7 @@ namespace NoRTServer
 
                 Stream stream = new SocketStream(tcpClient);
 
-                var machineServer = new GCodeServer.GCodeServer(senderRT, senderMB, spindleCommandFactory,
-                                                                machineConfig, stream, stream);
+                var machineServer = new GCodeServer.GCodeServer(senderRT, senderMB, machineConfig, stream, stream);
 
                 try
                 {

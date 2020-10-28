@@ -19,43 +19,23 @@ namespace Actions
 
         private void FindPhysicalParameters()
         {
-            Vector3 hwdelta = new Vector3();
+            Vector3 hwdelta = new Vector3
+            {
+                x = Delta.x * config.X_axis.sign,
+                y = Delta.y * config.Y_axis.sign,
+                z = Delta.z * config.Z_axis.sign
+            };
 
-            if (config.invert_x)
-                hwdelta.x = -Delta.x;
-            else
-                hwdelta.x = Delta.x;
+            dx = (int)(hwdelta.x * config.X_axis.steps_per_mm);
+            dy = (int)(hwdelta.y * config.Y_axis.steps_per_mm);
+            dz = (int)(hwdelta.z * config.Z_axis.steps_per_mm);
 
-            if (config.invert_y)
-                hwdelta.y = -Delta.y;
-            else
-                hwdelta.y = Delta.y;
-
-            if (config.invert_z)
-                hwdelta.z = -Delta.z;
-            else
-                hwdelta.z = Delta.z;
-
-            dx = (int)(hwdelta.x * config.steps_per_x);
-            dy = (int)(hwdelta.y * config.steps_per_y);
-            dz = (int)(hwdelta.z * config.steps_per_z);
-
-            PhysicalDelta = new Vector3();
-
-            if (!config.invert_x)
-                PhysicalDelta.x = dx / config.steps_per_x;
-            else
-                PhysicalDelta.x = -dx / config.steps_per_x;
-
-            if (!config.invert_y)
-                PhysicalDelta.y = dy / config.steps_per_y;
-            else
-                PhysicalDelta.y = -dy / config.steps_per_y;
-
-            if (!config.invert_z)
-                PhysicalDelta.z = dz / config.steps_per_z;
-            else
-                PhysicalDelta.z = -dz / config.steps_per_z;
+            PhysicalDelta = new Vector3
+            {
+                x = dx / config.X_axis.steps_per_mm * config.X_axis.sign,
+                y = dy / config.Y_axis.steps_per_mm * config.Y_axis.sign,
+                z = dz / config.Z_axis.steps_per_mm * config.Z_axis.sign
+            };
         }
 
         public RTLineMoveCommand(Vector3 delta, RTMovementOptions opts, MachineParameters config)

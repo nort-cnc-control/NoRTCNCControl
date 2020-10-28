@@ -4,11 +4,9 @@ using Machine;
 using Config;
 using ActionProgram;
 using Actions;
-using Actions.Tools.SpindleTool;
 using CNCState;
 using RTSender;
 using ModbusSender;
-using ControlConnection;
 using System.IO;
 using System.Linq;
 using GCodeMachine;
@@ -18,6 +16,7 @@ using Actions.Tools;
 using Log;
 using System.Collections.Concurrent;
 using Vector;
+using ControlConnection;
 
 namespace GCodeServer
 {
@@ -43,7 +42,6 @@ namespace GCodeServer
 
         private readonly IRTSender rtSender;
         private readonly IModbusSender modbusSender;
-        private readonly ISpindleToolFactory spindleToolFactory;
 
         private IReadOnlyDictionary<IAction, (int, int)> starts;
 
@@ -67,14 +65,12 @@ namespace GCodeServer
 
         public GCodeServer(IRTSender rtSender,
                            IModbusSender modbusSender,
-                           ISpindleToolFactory spindleToolFactory,
                            MachineParameters config,
                            Stream commandStream,
                            Stream responseStream)
         {
             this.rtSender = rtSender;
             this.modbusSender = modbusSender;
-            this.spindleToolFactory = spindleToolFactory;
             this.Config = config;
             this.commandStream = commandStream;
             this.responseStream = responseStream;
@@ -90,11 +86,11 @@ namespace GCodeServer
         private void Init()
         {
             sequencer = new ProgramSequencer();
-            var newState = new CNCState.CNCState();
+            var newState = new CNCState.CNCState(Config);
             Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
 
             var crds = StatusMachine.ReadHardwareCoordinates();
-            var sign = new Vector3(Config.SignX, Config.SignY, Config.SignZ);
+            var sign = new Vector3(Config.X_axis.sign, Config.Y_axis.sign, Config.Z_axis.sign);
             hwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,
@@ -111,7 +107,6 @@ namespace GCodeServer
                                                 this,
                                                 rtSender,
                                                 modbusSender,
-                                                spindleToolFactory,
                                                 toolManager,
                                                 Config);
         }
@@ -153,7 +148,8 @@ namespace GCodeServer
 
             string spindlestatus = "";
             string spindledir = "";
-            switch (state.SpindleState.RotationState)
+            int spindlespeed = 0;
+            /*switch (state.SpindleState.RotationState)
             {
                 case SpindleState.SpindleRotationState.Clockwise:
                     spindledir = "CW";
@@ -167,7 +163,7 @@ namespace GCodeServer
                     spindledir = "-";
                     spindlestatus = "OFF";
                     break;
-            }
+            }*/
 
             var response = new JsonObject
             {
@@ -213,7 +209,7 @@ namespace GCodeServer
                 ["spindel"] = new JsonObject
                 {
                     ["status"] = spindlestatus,
-                    ["speed"] = state.SpindleState.SpindleSpeed,
+                    ["speed"] = spindlespeed,
                     ["direction"] = spindledir,
                 },
             };
@@ -270,9 +266,9 @@ namespace GCodeServer
 
                     Vector3 hwpos = new Vector3
                     {
-                        x = x / Config.steps_per_x,
-                        y = y / Config.steps_per_y,
-                        z = z / Config.steps_per_z,
+                        x = x / Config.X_axis.steps_per_mm,
+                        y = y / Config.Y_axis.steps_per_mm,
+                        z = z / Config.Z_axis.steps_per_mm,
                     };
 
                     Vector3 actualPos = hwCoordinateSystem.ToLocal(hwpos);
@@ -562,7 +558,7 @@ namespace GCodeServer
         public void SyncCoordinates(Vector3 stateCoordinates)
         {
             var crds = StatusMachine.ReadHardwareCoordinates();
-            var sign = new Vector3(Config.SignX, Config.SignY, Config.SignZ);
+            var sign = new Vector3(Config.X_axis.sign, Config.Y_axis.sign, Config.Z_axis.sign);
             hwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,

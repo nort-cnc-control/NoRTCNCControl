@@ -15,7 +15,7 @@ namespace ModbusSender
         {
         }
 
-        public void WriteRegister(ushort devid, ushort index, ushort value)
+        public void WriteRegister(int devid, UInt16 index, UInt16 value)
         {
             var bts = String.Format("MODBUS: {0:X4}[{1:X4}] = {2:X4}", devid, index, value);
             output.WriteLine(bts);

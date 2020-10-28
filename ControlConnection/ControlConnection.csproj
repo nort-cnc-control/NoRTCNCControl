@@ -5,6 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Json" Version="4.7.1" />
+    <ProjectReference Include="..\Log\Log.csproj" />
   </ItemGroup>
 </Project>

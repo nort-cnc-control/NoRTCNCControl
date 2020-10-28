@@ -3,7 +3,7 @@ using Machine;
 
 namespace CNCState
 {
-    public class SpindleState : IState
+    public class SpindleState : IToolState
     {
         public enum SpindleRotationState
         {
