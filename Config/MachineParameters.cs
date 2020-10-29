@@ -51,6 +51,7 @@ namespace Config
         public string driver => "n700e";
         public int address { get; set; }
         public int maxspeed { get; set; }
+        public int basespeed { get; set; }
         public string name { get; set; }
 
         static public N700E_Tool ParseConfig(JsonValue config)
@@ -59,6 +60,7 @@ namespace Config
             {
                 address = config["address"],
                 maxspeed = config["maxspeed"],
+                basespeed = config["basespeed"],
                 name = config["name"],
             };
             return tool;

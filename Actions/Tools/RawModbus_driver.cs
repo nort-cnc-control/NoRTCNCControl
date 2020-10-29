@@ -3,7 +3,7 @@ using ModbusSender;
 
 namespace Actions.Tools
 {
-    public class RawModbus_driver
+    public class RawModbus_driver : IDriver
     {
         private readonly IModbusSender sender;
         private readonly int devid;
@@ -14,6 +14,11 @@ namespace Actions.Tools
             this.sender = sender;
             this.devid = devid;
             this.register = register;
+        }
+
+        public IAction Configure()
+        {
+            return new PlaceholderAction();
         }
 
         public IAction CreateAction(bool enable)

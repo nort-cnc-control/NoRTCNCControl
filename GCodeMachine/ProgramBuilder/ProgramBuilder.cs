@@ -30,7 +30,7 @@ namespace GCodeMachine
         private Stack<AxisState.Parameters> axisStateStack;
         private readonly IStateSyncManager stateSyncManager;
 
-        private Dictionary<int, object> tool_drivers;
+        private Dictionary<int, IDriver> tool_drivers;
         private List<int> toolsPending;
 
         public string Name => "gcode builder";
@@ -55,19 +55,22 @@ namespace GCodeMachine
             axisStateStack = new Stack<AxisState.Parameters>();
             toolsPending = new List<int>();
 
-            tool_drivers = new Dictionary<int, object>();
+            tool_drivers = new Dictionary<int, IDriver>();
 
             foreach (KeyValuePair<int, IToolDriver> item in config.tools)
             {
                 int id = item.Key;
                 IToolDriver driverDesc = item.Value;
-                object driver;
+                IDriver driver;
                 Logger.Instance.Debug(this, "create tool", "Create tool " + driverDesc.name + " with driver " + driverDesc.driver);
                 switch (driverDesc.driver)
                 {
                     case "n700e":
                         {
-                            driver = new N700E_driver(modbusSender, (driverDesc as N700E_Tool).address);
+                            int addr = (driverDesc as N700E_Tool).address;
+                            int maxspeed = (driverDesc as N700E_Tool).maxspeed;
+                            int basespeed = (driverDesc as N700E_Tool).basespeed;
+                            driver = new N700E_driver(modbusSender, addr, maxspeed, basespeed);
                             break;
                         }
                     case "dummy":
@@ -93,6 +96,11 @@ namespace GCodeMachine
                         }
                 }
                 tool_drivers.Add(id, driver);
+                Logger.Instance.Debug(this, "driver", "configuring: " + driverDesc.name + " " + driverDesc.driver);
+                IAction configuration = driver.Configure();
+                configuration.Run();
+                configuration.Finished.WaitOne();
+                Logger.Instance.Debug(this, "driver", "complete configuration: " + driverDesc.name + " " + driverDesc.driver);
             }
         }
 
@@ -569,7 +577,7 @@ namespace GCodeMachine
                 IAction action = null;
                 try
                 {
-                    object driver = tool_drivers[toolPending];
+                    IDriver driver = tool_drivers[toolPending];
                     if (driver is N700E_driver n700e)
                     {
                         SpindleState ss = state.ToolStates[toolPending] as SpindleState;

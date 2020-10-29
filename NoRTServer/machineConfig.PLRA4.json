@@ -32,6 +32,7 @@
             "driver"    : "n700e",
             "address"   : 1,
             "maxspeed"  : 24000,
+            "basespeed" : 24000
         },
         "2" : {
             "name"      : "atxpower",
@@ -51,7 +52,7 @@
     "movement" : {
         "fastfeed" : 15,
         "slowfeed" : 1,
-        "max_movement_leap" : 40,
+        "max_movement_leap" : 40
     },
     "control" : { 
         "state_refresh_update" : 500,

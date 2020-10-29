@@ -3,7 +3,7 @@ using RTSender;
 
 namespace Actions.Tools
 {
-    public class GPIO_driver
+    public class GPIO_driver : IDriver
     {
         private readonly int gpio;
         private readonly IRTSender sender;
@@ -12,6 +12,11 @@ namespace Actions.Tools
         {
             this.gpio = gpio;
             this.sender = sender;
+        }
+
+        public IAction Configure()
+        {
+            return new PlaceholderAction();
         }
 
         public IAction CreateAction(bool enable)
