@@ -1,94 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\ModbusSender\ModbusSender.csproj" />
+    <ProjectReference Include="..\Config\Config.csproj" />
+    <ProjectReference Include="..\GCodeServer\GCodeServer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Gnu.Getopt" Version="0.9.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{72CB055A-78E1-41A3-B54D-C1E37A57ED7C}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>NoRTServer</RootNamespace>
-    <AssemblyName>NoRTServer</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFramework>net48</TargetFramework>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <ExternalConsole>true</ExternalConsole>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <ExternalConsole>true</ExternalConsole>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Json">
-      <HintPath>..\packages\System.Json.4.7.1\lib\net461\System.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="System.Core" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Gnu.Getopt">
-      <HintPath>..\packages\Gnu.Getopt.0.9.2\lib\net20\Gnu.Getopt.dll</HintPath>
-    </Reference>
-    <Reference Include="System.IO.Ports">
-      <HintPath>..\packages\System.IO.Ports.4.7.0\lib\net461\System.IO.Ports.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Config\Config.csproj">
-      <Project>{4EA75574-8497-403B-B19B-687B90EF2FCF}</Project>
-      <Name>Config</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RTSender\RTSender.csproj">
-      <Project>{DFAFED0F-C31A-4194-B0BC-86CCE50499D7}</Project>
-      <Name>RTSender</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ModbusSender\ModbusSender.csproj">
-      <Project>{B64B4289-2825-469E-BAD9-5D8DEE1B2747}</Project>
-      <Name>ModbusSender</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\PacketSender\PacketSender.csproj">
-      <Project>{17387644-2394-4BF4-BDC7-1F61D9340126}</Project>
-      <Name>PacketSender</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Actions\Actions.csproj">
-      <Project>{3AA370A2-06F8-4704-BCE5-8C2A7A2430AE}</Project>
-      <Name>Actions</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Log\Log.csproj">
-      <Project>{505E0AB1-E3E1-4FF4-9C71-19E5D862FC13}</Project>
-      <Name>Log</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GCodeServer\GCodeServer.csproj">
-      <Project>{8C196422-DB7C-4BEA-92F1-A043FB370F93}</Project>
-      <Name>GCodeServer</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Machine\Machine.csproj">
-      <Project>{D916AEE5-FE4E-40F3-8715-ECCEEA8BC0CE}</Project>
-      <Name>Machine</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="runConfig.UDP.json" />
-    <None Include="runConfig.UART.json" />
-    <None Include="runConfig.TCP.json" />
-    <None Include="runConfig.Emu.json" />
-    <None Include="machineConfig.Prusa.json" />
-    <None Include="machineConfig.PLRA4.json" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
+
