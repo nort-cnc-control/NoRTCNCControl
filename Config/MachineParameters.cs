@@ -4,8 +4,16 @@ using System.Json;
 
 namespace Config
 {
+    public enum ToolDriverType
+    { 
+        None,
+        Binary,
+        Spindle,
+    }
+
     public interface IToolDriver
     { 
+        ToolDriverType tooltype { get; }
         string driver { get; }
         string name { get; }
     }
@@ -17,6 +25,7 @@ namespace Config
             Boolean,
         }
 
+        public ToolDriverType tooltype => ToolDriverType.Binary;
         public string driver => "modbus";
         public int address { get; set; }
         public UInt16 register { get; set; }
@@ -48,6 +57,7 @@ namespace Config
 
     public class N700E_Tool : IToolDriver
     {
+        public ToolDriverType tooltype => ToolDriverType.Spindle;
         public string driver => "n700e";
         public int address { get; set; }
         public int maxspeed { get; set; }
@@ -69,6 +79,7 @@ namespace Config
 
     public class GPIO_Tool : IToolDriver
     {
+        public ToolDriverType tooltype => ToolDriverType.Binary;
         public string driver => "gpio";
         public int gpio { get; set; }
         public string name { get; set; }
@@ -86,6 +97,7 @@ namespace Config
 
     public class Dummy_Tool : IToolDriver
     {
+        public ToolDriverType tooltype => ToolDriverType.None;
         public string driver => "dummy";
         public string name { get; set; }
 
