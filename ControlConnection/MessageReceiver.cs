@@ -168,7 +168,8 @@ namespace ControlConnection
 
         public void Dispose()
         {
-            Stop();
+            if (run)
+                Stop();
         }
 
         private void OnReceive(String str)
