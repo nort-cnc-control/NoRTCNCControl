@@ -17,9 +17,14 @@ using Log;
 using System.Collections.Concurrent;
 using Vector;
 using ControlConnection;
+using PacketSender;
 
 namespace GCodeServer
 {
+    public interface IConnectionManager
+    {
+        void CreateConnections(JsonValue config, out IPacketSender writer, out IPacketReceiver reader);
+    }
 
     public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager, ILoggerSource
     {
@@ -40,8 +45,10 @@ namespace GCodeServer
 
         private bool runFlag;
 
-        private readonly IRTSender rtSender;
-        private readonly IModbusSender modbusSender;
+        private IRTSender rtSender;
+        private IModbusSender modbusSender;
+
+        private IReadOnlyDictionary<int, IDriver> tool_drivers;
 
         private IReadOnlyDictionary<IAction, (int, int)> starts;
 
@@ -63,30 +70,48 @@ namespace GCodeServer
 
         private BlockingCollection<JsonObject> commands;
 
-        public GCodeServer(IRTSender rtSender,
-                           IModbusSender modbusSender,
-                           MachineParameters config,
-                           Stream commandStream,
-                           Stream responseStream)
+        private IConnectionManager connectionManager;
+
+        public GCodeServer(Stream commandStream,
+                           Stream responseStream,
+                           IConnectionManager connectionManager)
         {
-            this.rtSender = rtSender;
-            this.modbusSender = modbusSender;
-            this.Config = config;
+            this.rtSender = null;
+            this.modbusSender = null;
+            this.Config = null;
             this.commandStream = commandStream;
             this.responseStream = responseStream;
-            StatusMachine = new ReadStatusMachine.ReadStatusMachine(config, rtSender, Config.state_refresh_update, Config.state_refresh_timeout, Config.state_refresh_maxretry);
-            StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
             commands = new BlockingCollection<JsonObject>();
-            Init();
 
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
-
-            UploadConfiguration();
+            this.connectionManager = connectionManager;
         }
 
-        private void Init()
+        private void Reset()
         {
+            var newState = new CNCState.CNCState(Config);
+            Machine.ConfigureState(newState);
+        }
+
+        private void Init(JsonValue configuration, IConnectionManager cm)
+        {
+            JsonValue runConfig = configuration["run"];
+            JsonValue machineConfig = configuration["machine"];
+
+            Config = MachineParameters.ParseConfig(machineConfig);
+
+            cm.CreateConnections(runConfig["connection"], out IPacketSender writer, out IPacketReceiver reader);
+
+            rtSender = new PacketRTSender(writer, reader);
+            modbusSender = new PacketModbusSender(writer, reader);
+
+            rtSender.Init();
+            modbusSender.Init();
+
+            StatusMachine = new ReadStatusMachine.ReadStatusMachine(Config, rtSender, Config.state_refresh_update, Config.state_refresh_timeout, Config.state_refresh_maxretry);
+            StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
+
             sequencer = new ProgramSequencer();
             var newState = new CNCState.CNCState(Config);
             Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
@@ -105,12 +130,18 @@ namespace GCodeServer
             Machine.ActionFinished += Machine_ActionCompleted;
             Machine.ActionFailed += Machine_ActionFailed;
             toolManager = new ManualToolManager(this, Machine);
+            tool_drivers = ConfigureToolDrivers(Config);
             programBuilder = new ProgramBuilder(Machine,
                                                 this,
                                                 rtSender,
                                                 modbusSender,
                                                 toolManager,
-                                                Config);
+                                                Config,
+                                                tool_drivers);
+
+            UploadConfiguration();
+            StatusMachine.Start();
+            StatusMachine.Continue();
         }
 
         public void Message(IReadOnlyDictionary<string, string> message)
@@ -131,18 +162,16 @@ namespace GCodeServer
                 int id = item.Key;
                 var tool = item.Value;
                 string type;
-                switch (tool.driver)
+
+                switch (tool.tooltype)
                 {
-                    case "n700e":
+                    case  ToolDriverType.Spindle:
                         type = "spindle";
                         break;
-                    case "gpio":
+                    case ToolDriverType.Binary:
                         type = "binary";
                         break;
-                    case "modbus":
-                        type = "binary";
-                        break;
-                    case "dummy":
+                    case ToolDriverType.None:
                         type = "null";
                         break;
                     default:
@@ -165,6 +194,57 @@ namespace GCodeServer
 
             var resp = response.ToString();
             responseSender.MessageSend(resp);
+        }
+
+        private IReadOnlyDictionary<int, IDriver> ConfigureToolDrivers(MachineParameters config)
+        {
+            var drivers = new Dictionary<int, IDriver>();
+            foreach (KeyValuePair<int, IToolDriver> item in config.tools)
+            {
+                int id = item.Key;
+                IToolDriver driverDesc = item.Value;
+                IDriver driver;
+                Logger.Instance.Debug(this, "create tool", "Create tool " + driverDesc.name + " with driver " + driverDesc.driver);
+                switch (driverDesc.driver)
+                {
+                    case "n700e":
+                        {
+                            int addr = (driverDesc as N700E_Tool).address;
+                            int maxspeed = (driverDesc as N700E_Tool).maxspeed;
+                            int basespeed = (driverDesc as N700E_Tool).basespeed;
+                            driver = new N700E_driver(modbusSender, addr, maxspeed, basespeed);
+                            break;
+                        }
+                    case "dummy":
+                        {
+                            driver = new Dummy_driver();
+                            break;
+                        }
+                    case "gpio":
+                        {
+                            driver = new GPIO_driver(rtSender, (driverDesc as GPIO_Tool).gpio);
+                            break;
+                        }
+                    case "modbus":
+                        {
+                            int addr = (driverDesc as RawModbus_Tool).address;
+                            UInt16 reg = (driverDesc as RawModbus_Tool).register;
+                            driver = new RawModbus_driver(modbusSender, addr, reg);
+                            break;
+                        }
+                    default:
+                        {
+                            throw new NotSupportedException("Unsupported driver: " + driverDesc.driver + " : " + driverDesc.name);
+                        }
+                }
+                drivers.Add(id, driver);
+                Logger.Instance.Debug(this, "driver", "configuring: " + driverDesc.name + " " + driverDesc.driver);
+                IAction configuration = driver.Configure();
+                configuration.Run();
+                configuration.Finished.WaitOne();
+                Logger.Instance.Debug(this, "driver", "complete configuration: " + driverDesc.name + " " + driverDesc.driver);
+            }
+            return drivers;
         }
 
         private void OnStatusUpdate(Vector3 hw_crds, bool ex, bool ey, bool ez, bool ep)
@@ -404,8 +484,14 @@ namespace GCodeServer
                 {
                     // broken connection
                     cmdReceiver.Stop();
-                    StatusMachine.Stop();
-                    Machine.Stop();
+                    if (StatusMachine != null)
+                    {
+                        StatusMachine.Stop();
+                    }
+                    if (Machine != null)
+                    {
+                        Machine.Stop();
+                    }
                     commands.Add(new JsonObject
                     {
                         ["command"] = "run_finish",
@@ -459,15 +545,22 @@ namespace GCodeServer
                                 case "reset":
                                 case "stop":
                                     {
-                                        StatusMachine.Stop();
-                                        Machine.Abort();
-                                        Machine.ActionFinished -= Machine_ActionCompleted;
-                                        Machine.ActionStarted -= Machine_ActionStarted;
-                                        Machine.ActionFailed -= Machine_ActionFailed;
-                                        Machine.Dispose();
-                                        Init();
-                                        StatusMachine.Start();
-                                        StatusMachine.Continue();
+                                        if (StatusMachine != null)
+                                        {
+                                            StatusMachine.Stop();
+                                        }
+
+                                        if (Machine != null)
+                                        {
+                                            Machine.Abort();
+                                            Machine.ActionFinished -= Machine_ActionCompleted;
+                                            Machine.ActionStarted -= Machine_ActionStarted;
+                                            Machine.ActionFailed -= Machine_ActionFailed;
+                                            Machine.Dispose();
+                                            Reset();
+                                            StatusMachine.Start();
+                                            StatusMachine.Continue();
+                                        }
                                         break;
                                     }
                                 case "pause":
@@ -488,6 +581,9 @@ namespace GCodeServer
                             }
                             break;
                         }
+                    case "configuration":
+                        Init(message["configuration"], connectionManager);
+                        break;
                 }
 
             } while (serverRun);
@@ -508,8 +604,6 @@ namespace GCodeServer
 
         public bool Run()
         {
-            StatusMachine.Start();
-            StatusMachine.Continue();
             serverRun = true;
             var cmdThread = new Thread(new ThreadStart(ReceiveCmdCycle));
             cmdThread.Start();
@@ -592,6 +686,7 @@ namespace GCodeServer
                             ReadActualPosition();
                             break;
                         }
+                   
                     default:
                         {
                             // ERROR
@@ -616,8 +711,16 @@ namespace GCodeServer
                 responseSender.Dispose();
                 responseSender = null;
             }
-            Machine.Dispose();
-            StatusMachine.Dispose();
+            if (Machine != null)
+            {
+                Machine.Dispose();
+                Machine = null;
+            }
+            if (StatusMachine != null)
+            {
+                StatusMachine.Dispose();
+                StatusMachine = null;
+            }
         }
 
         public void SyncCoordinates(Vector3 stateCoordinates)

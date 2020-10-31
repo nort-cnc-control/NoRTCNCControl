@@ -11,6 +11,7 @@ using System.Json;
 using Newtonsoft.Json;
 using PacketSender;
 using System.IO.Ports;
+using GCodeServer;
 
 namespace NoRTServer
 {
@@ -146,72 +147,73 @@ namespace NoRTServer
             }
         }
 
-        static bool BuildSR(string proto, string addr, string port, out IPacketSender writer, out IPacketReceiver reader)
+        class ConnectionManager : IConnectionManager
         {
-            if (proto == "TCP")
+            public void CreateConnections(JsonValue config, out IPacketSender writer, out IPacketReceiver reader)
             {
-                TcpClient tcpClient = new TcpClient();
-                tcpClient.Connect(IPAddress.Parse(addr), int.Parse(port));
-                NetworkStream stream = tcpClient.GetStream();
-                reader = new StreamPacketReceiver(new StreamReader(stream));
-                writer = new StreamPacketSender(new StreamWriter(stream));
-            }
-            else if (proto == "UDP")
-            {
-                UdpClient udpClient = new UdpClient();
-                udpClient.Connect(IPAddress.Parse(addr), int.Parse(port));
-                reader = new UDPPacketReceiver(udpClient, addr, int.Parse(port));
-                writer = new UDPPacketSender(udpClient);
-            }
-            else if (proto == "UART")
-            {
-                SerialPort sport = new SerialPort(port)
+                string proto = config["proto"];
+                switch (proto)
                 {
-                    StopBits = StopBits.One,
-                    BaudRate = 38400,
-                    Parity = Parity.None,
-                    DataBits = 8
-                };
-                sport.Open();
-                reader = new SerialPacketReceiver(sport);
-                writer = new SerialPacketSender(sport);
+                    case "TCP":
+                        {
+                            string addr = config["addr"];
+                            int port = config["port"];
+                            TcpClient tcpClient = new TcpClient();
+                            tcpClient.Connect(IPAddress.Parse(addr), port);
+                            NetworkStream stream = tcpClient.GetStream();
+                            reader = new StreamPacketReceiver(new StreamReader(stream));
+                            writer = new StreamPacketSender(new StreamWriter(stream));
+                            break;
+                        }
+                    case "UDP":
+                        {
+                            string addr = config["addr"];
+                            int port = config["port"];
+                            UdpClient udpClient = new UdpClient();
+                            udpClient.Connect(IPAddress.Parse(addr), port);
+                            reader = new UDPPacketReceiver(udpClient, addr, port);
+                            writer = new UDPPacketSender(udpClient);
+                            break;
+                        }
+                    case "UART":
+                        {
+                            string port = config["port"];
+                            SerialPort sport = new SerialPort(port)
+                            {
+                                StopBits = StopBits.One,
+                                BaudRate = 38400,
+                                Parity = Parity.None,
+                                DataBits = 8
+                            };
+                            sport.Open();
+                            reader = new SerialPacketReceiver(sport);
+                            writer = new SerialPacketSender(sport);
+                            break;
+                        }
+                    default:
+                        {
+                            throw new ArgumentOutOfRangeException();
+                        }
+                }
             }
-            else
-            {
-                writer = null;
-                reader = null;
-                Console.WriteLine("Unknown protocol {0}", proto);
-                return false;
-            }
-            return true;
         }
+
 
         static void Main(string[] args)
         {
             var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:x:l:");
 
-            string machineConfigName = "";
-            string runConfigName = "";
             int controlPort = 8888;
+            var connManager = new ConnectionManager();
 
             int arg;
             while ((arg = opts.getopt()) != -1)
             {
                 switch (arg)
                 {
-                    case 'm':
-                        {
-                            machineConfigName = opts.Optarg;
-                            break;
-                        }
                     case 'p':
                         {
                             controlPort = int.Parse(opts.Optarg);
-                            break;
-                        }
-                    case 'r':
-                        {
-                            runConfigName = opts.Optarg;
                             break;
                         }
                     case 'l':
@@ -227,151 +229,9 @@ namespace NoRTServer
                 }
             }
 
-            MachineParameters machineConfig;
-            if (machineConfigName != "")
-            {
-                try
-                {
-                    string cfg = File.ReadAllText(machineConfigName);
-                    machineConfig = MachineParameters.ParseConfig(JsonValue.Parse(cfg));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Can not load config: {0}", e.ToString());
-                    return;
-                }
-            }
-            else
-            {
-                throw new ArgumentNullException("None machine specification");
-            }
-            JsonValue runConfig;
-            if (runConfigName != "")
-            {
-                try
-                {
-                    string cfg = File.ReadAllText(runConfigName);
-                    runConfig = JsonValue.Parse(cfg);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Can not load config: {0}", e.ToString());
-                    return;
-                }
-            }
-            else
-            {
-                runConfig = new JsonObject
-                {
-                    ["rt_sender"] = new JsonObject {
-                        ["sender"] = "EmulationRTSender",
-                    },
-                    ["modbus_sender"] = new JsonObject {
-                        ["sender"] = "EmulationModbusSender",
-                    }
-                };
-            }
-
             var localAddr = IPAddress.Parse("0.0.0.0");
             TcpListener tcpServer = new TcpListener(localAddr, controlPort);
             tcpServer.Start();
-
-            bool packetRT = false;
-            string addrRT = null;
-            string portRT = null;
-            string protoRT = null;
-            IRTSender senderRT = null;
-
-            bool packetMB = false;
-            string addrMB = null;
-            string portMB = null;
-            string protoMB = null;
-            IModbusSender senderMB = null;
-
-            string modbus_sender = runConfig["modbus_sender"]["sender"];
-            Console.WriteLine("Using {0} modbus sender", modbus_sender);
-            switch (modbus_sender)
-            {
-                case "EmulationModbusSender":
-                    {
-                        senderMB = new EmulationModbusSender(Console.Out);
-                        break;
-                    }
-                case "PacketModbusSender":
-                    {
-                        packetMB = true;
-                        protoMB = runConfig["modbus_sender"]["protocol"];
-                        if (protoMB == "TCP" || protoMB == "UDP")
-                        {
-                            addrMB = runConfig["modbus_sender"]["address"];
-                            portMB = runConfig["modbus_sender"]["port"];
-                        }
-                        else if (protoMB == "UART")
-                        {
-                            portMB = runConfig["modbus_sender"]["port"];
-                        }
-                        break;
-                    }
-                default:
-                    Console.WriteLine("Invalid modbus sender: {0}", modbus_sender);
-                    return;
-            }
-
-            string rt_sender = runConfig["rt_sender"]["sender"];
-            Console.WriteLine("Using {0} rt sender", rt_sender);
-            switch (rt_sender)
-            {
-                case "EmulationRTSender":
-                    {
-                        senderRT = new EmulationRTSender(Console.Out);
-                        break;
-                    }
-                case "PacketRTSender":
-                    {
-                        packetRT = true;
-                        protoRT = runConfig["rt_sender"]["protocol"];
-                        if (protoRT == "TCP" || protoRT == "UDP")
-                        {
-                            addrRT = runConfig["rt_sender"]["address"];
-                            portRT = runConfig["rt_sender"]["port"];
-                        }
-                        else if (protoRT == "UART")
-                        {
-                            portRT = runConfig["rt_sender"]["port"];
-                        }
-                        break;
-                    }
-                default:
-                    Console.WriteLine("Invalid RT sender: {0}", rt_sender);
-                    return;
-            }
-
-            if (packetMB && packetRT && (protoMB == protoRT) && (portMB == portRT) && (addrMB == addrRT))
-            {
-                if (!BuildSR(protoMB, addrMB, portMB, out IPacketSender writer, out IPacketReceiver reader))
-                    return;
-                senderRT = new PacketRTSender(writer, reader);
-                senderMB = new PacketModbusSender(writer, reader);
-
-            }
-            else
-            {
-                if (packetMB)
-                {
-                    if (!BuildSR(protoMB, addrMB, portMB, out IPacketSender writer, out IPacketReceiver reader))
-                        return;
-                    senderMB = new PacketModbusSender(writer, reader);
-                }
-                if (packetRT)
-                {
-                    if (!BuildSR(protoRT, addrRT, portRT, out IPacketSender writer, out IPacketReceiver reader))
-                        return;
-                    senderRT = new PacketRTSender(writer, reader);
-                }
-            }
-
-            senderRT.Init();
-            senderMB.Init();
 
             bool run = true;
             do
@@ -381,7 +241,7 @@ namespace NoRTServer
 
                 Stream stream = new SocketStream(tcpClient);
 
-                var machineServer = new GCodeServer.GCodeServer(senderRT, senderMB, machineConfig, stream, stream);
+                var machineServer = new GCodeServer.GCodeServer(stream, stream, connManager);
 
                 try
                 {
@@ -397,7 +257,7 @@ namespace NoRTServer
                 tcpClient.Close();
                 Console.WriteLine("Client disconnected");
             } while (run);
-            senderRT.Dispose();
+
             tcpServer.Stop();
         }
     }

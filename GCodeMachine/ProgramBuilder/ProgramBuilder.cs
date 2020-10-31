@@ -30,7 +30,7 @@ namespace GCodeMachine
         private Stack<AxisState.Parameters> axisStateStack;
         private readonly IStateSyncManager stateSyncManager;
 
-        private Dictionary<int, IDriver> tool_drivers;
+        private IReadOnlyDictionary<int, IDriver> tool_drivers;
         private List<int> toolsPending;
 
         public string Name => "gcode builder";
@@ -40,7 +40,8 @@ namespace GCodeMachine
                               IRTSender rtSender,
                               IModbusSender modbusSender,
                               IToolManager toolManager,
-                              MachineParameters config)
+                              MachineParameters config,
+                              IReadOnlyDictionary<int, IDriver> tool_drivers)
         {
             this.stateSyncManager = stateSyncManager;
             this.machine = machine;
@@ -55,53 +56,7 @@ namespace GCodeMachine
             axisStateStack = new Stack<AxisState.Parameters>();
             toolsPending = new List<int>();
 
-            tool_drivers = new Dictionary<int, IDriver>();
-
-            foreach (KeyValuePair<int, IToolDriver> item in config.tools)
-            {
-                int id = item.Key;
-                IToolDriver driverDesc = item.Value;
-                IDriver driver;
-                Logger.Instance.Debug(this, "create tool", "Create tool " + driverDesc.name + " with driver " + driverDesc.driver);
-                switch (driverDesc.driver)
-                {
-                    case "n700e":
-                        {
-                            int addr = (driverDesc as N700E_Tool).address;
-                            int maxspeed = (driverDesc as N700E_Tool).maxspeed;
-                            int basespeed = (driverDesc as N700E_Tool).basespeed;
-                            driver = new N700E_driver(modbusSender, addr, maxspeed, basespeed);
-                            break;
-                        }
-                    case "dummy":
-                        {
-                            driver = new Dummy_driver();
-                            break;
-                        }
-                    case "gpio":
-                        {
-                            driver = new GPIO_driver(rtSender, (driverDesc as GPIO_Tool).gpio);
-                            break;
-                        }
-                    case "modbus":
-                        {
-                            int addr = (driverDesc as RawModbus_Tool).address;
-                            UInt16 reg = (driverDesc as RawModbus_Tool).register;
-                            driver = new RawModbus_driver(modbusSender, addr, reg);
-                            break;
-                        }
-                    default:
-                        {
-                            throw new NotSupportedException("Unsupported driver: " + driverDesc.driver + " : " + driverDesc.name);
-                        }
-                }
-                tool_drivers.Add(id, driver);
-                Logger.Instance.Debug(this, "driver", "configuring: " + driverDesc.name + " " + driverDesc.driver);
-                IAction configuration = driver.Configure();
-                configuration.Run();
-                configuration.Finished.WaitOne();
-                Logger.Instance.Debug(this, "driver", "complete configuration: " + driverDesc.name + " " + driverDesc.driver);
-            }
+            this.tool_drivers = tool_drivers;
         }
 
         private void PushState(AxisState axisState)
