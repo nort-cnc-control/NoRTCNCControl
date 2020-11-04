@@ -3,6 +3,6 @@ namespace PacketSender
 {
     public interface IPacketReceiver
     {
-        string ReceivePacket();
+        string ReceivePacket(int timeoutMs);
     }
 }

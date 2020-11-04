@@ -1,15 +1,18 @@
 ﻿using System;
 using System.IO;
+using System.Net.Sockets;
 
 namespace PacketSender
 {
-    public class StreamPacketSender : IPacketSender
+    public class TcpPacketSender : IPacketSender
     {
         private StreamWriter stream;
+        private TcpClient tcpClient;
 
-        public StreamPacketSender(StreamWriter stream)
+        public TcpPacketSender(TcpClient tcpClient)
         {
-            this.stream = stream;
+            this.tcpClient = tcpClient;
+            this.stream = new StreamWriter(tcpClient.GetStream());
         }
 
         public bool SendPacket(string data)

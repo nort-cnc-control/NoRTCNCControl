@@ -11,6 +11,10 @@ namespace ModbusSender
             this.output = output;
         }
 
+        public void Dispose()
+        {
+        }
+
         public void Init()
         {
         }

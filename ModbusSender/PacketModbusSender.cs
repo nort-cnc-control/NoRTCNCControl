@@ -44,5 +44,9 @@ namespace ModbusSender
 		        output.SendPacket(cmd);
             }
         }
+
+        public void Dispose()
+        {
+        }
     }
 }

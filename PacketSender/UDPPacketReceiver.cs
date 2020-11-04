@@ -15,10 +15,18 @@ namespace PacketSender
             ep = new IPEndPoint(IPAddress.Any, 0);
         }
 
-        public string ReceivePacket()
+        public string ReceivePacket(int timeoutMs)
         {
-            var data = client.Receive(ref ep);
-            return System.Text.Encoding.ASCII.GetString(data);
+            client.Client.ReceiveTimeout = timeoutMs;
+            try
+            {
+                var data = client.Receive(ref ep);
+                return System.Text.Encoding.ASCII.GetString(data);
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

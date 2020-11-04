@@ -24,6 +24,7 @@ namespace GCodeServer
     public interface IConnectionManager
     {
         void CreateConnections(JsonValue config, out IPacketSender writer, out IPacketReceiver reader);
+        void Disconnect();
     }
 
     public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager, ILoggerSource
@@ -700,6 +701,7 @@ namespace GCodeServer
 
         public void Dispose()
         {
+
             runFlag = false;
             if (cmdReceiver != null)
             {
@@ -721,6 +723,20 @@ namespace GCodeServer
                 StatusMachine.Dispose();
                 StatusMachine = null;
             }
+
+            if (rtSender != null)
+            {
+                rtSender.Dispose();
+                rtSender = null;
+            }
+
+            if (modbusSender != null)
+            {
+                modbusSender.Dispose();
+                modbusSender = null;
+            }
+
+            connectionManager.Disconnect();
         }
 
         public void SyncCoordinates(Vector3 stateCoordinates)

@@ -86,35 +86,36 @@ namespace ReadStatusMachine
             Logger.Instance.Debug(this, "readhw", "read coordinates");
             while (true)
             {
-                try
-                {
-                    RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
-                    // action.ReadyToRun.WaitOne();
-                    action.Run();
-                    action.Finished.WaitOne(timeoutT);
+                RTAction action = new RTAction(rtSender, new RTGetPositionCommand());
+                // action.ReadyToRun.WaitOne();
+                action.Run();
+                action.Finished.WaitOne(timeoutT);
 
-                    var xs = action.ActionResult["X"];
-                    var ys = action.ActionResult["Y"];
-                    var zs = action.ActionResult["Z"];
-                    var pos = new Vector3(decimal.Parse(xs, CultureInfo.InvariantCulture),
-                                          decimal.Parse(ys, CultureInfo.InvariantCulture),
-                                          decimal.Parse(zs, CultureInfo.InvariantCulture));
-                    pos.x /= config.X_axis.steps_per_mm;
-                    pos.y /= config.Y_axis.steps_per_mm;
-                    pos.z /= config.Z_axis.steps_per_mm;
-                    return pos;
-                }
-                catch (Exception e)
+                if (action.ActionResult == null ||
+                    !action.ActionResult.ContainsKey("X") ||
+                    !action.ActionResult.ContainsKey("Y") ||
+                    !action.ActionResult.ContainsKey("Z"))
                 {
-                    Logger.Instance.Warning(this, "readhw", String.Format("Can not read coordinates, retry. {0}", e));
+                    Logger.Instance.Warning(this, "readhw", String.Format("Can not read coordinates, retry."));
                     retry++;
                     if (retry >= maxretry)
                     {
-                        Logger.Instance.Warning(this, "readhw", String.Format("Max retry exceed"));
-                        throw e;
+                        Logger.Instance.Error(this, "readhw", String.Format("Max retry exceed"));
+                        throw new TimeoutException();
                     }
                     Thread.Sleep(300);
+                    continue;
                 }
+                var xs = action.ActionResult["X"];
+                var ys = action.ActionResult["Y"];
+                var zs = action.ActionResult["Z"];
+                var pos = new Vector3(decimal.Parse(xs, CultureInfo.InvariantCulture),
+                                      decimal.Parse(ys, CultureInfo.InvariantCulture),
+                                      decimal.Parse(zs, CultureInfo.InvariantCulture));
+                pos.x /= config.X_axis.steps_per_mm;
+                pos.y /= config.Y_axis.steps_per_mm;
+                pos.z /= config.Z_axis.steps_per_mm;
+                return pos;
             }
         }
 

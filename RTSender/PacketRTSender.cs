@@ -104,7 +104,7 @@ namespace RTSender
         {
             while (running)
             {
-                var line = input.ReceivePacket();
+                var line = input.ReceivePacket(1000);
                 if (!string.IsNullOrEmpty(line))
                 {
                     Logger.Instance.Debug(this, "receive", line);

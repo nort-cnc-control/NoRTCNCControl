@@ -149,6 +149,17 @@ namespace NoRTServer
 
         class ConnectionManager : IConnectionManager
         {
+            private TcpClient tcpClient;
+            private UdpClient udpClient;
+            private SerialPort sport;
+
+            public ConnectionManager()
+            {
+                tcpClient = null;
+                udpClient = null;
+                sport = null;
+            }
+
             public void CreateConnections(JsonValue config, out IPacketSender writer, out IPacketReceiver reader)
             {
                 string proto = config["proto"];
@@ -158,18 +169,17 @@ namespace NoRTServer
                         {
                             string addr = config["addr"];
                             int port = config["port"];
-                            TcpClient tcpClient = new TcpClient();
+                            tcpClient = new TcpClient();
                             tcpClient.Connect(IPAddress.Parse(addr), port);
-                            NetworkStream stream = tcpClient.GetStream();
-                            reader = new StreamPacketReceiver(new StreamReader(stream));
-                            writer = new StreamPacketSender(new StreamWriter(stream));
+                            reader = new TcpPacketReceiver(tcpClient);
+                            writer = new TcpPacketSender(tcpClient);
                             break;
                         }
                     case "UDP":
                         {
                             string addr = config["addr"];
                             int port = config["port"];
-                            UdpClient udpClient = new UdpClient();
+                            udpClient = new UdpClient();
                             udpClient.Connect(IPAddress.Parse(addr), port);
                             reader = new UDPPacketReceiver(udpClient, addr, port);
                             writer = new UDPPacketSender(udpClient);
@@ -178,7 +188,7 @@ namespace NoRTServer
                     case "UART":
                         {
                             string port = config["port"];
-                            SerialPort sport = new SerialPort(port)
+                            sport = new SerialPort(port)
                             {
                                 StopBits = StopBits.One,
                                 BaudRate = 38400,
@@ -194,6 +204,25 @@ namespace NoRTServer
                         {
                             throw new ArgumentOutOfRangeException();
                         }
+                }
+            }
+
+            public void Disconnect()
+            {
+                if (tcpClient != null)
+                {
+                    tcpClient.Close();
+                    tcpClient = null;
+                }
+                if (udpClient != null)
+                {
+                    udpClient.Close();
+                    udpClient = null;
+                }
+                if (sport != null)
+                {
+                    sport.Close();
+                    sport = null;
                 }
             }
         }

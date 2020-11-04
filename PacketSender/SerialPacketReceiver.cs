@@ -11,12 +11,20 @@ namespace PacketSender
             this.port = port;
         }
 
-        public string ReceivePacket()
+        public string ReceivePacket(int timeoutMs)
         {
-            string line = port.ReadLine();
-            line = line.Replace("\r", "");
-            line = line.Replace("\n", "");
-            return line;
+            port.ReadTimeout = timeoutMs;
+            try
+            {
+                string line = port.ReadLine();
+                line = line.Replace("\r", "");
+                line = line.Replace("\n", "");
+                return line;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
