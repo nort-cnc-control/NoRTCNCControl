@@ -53,7 +53,15 @@ namespace GCodeServer
 
         private IReadOnlyDictionary<IAction, (int, int)> starts;
 
-        private CNCState.CNCState State => Machine.LastState;
+
+        private CNCState.CNCState CurrentMachineState
+        {
+            get
+            {
+                return Machine.LastState;
+            }
+        }
+
         private AxisState.CoordinateSystem hwCoordinateSystem;
 
         private MessageReceiver cmdReceiver;
@@ -114,22 +122,24 @@ namespace GCodeServer
             StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
 
             sequencer = new ProgramSequencer();
+
             var newState = new CNCState.CNCState(Config);
-            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
 
             var crds = StatusMachine.ReadHardwareCoordinates();
             var sign = new Vector3(Config.X_axis.sign, Config.Y_axis.sign, Config.Z_axis.sign);
             hwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,
-                Offset = new Vector3(crds.x - sign.x * State.AxisState.Position.x,
-                                     crds.y - sign.y * State.AxisState.Position.y,
-                                     crds.z - sign.z * State.AxisState.Position.z)
+                Offset = new Vector3(crds.x - sign.x * newState.AxisState.Position.x,
+                                     crds.y - sign.y * newState.AxisState.Position.y,
+                                     crds.z - sign.z * newState.AxisState.Position.z)
             };
 
+            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
             Machine.ActionStarted += Machine_ActionStarted;
             Machine.ActionFinished += Machine_ActionCompleted;
             Machine.ActionFailed += Machine_ActionFailed;
+
             toolManager = new ManualToolManager(this, Machine);
             tool_drivers = ConfigureToolDrivers(Config);
             programBuilder = new ProgramBuilder(Machine,
@@ -554,10 +564,6 @@ namespace GCodeServer
                                         if (Machine != null)
                                         {
                                             Machine.Abort();
-                                            Machine.ActionFinished -= Machine_ActionCompleted;
-                                            Machine.ActionStarted -= Machine_ActionStarted;
-                                            Machine.ActionFailed -= Machine_ActionFailed;
-                                            Machine.Dispose();
                                             Reset();
                                             StatusMachine.Start();
                                             StatusMachine.Continue();
@@ -588,7 +594,8 @@ namespace GCodeServer
                 }
 
             } while (serverRun);
-            cmdReceiver.Stop();
+            if (cmdReceiver != null)
+                cmdReceiver.Stop();
         }
 
         private void CompileErrorMessageSend(String msg)
@@ -701,7 +708,7 @@ namespace GCodeServer
 
         public void Dispose()
         {
-
+            serverRun = false;
             runFlag = false;
             if (cmdReceiver != null)
             {
@@ -715,6 +722,9 @@ namespace GCodeServer
             }
             if (Machine != null)
             {
+                Machine.ActionStarted -= Machine_ActionStarted;
+                Machine.ActionFinished -= Machine_ActionCompleted;
+                Machine.ActionFailed -= Machine_ActionFailed;
                 Machine.Dispose();
                 Machine = null;
             }
@@ -746,9 +756,9 @@ namespace GCodeServer
             hwCoordinateSystem = new AxisState.CoordinateSystem
             {
                 Sign = sign,
-                Offset = new Vector3(crds.x - sign.x * State.AxisState.Position.x,
-                                     crds.y - sign.y * State.AxisState.Position.y,
-                                     crds.z - sign.z * State.AxisState.Position.z)
+                Offset = new Vector3(crds.x - sign.x * CurrentMachineState.AxisState.Position.x,
+                                     crds.y - sign.y * CurrentMachineState.AxisState.Position.y,
+                                     crds.z - sign.z * CurrentMachineState.AxisState.Position.z)
             };
         }
     }

@@ -35,9 +35,67 @@ namespace GCodeMachine
             Aborted,
         }
 
+
         public MachineState StateMachine { get; private set; }
-        private ActionProgram.ActionProgram program;
-        private int index;
+
+        private class ProgramStack
+        {
+            private class ProgramState
+            {
+                public ActionProgram.ActionProgram Program { get; set; }
+                public int Index { get; set; }
+            }
+
+            private List<ProgramState> programStack;
+
+            public ProgramStack()
+            {
+                programStack = new List<ProgramState>();
+            }
+
+            public ActionProgram.ActionProgram Program
+            {
+                get
+                {
+                    if (programStack.Count == 0)
+                        return null;
+                    return programStack[programStack.Count - 1].Program;
+                }
+            }
+
+            public int Index
+            {
+                get
+                {
+                    if (programStack.Count == 0)
+                        return -1;
+                    return programStack[programStack.Count - 1].Index;
+                }
+                set
+                {
+                    programStack[programStack.Count - 1].Index = value;
+                }
+            }
+
+            public void Clear()
+            {
+                programStack.Clear();
+            }
+
+            public void Pop()
+            {
+                if (programStack.Count > 0)
+                    programStack.RemoveAt(programStack.Count - 1);
+            }
+
+            public void Push(ActionProgram.ActionProgram program, int index = 0)
+            {
+                programStack.Add(new ProgramState { Program = program, Index = index });
+            }
+        }
+
+        private ProgramStack programStack;
+
         private IAction currentAction;
         private IAction previousAction;
         private IAction failedAction;
@@ -73,6 +131,7 @@ namespace GCodeMachine
             this.rtSender.Reseted += OnReseted;
             machineIsRunning = false;
             states = new Dictionary<IAction, (CNCState.CNCState before, CNCState.CNCState after)>();
+            programStack = new ProgramStack();
         }
 
         public void ConfigureState(CNCState.CNCState state)
@@ -143,18 +202,22 @@ namespace GCodeMachine
 
         public void Start()
         {
+            if (messageRouter == null)
+                throw new InvalidProgramException();
             currentAction = null;
-            if (program == null)
+            if (programStack.Program == null)
             {
                 RunState = State.Stopped;
                 return;
             }
-            index = 0;
+            programStack.Index = 0;
             SwitchToState(MachineState.Ready, true);
         }
 
         public void Continue()
         {
+            if (messageRouter == null)
+                throw new InvalidProgramException();
             machineIsRunning = true;
             var runThread = new Thread(new ThreadStart(Process));
             runThread.Start();
@@ -165,7 +228,7 @@ namespace GCodeMachine
             return machineIsRunning;
         }
 
-        public void Process()
+        private void Process()
         {
             bool wasReset = false;
             CNCState.CNCState sa, sb;
@@ -193,6 +256,7 @@ namespace GCodeMachine
                         (currentAction, sb, sa) = PopAction();
                         if (currentAction == null)
                         {
+                            programStack.Pop();
                             Logger.Instance.Debug(this, "action", "No more actions, end");
                             SwitchToState(MachineState.WaitEnd);
                         }
@@ -239,6 +303,7 @@ namespace GCodeMachine
                                 ["message"] = String.Format("Command has failed : {0}", fail),
                                 ["message_type"] = "command fail",
                             };
+                            programStack.Clear();
                             messageRouter.Message(message);
                             SwitchToState(MachineState.End, true);
                         }
@@ -298,7 +363,10 @@ namespace GCodeMachine
                     break;
                 case MachineState.End:
                 case MachineState.Idle:
-                    SendState("init");
+                    if (programStack.Program == null)
+                        SendState("init");
+                    else
+                        SendState("paused");
                     break;
                 case MachineState.Error:
                     SendState("error");
@@ -339,13 +407,18 @@ namespace GCodeMachine
 
         public void Stop()
         {
+            if (messageRouter == null)
+                throw new InvalidProgramException();
             SendState("init");
             SwitchToState(MachineState.End, true);
             RunState = State.Stopped;
+            programStack.Clear();
         }
 
         public void Pause()
         {
+            if (messageRouter == null)
+                throw new InvalidProgramException();
             SendState("paused");
             SwitchToState(MachineState.Pause);
             RunState = State.Paused;
@@ -353,6 +426,8 @@ namespace GCodeMachine
 
         public void Reboot()
         {
+            if (messageRouter == null)
+                throw new InvalidProgramException();
             reseted.Reset();
             rtSender.SendCommand("M999");
             Thread.Sleep(3000);
@@ -362,6 +437,8 @@ namespace GCodeMachine
 
         public void Abort()
         {
+            if (messageRouter == null)
+                throw new InvalidProgramException();
             reseted.Reset();
             rtSender.SendCommand("M999");
             Thread.Sleep(3000);
@@ -371,26 +448,26 @@ namespace GCodeMachine
 
         private (IAction, CNCState.CNCState, CNCState.CNCState) PopAction()
         {
-            if (program == null)
+            if (programStack.Program == null)
                 return (null, null, null);
-            if (index >= program.Actions.Count)
+            if (programStack.Index >= programStack.Program.Actions.Count)
                 return (null, null, null);
-            return program.Actions[index++];
+            return programStack.Program.Actions[programStack.Index++];
         }
 
         public void Dispose()
         {
             rtSender.Reseted -= OnReseted;
-            program = null; // remove link usage
+            programStack.Clear();
             messageRouter = null;
             states.Clear();
         }
 
         public void LoadProgram(ActionProgram.ActionProgram program)
         {
-            this.program = program;
+            if (messageRouter == null)
+                throw new InvalidProgramException();
+            programStack.Push(program);
         }
-
-
     }
 }

@@ -108,16 +108,28 @@ namespace ControlConnection
 
         private Thread streamReader;
         private MessageReader reader;
-        private bool run;
+
         private bool end;
         public string Name => "message receiver";
+        private CancellationToken Token => tokenSource.Token;
+        private CancellationTokenSource tokenSource;
 
         private void ReadingThread()
         {
             byte[] buffer = new byte[1000];
-            while (run)
+            while (true)
             {
-                int len = stream.Read(buffer, 0, 1000);
+                var task = stream.ReadAsync(buffer, 0, 1000);
+                try
+                {
+                    task.Wait(Token);
+                }
+                catch
+                {
+                    break;
+                }
+
+                int len = task.Result;
                 if (len > 0)
                 {
                     end = false;
@@ -146,29 +158,31 @@ namespace ControlConnection
                 MessageReceived?.Invoke(msg);
                 OnReceive(msg);
             };
+
             this.stream = stream;
             streamReader = new Thread(new ThreadStart(ReadingThread));
             waiter = new EventWaitHandle(false, EventResetMode.ManualReset);
             receivedStrings = new List<string>();
+            tokenSource = new CancellationTokenSource();
         }
 
         public void Run()
         {
+            tokenSource = new CancellationTokenSource();
             end = false;
-            run = true;
             streamReader.Start();
         }
 
         public void Stop()
         {
-            run = false;
+            tokenSource.Cancel();
             waiter.Set();
             streamReader.Join();
         }
 
         public void Dispose()
         {
-            if (run)
+            if (!Token.IsCancellationRequested)
                 Stop();
         }
 
@@ -186,7 +200,7 @@ namespace ControlConnection
                 waiter.Reset();
                 waiter.WaitOne();
             }
-            if (end || run == false)
+            if (end || Token.IsCancellationRequested)
                 return null;
             String rcvd = receivedStrings[0];
             receivedStrings.RemoveAt(0);
