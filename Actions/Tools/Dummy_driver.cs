@@ -1,7 +1,7 @@
 ﻿using System;
 using CNCState;
 
-namespace Actions.Tools
+namespace Actions.Mills
 {
     public class Dummy_driver : IDriver
     {

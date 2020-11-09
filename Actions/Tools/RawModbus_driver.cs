@@ -1,7 +1,7 @@
 ﻿using System;
 using ModbusSender;
 
-namespace Actions.Tools
+namespace Actions.Mills
 {
     public class RawModbus_driver : IDriver
     {

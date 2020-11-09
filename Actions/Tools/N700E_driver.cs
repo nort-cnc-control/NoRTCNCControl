@@ -2,7 +2,7 @@
 using CNCState;
 using ModbusSender;
 
-namespace Actions.Tools
+namespace Actions.Mills
 {
     public class N700E_driver : IDriver
     {

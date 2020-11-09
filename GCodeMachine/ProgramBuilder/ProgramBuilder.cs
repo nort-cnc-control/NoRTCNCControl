@@ -1,6 +1,6 @@
 using System;
 using Actions;
-using Actions.Tools;
+using Actions.Mills;
 using RTSender;
 using ModbusSender;
 using Config;
@@ -22,7 +22,7 @@ namespace GCodeMachine
         private readonly IModbusSender modbusSender;
         private readonly MachineParameters config;
         private readonly GCodeMachine machine;
-        private readonly IToolManager toolManager;
+        private readonly IMillManager toolManager;
         private MoveFeedLimiter moveFeedLimiter;
         private MoveOptimizer optimizer;
         private ExpectedTimeCalculator timeCalculator;
@@ -39,7 +39,7 @@ namespace GCodeMachine
                               IStateSyncManager stateSyncManager,
                               IRTSender rtSender,
                               IModbusSender modbusSender,
-                              IToolManager toolManager,
+                              IMillManager toolManager,
                               MachineParameters config,
                               IReadOnlyDictionary<int, IDriver> tool_drivers)
         {

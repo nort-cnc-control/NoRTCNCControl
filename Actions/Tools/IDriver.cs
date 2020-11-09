@@ -1,5 +1,5 @@
 ﻿using System;
-namespace Actions.Tools
+namespace Actions.Mills
 {
     public interface IDriver
     {

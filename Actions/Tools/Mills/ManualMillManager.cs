@@ -2,22 +2,22 @@
 using System.Collections.Generic;
 using Machine;
 
-namespace Actions.Tools
+namespace Actions.Mills
 {
-    public class ManualToolManager : IToolManager
+    public class ManualMillManager : IMillManager
     {
         private readonly IMessageRouter router;
         private readonly IMachine machine;
 
-        public ManualToolManager(IMessageRouter router, IMachine machine)
+        public ManualMillManager(IMessageRouter router, IMachine machine)
         {
             this.machine = machine;
             this.router = router;
         }
 
-        public void SelectTool(int toolId)
+        public void SelectMill(int millId)
         {
-            var msg = string.Format("Please insert tool #{0}", toolId);
+            var msg = string.Format("Please insert mill #{0}", millId);
             machine.Pause();
             Dictionary<string, string> message = new Dictionary<string, string>
             {

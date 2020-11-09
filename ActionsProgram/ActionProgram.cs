@@ -6,7 +6,7 @@ using Config;
 using Machine;
 using ModbusSender;
 using CNCState;
-using Actions.Tools;
+using Actions.Mills;
 using Vector;
 using System.Threading;
 
@@ -20,10 +20,10 @@ namespace ActionProgram
         private readonly IModbusSender modbusSender;
         private MachineParameters config;
         private readonly IMachine machine;
-        private readonly IToolManager toolManager;
+        private readonly IMillManager toolManager;
 
         public ActionProgram(IRTSender rtSender, IModbusSender modbusSender,
-                             MachineParameters config, IMachine machine, IToolManager toolManager)
+                             MachineParameters config, IMachine machine, IMillManager toolManager)
         {
             this.machine = machine;
             this.config = config;

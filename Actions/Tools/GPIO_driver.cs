@@ -1,7 +1,7 @@
 ﻿using System;
 using RTSender;
 
-namespace Actions.Tools
+namespace Actions.Mills
 {
     public class GPIO_driver : IDriver
     {

@@ -2,24 +2,24 @@
 using System.Threading;
 using Machine;
 
-namespace Actions.Tools
+namespace Actions.Mills
 {
     public class SelectToolCommand : IMachineControlCommand
     {
-        public int Tool { get; private set; }
+        public int Mill { get; private set; }
         private IMachine machine;
-        private IToolManager manager;
+        private IMillManager manager;
 
-        public SelectToolCommand(int toolId, IMachine machine, IToolManager manager)
+        public SelectToolCommand(int toolId, IMachine machine, IMillManager manager)
         {
-            Tool = toolId;
+            Mill = toolId;
             this.machine = machine;
             this.manager = manager;
         }
 
         public void Run()
         {
-            manager.SelectTool(Tool);
+            manager.SelectMill(Mill);
         }
     }
 }
