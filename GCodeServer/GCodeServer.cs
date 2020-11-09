@@ -70,7 +70,7 @@ namespace GCodeServer
         private readonly Stream commandStream;
         private readonly Stream responseStream;
 
-        private IToolManager toolManager;
+        private IMillManager toolManager;
         private bool serverRun;
 
         private int currentProgram, currentLine;
@@ -126,21 +126,15 @@ namespace GCodeServer
             var newState = new CNCState.CNCState(Config);
 
             var crds = StatusMachine.ReadHardwareCoordinates();
-            var sign = new Vector3(Config.X_axis.sign, Config.Y_axis.sign, Config.Z_axis.sign);
-            hwCoordinateSystem = new AxisState.CoordinateSystem
-            {
-                Sign = sign,
-                Offset = new Vector3(crds.x - sign.x * newState.AxisState.Position.x,
-                                     crds.y - sign.y * newState.AxisState.Position.y,
-                                     crds.z - sign.z * newState.AxisState.Position.z)
-            };
 
             Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
             Machine.ActionStarted += Machine_ActionStarted;
             Machine.ActionFinished += Machine_ActionCompleted;
             Machine.ActionFailed += Machine_ActionFailed;
 
-            toolManager = new ManualToolManager(this, Machine);
+            SyncCoordinates(newState.AxisState.Position);
+
+            toolManager = new ManualMillManager(this, Machine);
             tool_drivers = ConfigureToolDrivers(Config);
             programBuilder = new ProgramBuilder(Machine,
                                                 this,
@@ -653,6 +647,7 @@ namespace GCodeServer
                             {
                                 Machine.LoadProgram(program);
                                 Machine.Start();
+                                SyncCoordinates(Machine.LastState.AxisState.Position);
                                 Machine.Continue();
                             }
                             else
@@ -671,6 +666,7 @@ namespace GCodeServer
                             {
                                 Machine.LoadProgram(program);
                                 Machine.Start();
+                                SyncCoordinates(Machine.LastState.AxisState.Position);
                                 Machine.Continue();
                             }
                             else
@@ -681,6 +677,7 @@ namespace GCodeServer
                         }
                     case "continue":
                         {
+                            SyncCoordinates(Machine.LastState.AxisState.Position);
                             Machine.Continue();
                             break;
                         }
