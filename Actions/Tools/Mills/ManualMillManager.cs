@@ -15,6 +15,8 @@ namespace Actions.Mills
             this.router = router;
         }
 
+        public bool ToolChangeInterrupts => true;
+
         public void SelectMill(int millId)
         {
             var msg = string.Format("Please insert mill #{0}", millId);

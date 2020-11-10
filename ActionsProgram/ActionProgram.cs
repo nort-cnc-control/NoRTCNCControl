@@ -197,14 +197,14 @@ namespace ActionProgram
         #endregion
 
         #region stops
-        public void AddBreak()
+        public void AddBreak(CNCState.CNCState currentState)
         {
-            AddAction(new MachineControlAction(new PauseCommand(machine), machine), null, null);
+            AddAction(new MachineControlAction(new PauseCommand(machine), machine), currentState, currentState);
         }
 
-        public void AddStop()
+        public void AddStop(CNCState.CNCState currentState)
         {
-            AddAction(new MachineControlAction(new StopCommand(machine), machine), null, null);
+            AddAction(new MachineControlAction(new StopCommand(machine), machine), currentState, currentState);
         }
         #endregion
 
