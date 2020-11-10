@@ -15,6 +15,8 @@ namespace GCodeMachine
 {
     public class GCodeMachine : IMachine, IActionExecutor, ILoggerSource
     {
+        public event Action ProgramStarted;
+        public event Action ProgramFinished;
         public event Action<IAction> ActionStarted;
         public event Action<IAction, CNCState.CNCState, CNCState.CNCState> ActionFinished;
         public event Action<IAction, CNCState.CNCState> ActionFailed;
@@ -38,63 +40,8 @@ namespace GCodeMachine
 
         public MachineState StateMachine { get; private set; }
 
-        private class ProgramStack
-        {
-            private class ProgramState
-            {
-                public ActionProgram.ActionProgram Program { get; set; }
-                public int Index { get; set; }
-            }
-
-            private List<ProgramState> programStack;
-
-            public ProgramStack()
-            {
-                programStack = new List<ProgramState>();
-            }
-
-            public ActionProgram.ActionProgram Program
-            {
-                get
-                {
-                    if (programStack.Count == 0)
-                        return null;
-                    return programStack[programStack.Count - 1].Program;
-                }
-            }
-
-            public int Index
-            {
-                get
-                {
-                    if (programStack.Count == 0)
-                        return -1;
-                    return programStack[programStack.Count - 1].Index;
-                }
-                set
-                {
-                    programStack[programStack.Count - 1].Index = value;
-                }
-            }
-
-            public void Clear()
-            {
-                programStack.Clear();
-            }
-
-            public void Pop()
-            {
-                if (programStack.Count > 0)
-                    programStack.RemoveAt(programStack.Count - 1);
-            }
-
-            public void Push(ActionProgram.ActionProgram program, int index = 0)
-            {
-                programStack.Add(new ProgramState { Program = program, Index = index });
-            }
-        }
-
-        private ProgramStack programStack;
+        private ActionProgram.ActionProgram program;
+        private int index;
 
         private IAction currentAction;
         private IAction previousAction;
@@ -118,6 +65,7 @@ namespace GCodeMachine
 
         private EventWaitHandle reseted;
 
+
         public GCodeMachine(IRTSender sender,
                             IMessageRouter messageRouter,
                             CNCState.CNCState state,
@@ -131,7 +79,7 @@ namespace GCodeMachine
             this.rtSender.Reseted += OnReseted;
             machineIsRunning = false;
             states = new Dictionary<IAction, (CNCState.CNCState before, CNCState.CNCState after)>();
-            programStack = new ProgramStack();
+            program = null;
         }
 
         public void ConfigureState(CNCState.CNCState state)
@@ -169,7 +117,6 @@ namespace GCodeMachine
             {
                 currentWait.Set();
             }
-            SendState("init");
             if (!run)
                 reseted.Set();
         }
@@ -188,36 +135,21 @@ namespace GCodeMachine
             Wait(disableBreakOnProbe.Finished);
         }
 
-        private void SendState(string state)
-        {
-            Dictionary<string, string> message = new Dictionary<string, string>
-            {
-                ["type"] = "state",
-                ["state"] = state,
-                ["message"] = "",
-            };
-            Logger.Instance.Debug(this, "message state", state);
-            messageRouter.Message(message);
-        }
 
         public void Start()
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
             currentAction = null;
-            if (programStack.Program == null)
+            if (program == null)
             {
                 RunState = State.Stopped;
                 return;
             }
-            programStack.Index = 0;
+            index = 0;
             SwitchToState(MachineState.Ready, true);
         }
 
         public void Continue()
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
             machineIsRunning = true;
             var runThread = new Thread(new ThreadStart(Process));
             runThread.Start();
@@ -228,8 +160,18 @@ namespace GCodeMachine
             return machineIsRunning;
         }
 
+        private (IAction action, CNCState.CNCState before, CNCState.CNCState after) PopAction()
+        {
+            if (program == null)
+                return (null, null, null);
+            if (index >= program.Actions.Count)
+                return (null, null, null);
+            return program.Actions[index++];
+        }
+
         private void Process()
         {
+            ProgramStarted?.Invoke();
             bool wasReset = false;
             CNCState.CNCState sa, sb;
             MachineState change = MachineState.Error;
@@ -237,7 +179,7 @@ namespace GCodeMachine
             List<IAction> started = new List<IAction>();
             RunState = State.Running;
             previousAction = null;
-            SendState("running");
+
             SwitchToState(MachineState.Ready);
             while (StateMachine != MachineState.End &&
                    StateMachine != MachineState.Error &&
@@ -256,7 +198,6 @@ namespace GCodeMachine
                         (currentAction, sb, sa) = PopAction();
                         if (currentAction == null)
                         {
-                            programStack.Pop();
                             Logger.Instance.Debug(this, "action", "No more actions, end");
                             SwitchToState(MachineState.WaitEnd);
                         }
@@ -303,7 +244,7 @@ namespace GCodeMachine
                                 ["message"] = String.Format("Command has failed : {0}", fail),
                                 ["message_type"] = "command fail",
                             };
-                            programStack.Clear();
+
                             messageRouter.Message(message);
                             SwitchToState(MachineState.End, true);
                         }
@@ -356,25 +297,10 @@ namespace GCodeMachine
                 act.EventFinished -= Action_OnFinished;
             }
 
-            switch (StateMachine)
-            {
-                case MachineState.Pause:
-                    SendState("paused");
-                    break;
-                case MachineState.End:
-                case MachineState.Idle:
-                    if (programStack.Program == null)
-                        SendState("init");
-                    else
-                        SendState("paused");
-                    break;
-                case MachineState.Error:
-                    SendState("error");
-                    break;
-            }
             machineIsRunning = false;
             if (wasReset)
                 reseted.Set();
+            ProgramFinished?.Invoke();
         }
 
         private void Action_OnStarted(IAction action)
@@ -407,27 +333,19 @@ namespace GCodeMachine
 
         public void Stop()
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
-            SendState("init");
             SwitchToState(MachineState.End, true);
             RunState = State.Stopped;
-            programStack.Clear();
+            program = null;
         }
 
         public void Pause()
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
-            SendState("paused");
             SwitchToState(MachineState.Pause);
             RunState = State.Paused;
         }
 
         public void Reboot()
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
             reseted.Reset();
             rtSender.SendCommand("M999");
             Thread.Sleep(3000);
@@ -437,8 +355,6 @@ namespace GCodeMachine
 
         public void Abort()
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
             reseted.Reset();
             rtSender.SendCommand("M999");
             Thread.Sleep(3000);
@@ -446,28 +362,17 @@ namespace GCodeMachine
             reseted.WaitOne();
         }
 
-        private (IAction, CNCState.CNCState, CNCState.CNCState) PopAction()
-        {
-            if (programStack.Program == null)
-                return (null, null, null);
-            if (programStack.Index >= programStack.Program.Actions.Count)
-                return (null, null, null);
-            return programStack.Program.Actions[programStack.Index++];
-        }
-
         public void Dispose()
         {
             rtSender.Reseted -= OnReseted;
-            programStack.Clear();
+            program = null;
             messageRouter = null;
             states.Clear();
         }
 
         public void LoadProgram(ActionProgram.ActionProgram program)
         {
-            if (messageRouter == null)
-                throw new InvalidProgramException();
-            programStack.Push(program);
+            this.program = program;
         }
     }
 }

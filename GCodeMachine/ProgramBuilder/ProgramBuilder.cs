@@ -16,6 +16,46 @@ using Vector;
 
 namespace GCodeMachine
 {
+    public class ProgramSource
+    {
+        public IReadOnlyDictionary<int, Sequence> Procedures;
+        public int MainProcedureId;
+
+        public ProgramSource(IReadOnlyDictionary<int, Sequence> procedures, int mainProcedureId)
+        {
+            Procedures = procedures;
+            MainProcedureId = mainProcedureId;
+        }
+    }
+
+    public class ProgramBuildingState
+    {
+        public ProgramSource Source;
+        public Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)> Callstack;
+        public int CurrentProcedure;
+        public int CurrentLine;
+        public bool Completed;
+
+        public ProgramBuildingState(ProgramSource source)
+        {
+            Completed = false;
+            Source = source;
+            Callstack = new Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)>();
+            CurrentLine = 0;
+            CurrentProcedure = Source.MainProcedureId;
+        }
+
+        public void Init(int program, int line)
+        {
+            CurrentLine = line;
+            CurrentProcedure = program;
+            Completed = false;
+            Callstack.Clear();
+        }
+    }
+
+
+
     public class ProgramBuilder : ILoggerSource
     {
         private readonly IRTSender rtSender;
@@ -34,6 +74,15 @@ namespace GCodeMachine
         private List<int> toolsPending;
 
         public string Name => "gcode builder";
+
+        private enum ProgramBuilderCommand
+        {
+            Continue,
+            Call,
+            Return,
+            Pause,
+            Finish,
+        }
 
         public ProgramBuilder(GCodeMachine machine,
                               IStateSyncManager stateSyncManager,
@@ -596,12 +645,17 @@ namespace GCodeMachine
             return (prgid, amount);
         }
 
-        private (CNCState.CNCState state, int pid, int amount, bool end) ProcessBlock(Arguments block,
-                                                                          ActionProgram.ActionProgram program,
-                                                                          CNCState.CNCState state)
+        private (CNCState.CNCState state,
+                 ProgramBuilderCommand command,
+                 int pid,
+                 int amount)
+        
+            ProcessBlock(Arguments block,
+                         ActionProgram.ActionProgram program,
+                         CNCState.CNCState state)
         {
             var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G' || arg.letter == 'M'));
-            bool finish = false;
+            ProgramBuilderCommand command = ProgramBuilderCommand.Continue;
             int pid = -1, amount = -1;
             state = state.BuildCopy();
             state = ProcessParameters(block, program, state);
@@ -806,13 +860,12 @@ namespace GCodeMachine
                 switch (cmd.ivalue1)
                 {
                     case 0:
-                        program.AddBreak();
-                        program.AddPlaceholder(state);
+                        program.AddBreak(state);
+                        command = ProgramBuilderCommand.Pause;
                         break;
                     case 2:
-                        program.AddStop();
-                        program.AddPlaceholder(state);
-                        finish = true;
+                        program.AddStop(state);
+                        command = ProgramBuilderCommand.Finish;
                         break;
                     case 3:
                     case 4:
@@ -824,13 +877,16 @@ namespace GCodeMachine
                         {
                             // TODO: stop spindle
                             program.AddToolChange(block.SingleOptions['T'].ivalue1);    // change tool
+                            if (toolManager.ToolChangeInterrupts)
+                                command = ProgramBuilderCommand.Pause;
                         }
                         break;
                     case 97:
+                        command = ProgramBuilderCommand.Call;
                         (pid, amount) = CallSubprogram(block, state);
                         break;
                     case 99:
-                        pid = -2;
+                        command = ProgramBuilderCommand.Return;
                         break;
                     case 120:
                         PushState(state.AxisState);
@@ -846,16 +902,21 @@ namespace GCodeMachine
             }
 
             CommitPendingCommands(program, state);
-            return (state, pid, amount, finish);
+            return (state, command, pid, amount);
         }
 
-        private (CNCState.CNCState, int programid, int amount) Process( Arguments args,
-                                                                        ActionProgram.ActionProgram program,
-                                                                        CNCState.CNCState state,
-                                                                        int curprogram, int curline,
-                                                                        Dictionary<IAction, (int,int)> starts)
+        private (CNCState.CNCState,
+                 ProgramBuilderCommand command,
+                 int programid,
+                 int amount)
+
+            Process(Arguments args,
+                    ActionProgram.ActionProgram program,
+                    CNCState.CNCState state,
+                    int curprogram, int curline,
+                    Dictionary<IAction, (int,int)> starts)
         {
-            bool finish = false;
+            ProgramBuilderCommand command = ProgramBuilderCommand.Continue;
             int pid = -1, amount = -1;
 
             var line_number = args.LineNumber;
@@ -863,12 +924,7 @@ namespace GCodeMachine
             var sargs = SplitFrame(args);
             foreach (var block in sargs)
             {
-                (state, pid, amount, finish) = ProcessBlock(block, program, state);
-            }
-
-            if (finish)
-            {
-                pid = -3;
+                (state, command, pid, amount) = ProcessBlock(block, program, state);
             }
 
             var len1 = program.Actions.Count;
@@ -877,71 +933,117 @@ namespace GCodeMachine
                 var (first, _, _) = program.Actions[len0];
                 starts[first] = (curprogram, curline);
             }
-            return (state, pid, amount);
+            return (state, command, pid, amount);
         }
 
-        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines, string errorMessage)
+        public ProgramBuildingState InitNewProgram(ProgramSource source)
+        {
+            var builderState = new ProgramBuildingState(source)
+            {
+                CurrentProcedure = source.MainProcedureId,
+                CurrentLine = 0
+            };
+            return builderState;
+        }
+
+        public (ActionProgram.ActionProgram actionProgram,
+                ProgramBuildingState finalState,
+                IReadOnlyDictionary<IAction, (int procedure, int line)> actionLines,
+                string errorMessage)
                 
-            BuildProgram(Sequence mainSequence, ProgramSequencer programs, CNCState.CNCState initialState)
+            BuildProgram(CNCState.CNCState initialMachineState,
+                         ProgramBuildingState builderState)
         {
             var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
-            var actionLines = new Dictionary<IAction, (int, int)>();
-            int programid = 0, lineid = 0;
-            Sequence sequence = mainSequence;
-            var state = initialState.BuildCopy();
-            Stack<(int, int)> callStack = new Stack<(int, int)>();
+            var actionLines = new Dictionary<IAction, (int procedure, int line)>();
+            Sequence sequence = builderState.Source.Procedures[builderState.CurrentProcedure];
+            var state = initialMachineState.BuildCopy();
 
             program.AddRTUnlock(state);
             actionLines[program.Actions[0].action] = (-1, -1);
-            while (true)
+            bool finish = false;
+
+            while (!finish)
             {
-                if (lineid >= sequence.Lines.Count)
+                if (builderState.CurrentLine >= sequence.Lines.Count)
+                {
+                    builderState.Completed = true;
                     break;
-
-                Arguments frame = sequence.Lines[lineid];
-
+                }
+                Arguments frame = sequence.Lines[builderState.CurrentLine];
                 try
                 {
                     int newpid, amount;
-                    (state, newpid, amount) = Process(frame, program, state, programid, lineid, actionLines);
-                    if (newpid >= 0)
+                    ProgramBuilderCommand command;
+                    (state, command, newpid, amount) = Process(frame,
+                                                               program,
+                                                               state,
+                                                               builderState.CurrentProcedure,
+                                                               builderState.CurrentLine,
+                                                               actionLines);
+                    switch (command)
                     {
-                        callStack.Push((programid, lineid + 1));
-                        while (amount > 1)
-                        {
-                            callStack.Push((newpid, 0));
-                            amount--;
-                        }
-                        programid = newpid;
-                        lineid = 0;
+                        case ProgramBuilderCommand.Call:
+                            {
+                                if (amount > 0)
+                                {
+                                    builderState.Callstack.Push((builderState.CurrentProcedure, builderState.CurrentLine, newpid, amount));
+                                    builderState.CurrentProcedure = newpid;
+                                    builderState.CurrentLine = 0;
+                                    sequence = builderState.Source.Procedures[builderState.CurrentProcedure];
+                                }
+                                else
+                                {
+                                    builderState.CurrentLine += 1;
+                                }
+                                break;
+                            }
+                        case ProgramBuilderCommand.Continue:
+                            {
+                                builderState.CurrentLine += 1;
+                                break;
+                            }
+                        case ProgramBuilderCommand.Return:
+                            {
+                                if (builderState.Callstack.Count == 0)
+                                {
+                                    builderState.Completed = true;
+                                    finish = true;
+                                    break;
+                                }
+                                var top = builderState.Callstack.Pop();
+                                if (top.repeat == 1)
+                                {
+                                    builderState.CurrentProcedure = top.fromProcedure;
+                                    builderState.CurrentLine = top.fromLine + 1;
+                                    sequence = builderState.Source.Procedures[builderState.CurrentProcedure];
+                                }
+                                else if (top.repeat > 1)
+                                {
+                                    builderState.CurrentLine = 0;
+                                    builderState.Callstack.Push((top.fromProcedure, top.fromLine, top.toProcedure, top.repeat - 1));
+                                }
+                                break;
+                            }
+                        case ProgramBuilderCommand.Finish:
+                            {
+                                builderState.Completed = true;
+                                finish = true;
+                                break; // END
+                            }
+                        case ProgramBuilderCommand.Pause:
+                            {
+                                builderState.CurrentLine += 1;
+                                finish = true;
+                                break;
+                            }
                     }
-                    else if (newpid == -1)
-                    {
-                        lineid += 1;
-                    }
-                    else if (newpid == -2)
-                    {
-                        if (callStack.Count == 0)
-                        {
-                            break;
-                        }
-                        (programid, lineid) = callStack.Pop();
-                    }
-                    else if (newpid == -3)
-                    {
-                        break; // END
-                    }
-
-                    if (programid == 0)
-                        sequence = mainSequence;
-                    else
-                        sequence = programs.Subprograms[programid];
                 }
                 catch (Exception e)
                 {
                     var msg = String.Format("{0} : {1}", frame, e.ToString());
                     Logger.Instance.Error(this, "compile error", msg);
-                    return (null, initialState, new Dictionary<IAction, (int, int)>(), e.Message);
+                    return (null, null, new Dictionary<IAction, (int, int)>(), e.Message);
                 }
             }
 
@@ -949,16 +1051,7 @@ namespace GCodeMachine
             moveFeedLimiter.ProcessProgram(program);
             optimizer.ProcessProgram(program);
             timeCalculator.ProcessProgram(program);
-            return (program, state, actionLines, "");
-        }
-
-        public (ActionProgram.ActionProgram program, CNCState.CNCState finalState, IReadOnlyDictionary<IAction, (int, int)> actionLines, string errorMessage)
-
-            BuildProgram(String code, CNCState.CNCState initialState)
-        {
-            var seq = new ProgramSequencer();
-            seq.SequenceProgram(code.Split('\n'));
-            return BuildProgram(seq.MainProgram, seq, initialState);
+            return (program, builderState, actionLines, "");
         }
     }
 }

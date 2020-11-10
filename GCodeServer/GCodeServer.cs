@@ -43,6 +43,7 @@ namespace GCodeServer
         public string Name => "gcode server";
 
         private ProgramBuilder programBuilder;
+        private ProgramBuildingState mainBuilderState;
 
         private bool runFlag;
 
@@ -131,6 +132,8 @@ namespace GCodeServer
             Machine.ActionStarted += Machine_ActionStarted;
             Machine.ActionFinished += Machine_ActionCompleted;
             Machine.ActionFailed += Machine_ActionFailed;
+            Machine.ProgramStarted += Machine_ProgramStarted;
+            Machine.ProgramFinished += Machine_ProgramFinished;
 
             SyncCoordinates(newState.AxisState.Position);
 
@@ -147,6 +150,19 @@ namespace GCodeServer
             UploadConfiguration();
             StatusMachine.Start();
             StatusMachine.Continue();
+        }
+
+        private void Machine_ProgramStarted()
+        {
+            SendState("running");
+        }
+
+        private void Machine_ProgramFinished()
+        {
+            if (mainBuilderState.Completed)
+                SendState("init");
+            else
+                SendState("paused");
         }
 
         public void Message(IReadOnlyDictionary<string, string> message)
@@ -604,6 +620,38 @@ namespace GCodeServer
             responseSender.MessageSend(response.ToString());
         }
 
+        private void SendState(string state)
+        {
+            var message = new JsonObject
+            {
+                ["type"] = "state",
+                ["state"] = state,
+                ["message"] = "",
+            };
+            Logger.Instance.Debug(this, "message state", state);
+            responseSender.MessageSend(message.ToString());
+        }
+
+        private ProgramBuildingState BuildAndRun(ProgramBuildingState builderState)
+        {
+            string errorMsg;
+            ActionProgram.ActionProgram program;
+            ProgramBuildingState newBuilderState;
+            (program, newBuilderState, starts, errorMsg) = programBuilder.BuildProgram(Machine.LastState, builderState);
+            if (program != null)
+            {
+                Machine.LoadProgram(program);
+                Machine.Start();
+                SyncCoordinates(Machine.LastState.AxisState.Position);
+                Machine.Continue();
+            }
+            else
+            {
+                CompileErrorMessageSend(errorMsg);
+            }
+            return newBuilderState;
+        }
+
         public bool Run()
         {
             serverRun = true;
@@ -625,13 +673,18 @@ namespace GCodeServer
                                 string str = line;
                                 program.Add(str);
                             }
+
                             LoadGcode(program.ToArray());
+
+                            Dictionary<int, Sequence> programs = sequencer.Subprograms.ToDictionary(item => item.Key, item => item.Value);
+                            programs[0] = sequencer.MainProgram;
+                            ProgramSource source = new ProgramSource(programs, 0);
+
+                            mainBuilderState = programBuilder.InitNewProgram(source);
                             break;
                         }
                     case "execute":
                         {
-                            string errorMsg;
-                            ActionProgram.ActionProgram program;
                             Sequence excommand = new Sequence();
                             try
                             {
@@ -642,43 +695,23 @@ namespace GCodeServer
                                 CompileErrorMessageSend("Parse error: " + e.Message);
                                 break;
                             }
-                            (program, _, _, errorMsg) = programBuilder.BuildProgram(excommand, sequencer, Machine.LastState);
-                            if (program != null)
-                            {
-                                Machine.LoadProgram(program);
-                                Machine.Start();
-                                SyncCoordinates(Machine.LastState.AxisState.Position);
-                                Machine.Continue();
-                            }
-                            else
-                            {
-                                CompileErrorMessageSend(errorMsg);
-                            }
+
+                            Dictionary<int, Sequence> programs = sequencer.Subprograms.ToDictionary(item => item.Key, item => item.Value);
+                            programs[0] = excommand;
+                            ProgramSource source = new ProgramSource(programs, 0);
+                            var executeBuilderState = new ProgramBuildingState(source);
+                            BuildAndRun(executeBuilderState);
                             break;
                         }
                     case "start":
                         {
-                            string errorMsg;
-
-                            ActionProgram.ActionProgram program;
-                            (program, _, starts, errorMsg) = programBuilder.BuildProgram(sequencer.MainProgram, sequencer, Machine.LastState);
-                            if (program != null)
-                            {
-                                Machine.LoadProgram(program);
-                                Machine.Start();
-                                SyncCoordinates(Machine.LastState.AxisState.Position);
-                                Machine.Continue();
-                            }
-                            else
-                            {
-                                CompileErrorMessageSend(errorMsg);
-                            }
+                            mainBuilderState.Init(0, 0);
+                            mainBuilderState = BuildAndRun(mainBuilderState);
                             break;
                         }
                     case "continue":
                         {
-                            SyncCoordinates(Machine.LastState.AxisState.Position);
-                            Machine.Continue();
+                            mainBuilderState = BuildAndRun(mainBuilderState);
                             break;
                         }
                     case "run_finish":
