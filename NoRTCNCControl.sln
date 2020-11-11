@@ -54,6 +54,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControlConnection", "Contro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoRTServer", "NoRTServer\NoRTServer.csproj", "{72CB055A-78E1-41A3-B54D-C1E37A57ED7C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManualFeedMachine", "ManualFeedMachine\ManualFeedMachine.csproj", "{24D1CD3E-0D7D-44B4-8942-ED5B9423B376}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -132,6 +134,10 @@ Global
 		{72CB055A-78E1-41A3-B54D-C1E37A57ED7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72CB055A-78E1-41A3-B54D-C1E37A57ED7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72CB055A-78E1-41A3-B54D-C1E37A57ED7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24D1CD3E-0D7D-44B4-8942-ED5B9423B376}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24D1CD3E-0D7D-44B4-8942-ED5B9423B376}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24D1CD3E-0D7D-44B4-8942-ED5B9423B376}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24D1CD3E-0D7D-44B4-8942-ED5B9423B376}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

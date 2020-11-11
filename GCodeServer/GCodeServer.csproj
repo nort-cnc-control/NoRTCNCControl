@@ -21,5 +21,6 @@
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\ReadStatusMachine\ReadStatusMachine.csproj" />
     <ProjectReference Include="..\Log\Log.csproj" />
+    <ProjectReference Include="..\ManualFeedMachine\ManualFeedMachine.csproj" />
   </ItemGroup>
 </Project>

@@ -18,6 +18,7 @@ using System.Collections.Concurrent;
 using Vector;
 using ControlConnection;
 using PacketSender;
+using ManualFeedMachine;
 
 namespace GCodeServer
 {
@@ -39,6 +40,7 @@ namespace GCodeServer
         public MachineParameters Config { get; private set; }
         public GCodeMachine.GCodeMachine Machine { get; private set; }
         public ReadStatusMachine.ReadStatusMachine StatusMachine { get; private set; }
+        public ManualFeedMachine.ManualFeedMachine ManualFeedMachine { get; private set; }
 
         public string Name => "gcode server";
 
@@ -121,6 +123,8 @@ namespace GCodeServer
 
             StatusMachine = new ReadStatusMachine.ReadStatusMachine(Config, rtSender, Config.state_refresh_update, Config.state_refresh_timeout, Config.state_refresh_maxretry);
             StatusMachine.CurrentStatusUpdate += OnStatusUpdate;
+
+            ManualFeedMachine = new ManualFeedMachine.ManualFeedMachine(rtSender, Config);
 
             sequencer = new ProgramSequencer();
 
@@ -585,6 +589,14 @@ namespace GCodeServer
                                         // TODO: implement
                                         break;
                                     }
+                                case "manual_feed":
+                                    {
+                                        decimal fx = message["feed"]["x"];
+                                        decimal fy = message["feed"]["y"];
+                                        decimal fz = message["feed"]["z"];
+                                        ManualFeedMachine.SetFeed(fx, fy, fz, 0.1m);
+                                        break;
+                                    }
                                 case "load":
                                 case "start":
                                 case "execute":
@@ -599,8 +611,29 @@ namespace GCodeServer
                             break;
                         }
                     case "configuration":
-                        Init(message["configuration"], connectionManager);
-                        break;
+                        {
+                            Init(message["configuration"], connectionManager);
+                            break;
+                        }
+                    case "mode_selection":
+                        {
+                            string mode = message["mode"];
+                            switch (mode)
+                            {
+                                case "manual":
+                                    {
+                                        ManualFeedMachine.SetFeed(0, 0, 0, 0.1m);
+                                        ManualFeedMachine.Start();
+                                        break;
+                                    }
+                                case "gcode":
+                                    {
+                                        ManualFeedMachine.Stop();
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
                 }
 
             } while (serverRun);
@@ -635,6 +668,7 @@ namespace GCodeServer
         private ProgramBuildingState BuildAndRun(ProgramBuildingState builderState)
         {
             string errorMsg;
+            UpdateCoordinates();
             ActionProgram.ActionProgram program;
             ProgramBuildingState newBuilderState;
             (program, newBuilderState, starts, errorMsg) = programBuilder.BuildProgram(Machine.LastState, builderState);
@@ -790,6 +824,15 @@ namespace GCodeServer
                                      crds.y - sign.y * CurrentMachineState.AxisState.Position.y,
                                      crds.z - sign.z * CurrentMachineState.AxisState.Position.z)
             };
+        }
+
+        private void UpdateCoordinates()
+        {
+            var hw_crds = StatusMachine.ReadHardwareCoordinates();
+            var gl_crds = hwCoordinateSystem.ToLocal(hw_crds);
+            var state = Machine.LastState;
+            state.AxisState.Position = gl_crds;
+            Machine.ConfigureState(state);
         }
     }
 }
