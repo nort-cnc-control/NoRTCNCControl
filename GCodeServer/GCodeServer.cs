@@ -618,6 +618,10 @@ namespace GCodeServer
                     case "mode_selection":
                         {
                             string mode = message["mode"];
+                            if (Machine.RunState != State.Stopped)
+                            {
+                                break;
+                            }
                             switch (mode)
                             {
                                 case "manual":
