@@ -112,6 +112,16 @@ namespace Vector
             Vector3 n = new Vector3(v.x / l, v.y / l, v.z / l);
             return n;
         }
+
+        public static bool operator == (Vector3 a, Vector3 b)
+        {
+            return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
+        }
+
+        public static bool operator != (Vector3 a, Vector3 b)
+        {
+            return !(a == b);
+        }
     }
 
 }

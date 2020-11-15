@@ -140,8 +140,9 @@ namespace GCodeMachine
 
             var X = block.X;
             var Y = block.Y;
-            var Z = block.Z;
-            var R = block.R;
+            var Z = block.Z; // Drill depth
+            var R = block.R; // Retract
+            var Q = block.Q; // Pecking
 
             Vector3 delta;
 
@@ -154,6 +155,15 @@ namespace GCodeMachine
             if (Z != null)
             {
                 state.DrillingState.DrillHeightLocal = Z.value;
+            }
+            if (Q != null)
+            {
+                state.DrillingState.PeckDepth = Math.Abs(Q.value);
+            }
+
+            if (state.DrillingState.Peck && state.DrillingState.PeckDepth == 0)
+            {
+                throw new InvalidOperationException("Pecking with depth = 0");
             }
 
             #region Positioning
@@ -178,31 +188,78 @@ namespace GCodeMachine
             state = program.AddFastLineMovement(delta, state);
             #endregion R height
 
-            // TODO: add pecking, dwelling, etc
+            // TODO: dwelling, etc
 
-            #region drilling
+            Vector3 currentDrillPosition = state.AxisState.TargetPosition;
+
             Vector3 bottomPosition;
-            (delta, bottomPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.DrillHeightLocal);
-            state.AxisState.TargetPosition = bottomPosition;
-            state = program.AddLineMovement(delta, state.AxisState.Feed, state);
-            #endregion
+            (_, bottomPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.DrillHeightLocal);
+
+            decimal startHeight = coordinateSystem.ToLocal(rPosition).z;
+            decimal preparationHeight = startHeight;
+            decimal currentHeight = startHeight;
+            decimal finishHeight = coordinateSystem.ToLocal(bottomPosition).z;
+            decimal peckMax;
+
+            if (state.DrillingState.Peck)
+            {
+                peckMax = state.DrillingState.PeckDepth;
+            }
+            else
+            {
+                peckMax = decimal.MaxValue;
+            }
+
+            while (currentHeight != finishHeight)
+            {
+                decimal targetHeight;
+                decimal deltaHeight = finishHeight - currentHeight;
+
+                if (deltaHeight > peckMax)
+                    deltaHeight = peckMax;
+                if (deltaHeight < -peckMax)
+                    deltaHeight = -peckMax;
+                targetHeight = currentHeight + deltaHeight;
+
+                #region preparation
+                if (preparationHeight != startHeight)
+                {
+                    (delta, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, preparationHeight);
+                    state.AxisState.TargetPosition = currentDrillPosition;
+                    state = program.AddFastLineMovement(delta, state);
+                }
+                #endregion
+
+                #region drilling
+                (delta, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, targetHeight);
+                state.AxisState.TargetPosition = currentDrillPosition;
+                state = program.AddLineMovement(delta, state.AxisState.Feed, state);
+                #endregion
+
+                #region retracting
+                (delta, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, startHeight);
+                state.AxisState.TargetPosition = currentDrillPosition;
+                state = program.AddFastLineMovement(delta, state);
+                #endregion
+
+                preparationHeight = currentHeight;
+                currentHeight = targetHeight;
+            }
 
             #region Retract
-            Vector3 retractPosition;
             switch (state.DrillingState.RetractDepth)
             {
                 case DrillingState.RetractDepthType.InitialHeight:
-                    retractPosition = topPosition;
+                    state.AxisState.TargetPosition = topPosition;
+                    delta = topPosition - bottomPosition;
+                    state = program.AddFastLineMovement(delta, state);
                     break;
                 case DrillingState.RetractDepthType.RHeight:
-                    retractPosition = rPosition;
                     break;
                 default:
                     throw new InvalidOperationException("Unknown retract depth state");
             }
-            state.AxisState.TargetPosition = retractPosition;
-            delta = retractPosition - bottomPosition;
-            state = program.AddFastLineMovement(delta, state);
+
             #endregion
 
             // Restore mode

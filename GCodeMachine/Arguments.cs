@@ -239,6 +239,16 @@ namespace GCodeMachine
             }
         }
 
+        public Option Q
+        {
+            get
+            {
+                if (!singleOptions.ContainsKey('Q'))
+                    return null;
+                return singleOptions['Q'];
+            }
+        }
+
         public Option Feed
         {
             get
