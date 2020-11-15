@@ -36,8 +36,8 @@ namespace CNCState
         public RetractDepthType RetractDepth { get; set; }
 
         public decimal PeckDepth { get; set; }
-        public decimal RetractHeightGlobal { get; set; }
-        public decimal DrillHeightGlobal { get; set; }
+        public decimal RetractHeightLocal { get; set; }
+        public decimal DrillHeightLocal { get; set; }
 
         public DrillingState BuildCopy()
         {
@@ -53,8 +53,8 @@ namespace CNCState
                 Retract = Retract,
                 PeckDepth = PeckDepth,
                 RetractDepth = RetractDepth,
-                DrillHeightGlobal = DrillHeightGlobal,
-                RetractHeightGlobal = RetractHeightGlobal,
+                DrillHeightLocal = DrillHeightLocal,
+                RetractHeightLocal= RetractHeightLocal
             };
         }
     }

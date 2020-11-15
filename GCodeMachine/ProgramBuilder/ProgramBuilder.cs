@@ -144,47 +144,45 @@ namespace GCodeMachine
             var R = block.R;
 
             Vector3 delta;
-            Vector3 topPosition;
+
             var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
 
+            if (R != null)
+            {
+                state.DrillingState.RetractHeightLocal = R.value;
+            }
+            if (Z != null)
+            {
+                state.DrillingState.DrillHeightLocal = Z.value;
+            }
+
             #region Positioning
+            if (X == null && Y == null)
+            {
+                return state;
+            }
+
+            Vector3 topPosition;
             (delta, topPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, null);
             state.AxisState.TargetPosition = topPosition;
             state = program.AddFastLineMovement(delta, state);
-            #endregion
+            #endregion Positioning
+
+            var absmode = state.AxisState.Absolute;
+            state.AxisState.Absolute = true;
 
             #region R height
-            Vector3 rPosition = new Vector3(topPosition);
-            if (R != null)
-            {
-                Vector3 targetPositionLocal = coordinateSystem.ToLocal(topPosition);
-                (delta, rPosition) = FindMovement(state, topPosition, state.AxisState.Position, null, null, R);
-                state.DrillingState.RetractHeightGlobal = rPosition.z;
-            }
-            else
-            {
-                rPosition.z = state.DrillingState.RetractHeightGlobal;
-                delta = rPosition - state.AxisState.Position;
-            }
+            Vector3 rPosition;
+            (delta, rPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.RetractHeightLocal);
             state.AxisState.TargetPosition = rPosition;
             state = program.AddFastLineMovement(delta, state);
-            #endregion
+            #endregion R height
 
             // TODO: add pecking, dwelling, etc
 
             #region drilling
-            Vector3 bottomPosition = new Vector3(rPosition);
-            if (Z != null)
-            {
-                Vector3 targetPositionLocal = coordinateSystem.ToLocal(topPosition);
-                (delta, bottomPosition) = FindMovement(state, rPosition, state.AxisState.Position, null, null, Z);
-                state.DrillingState.DrillHeightGlobal = bottomPosition.z;
-            }
-            else
-            {
-                bottomPosition.z = state.DrillingState.DrillHeightGlobal;
-                delta = bottomPosition - state.AxisState.Position;
-            }
+            Vector3 bottomPosition;
+            (delta, bottomPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.DrillHeightLocal);
             state.AxisState.TargetPosition = bottomPosition;
             state = program.AddLineMovement(delta, state.AxisState.Feed, state);
             #endregion
@@ -207,46 +205,49 @@ namespace GCodeMachine
             state = program.AddFastLineMovement(delta, state);
             #endregion
 
+            // Restore mode
+            state.AxisState.Absolute = absmode;
+
             return state;
         }
 
-        private Vector3 MakeMove(CNCState.CNCState state, Vector3 pos, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
+        private Vector3 MakeMove(CNCState.CNCState state, Vector3 pos, decimal? X, decimal? Y, decimal? Z)
         {
             pos = new Vector3(pos.x, pos.y, pos.z);
             if (state.AxisState.Absolute)
             {
                 if (X != null)
                 {
-                    pos.x = ConvertSizes(X.value, state);
+                    pos.x = ConvertSizes(X.Value, state);
                 }
                 if (Y != null)
                 {
-                    pos.y = ConvertSizes(Y.value, state);
+                    pos.y = ConvertSizes(Y.Value, state);
                 }
                 if (Z != null)
                 {
-                    pos.z = ConvertSizes(Z.value, state);
+                    pos.z = ConvertSizes(Z.Value, state);
                 }
             }
             else
             {
                 if (X != null)
                 {
-                    pos.x += ConvertSizes(X.value, state);
+                    pos.x += ConvertSizes(X.Value, state);
                 }
                 if (Y != null)
                 {
-                    pos.y += ConvertSizes(Y.value, state);
+                    pos.y += ConvertSizes(Y.Value, state);
                 }
                 if (Z != null)
                 {
-                    pos.z += ConvertSizes(Z.value, state);
+                    pos.z += ConvertSizes(Z.Value, state);
                 }
             }
             return pos;
         }
 
-        private (Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
+        private (Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, decimal? X, decimal? Y, decimal? Z)
         {
             var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
             Vector3 currentTargetPositionLocal = coordinateSystem.ToLocal(currentTargetPosition);
@@ -254,6 +255,18 @@ namespace GCodeMachine
             Vector3 nextTargetPositionGlobal = coordinateSystem.ToGlobal(nextTargetPositionLocal);
             Vector3 delta = nextTargetPositionGlobal - currentPhysicalPosition;
             return (delta, nextTargetPositionGlobal);
+        }
+
+        private (Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
+        {
+            decimal? Xv = null, Yv = null, Zv = null;
+            if (X != null)
+                Xv = X.value;
+            if (Y != null)
+                Yv = Y.value;
+            if (Z != null)
+                Zv = Z.value;
+            return FindMovement(state, currentTargetPosition, currentPhysicalPosition, Xv, Yv, Zv);
         }
 
         private CNCState.CNCState ProcessDirectMove(Arguments block,
