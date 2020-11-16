@@ -38,7 +38,7 @@ namespace GCodeMachine
 
         public ProgramBuildingState(ProgramSource source)
         {
-            Completed = false;
+            Completed = true;
             Source = source;
             Callstack = new Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)>();
             CurrentLine = 0;

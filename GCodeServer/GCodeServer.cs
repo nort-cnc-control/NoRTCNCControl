@@ -45,6 +45,7 @@ namespace GCodeServer
         public string Name => "gcode server";
 
         private ProgramBuilder programBuilder;
+        private List<ProgramBuildingState> builderStates;
         private ProgramBuildingState mainBuilderState;
 
         private bool runFlag;
@@ -98,6 +99,7 @@ namespace GCodeServer
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
             this.connectionManager = connectionManager;
+            builderStates = new List<ProgramBuildingState>();
         }
 
         private void Reset()
@@ -163,10 +165,36 @@ namespace GCodeServer
 
         private void Machine_ProgramFinished()
         {
-            if (mainBuilderState.Completed)
-                SendState("init");
+            if (builderStates.Count > 0)
+            {
+                var index = builderStates.Count - 1;
+                if (!builderStates[index].Completed)
+                {
+                    SendState("paused");
+                }
+                else
+                {
+                    builderStates.RemoveAt(index);
+                    if (builderStates.Count == 0)
+                    {
+                        if (mainBuilderState.Completed)
+                            SendState("init");
+                        else
+                            SendState("paused");
+                    }
+                    else
+                    {
+                        SendState("paused");
+                    }
+                }
+            }
             else
-                SendState("paused");
+            {
+                if (mainBuilderState.Completed)
+                    SendState("init");
+                else
+                    SendState("paused");
+            }
         }
 
         public void Message(IReadOnlyDictionary<string, string> message)
@@ -737,19 +765,33 @@ namespace GCodeServer
                             Dictionary<int, Sequence> programs = sequencer.Subprograms.ToDictionary(item => item.Key, item => item.Value);
                             programs[0] = excommand;
                             ProgramSource source = new ProgramSource(programs, 0);
-                            var executeBuilderState = new ProgramBuildingState(source);
+
+                            var executeBuilderState = programBuilder.InitNewProgram(source);
+                            executeBuilderState.Init(0, 0);
+                            builderStates.Add(executeBuilderState);
                             BuildAndRun(executeBuilderState);
                             break;
                         }
                     case "start":
                         {
+                            // Remove all programs from stack
+                            builderStates.Clear();
+
                             mainBuilderState.Init(0, 0);
                             mainBuilderState = BuildAndRun(mainBuilderState);
                             break;
                         }
                     case "continue":
                         {
-                            mainBuilderState = BuildAndRun(mainBuilderState);
+                            if (builderStates.Count == 0)
+                            {
+                                mainBuilderState = BuildAndRun(mainBuilderState);
+                            }
+                            else
+                            {
+                                int index = builderStates.Count - 1;
+                                builderStates[index] = BuildAndRun(builderStates[index]);
+                            }
                             break;
                         }
                     case "run_finish":
@@ -793,6 +835,9 @@ namespace GCodeServer
                 Machine.ActionStarted -= Machine_ActionStarted;
                 Machine.ActionFinished -= Machine_ActionCompleted;
                 Machine.ActionFailed -= Machine_ActionFailed;
+                Machine.ProgramStarted -= Machine_ProgramStarted;
+                Machine.ProgramFinished -= Machine_ProgramFinished;
+
                 Machine.Dispose();
                 Machine = null;
             }
