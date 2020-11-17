@@ -382,7 +382,21 @@ namespace GCodeMachine
                         bool ccw = (state.AxisState.MoveType == AxisState.MType.ArcCCW);
                         if (R == null && I == null && J == null && K == null)
                         {
-                            var r = delta.Length() / 2;
+                            decimal r;
+                            switch (state.AxisState.Axis)
+                            {
+                                case AxisState.Plane.XY:
+                                    r = (new Vector2(delta.x, delta.y)).Length()/2;
+                                    break;
+                                case AxisState.Plane.YZ:
+                                    r = (new Vector2(delta.y, delta.z)).Length() / 2;
+                                    break;
+                                case AxisState.Plane.ZX:
+                                    r = (new Vector2(delta.z, delta.x)).Length() / 2;
+                                    break;
+                                default:
+                                    throw new InvalidOperationException();
+                            }
                             state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else if (R != null)
