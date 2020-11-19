@@ -251,7 +251,7 @@ namespace GCodeMachine
             {
                 case DrillingState.RetractDepthType.InitialHeight:
                     state.AxisState.TargetPosition = topPosition;
-                    delta = topPosition - bottomPosition;
+                    delta = state.AxisState.TargetPosition - state.AxisState.Position;
                     state = program.AddFastLineMovement(delta, state);
                     break;
                 case DrillingState.RetractDepthType.RHeight:
