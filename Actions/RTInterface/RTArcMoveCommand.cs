@@ -10,10 +10,12 @@ namespace Actions
         public bool CommandIsCached { get { return true; } }
         
         private MachineParameters Config;
-        private Vector2 deltaProj;
+        private Vector2 DeltaProj;
+        private decimal Height;
         private Vector2 startToCenterProj;
         private Vector2 endToCenterProj;
         private bool bigArc;
+        private decimal LengthProj;
 
         public AxisState.Plane Plane { get; private set; }
         public RTMovementOptions Options { get; private set; }
@@ -95,13 +97,17 @@ namespace Actions
             }
         }
 
-        private int dx, dy, dz, a, b;
+        private int dx, dy, dz;
+        private decimal a, b;
+        private int x1, y1;
+        private int x2, y2;
+        private int h;
 
         public String Command
         {
             get
             {   
-                return $"{MoveCmd} {plane_cmd} {Options.Command} X{dx}Y{dy}Z{dz} A{a}B{b}";
+                return $"{MoveCmd} {plane_cmd} {Options.Command} X{x2}Y{y2}R{x1}S{y1}H{h}D{Length:0.000} A{a:0.000}B{b:0.000}";
             }
         }
 
@@ -153,23 +159,27 @@ namespace Actions
             Vector2 startTan = tans.Item1;
             Vector2 endTan = tans.Item2;
 
+            decimal verticalTan = Height / LengthProj;
+
             switch (Plane)
             {
                 case AxisState.Plane.XY:
-                    DirStart = new Vector3(startTan.x, startTan.y, 0);
-                    DirEnd = new Vector3(endTan.x, endTan.y, 0);
+                    DirStart = new Vector3(startTan.x, startTan.y, verticalTan);
+                    DirEnd = new Vector3(endTan.x, endTan.y, verticalTan);
                     break;
                 case AxisState.Plane.YZ:
-                    DirStart = new Vector3(0, startTan.x, startTan.y);
-                    DirEnd = new Vector3(0, endTan.x, endTan.y);
+                    DirStart = new Vector3(verticalTan, startTan.x, startTan.y);
+                    DirEnd = new Vector3(verticalTan, endTan.x, endTan.y);
                     break;
                 case AxisState.Plane.ZX:
-                    DirStart = new Vector3(startTan.y, 0, startTan.x);
-                    DirEnd = new Vector3(endTan.y, 0, endTan.x);
+                    DirStart = new Vector3(startTan.y, verticalTan, startTan.x);
+                    DirEnd = new Vector3(endTan.y, verticalTan, endTan.x);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("Invalid axis");
             }
+            DirStart = Vector3.Normalize(DirStart);
+            DirEnd = Vector3.Normalize(DirEnd);
         }
 
         private void FindPhysicalParameters()
@@ -185,6 +195,31 @@ namespace Actions
             dy = (int)(hwdelta.y * Config.Y_axis.steps_per_mm);
             dz = (int)(hwdelta.z * Config.Z_axis.steps_per_mm);
 
+            switch (Plane)
+            {
+                case AxisState.Plane.XY:
+                    x1 = (int)(Math.Round(-startToCenterProj.x * Config.X_axis.steps_per_mm * Config.X_axis.sign));
+                    y1 = (int)(Math.Round(-startToCenterProj.y * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
+                    x2 = (int)(Math.Round(-endToCenterProj.x * Config.X_axis.steps_per_mm * Config.X_axis.sign));
+                    y2 = (int)(Math.Round(-endToCenterProj.y * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
+                    h = (int)(Math.Round(Height * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
+                    break;
+                case AxisState.Plane.YZ:
+                    x1 = (int)(Math.Round(-startToCenterProj.x * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
+                    y1 = (int)(Math.Round(-startToCenterProj.y * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
+                    x2 = (int)(Math.Round(-endToCenterProj.x * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
+                    y2 = (int)(Math.Round(-endToCenterProj.y * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
+                    h = (int)(Math.Round(Height * Config.X_axis.steps_per_mm));
+                    break;
+                case AxisState.Plane.ZX:
+                    x1 = (int)(Math.Round(-startToCenterProj.x * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
+                    y1 = (int)(Math.Round(-startToCenterProj.y * Config.X_axis.steps_per_mm * Config.X_axis.sign));
+                    x2 = (int)(Math.Round(-endToCenterProj.x * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
+                    y2 = (int)(Math.Round(-endToCenterProj.y * Config.X_axis.steps_per_mm * Config.X_axis.sign));
+                    h = (int)(Math.Round(Height * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
+                    break;
+            }
+
             bool hwccw;
             if (left_basis)
             {
@@ -198,16 +233,16 @@ namespace Actions
             switch (Plane)
             {
                 case AxisState.Plane.XY:
-                    a = (int)(R * Config.X_axis.steps_per_mm);
-                    b = (int)(R * Config.Y_axis.steps_per_mm);
+                    a = R * Config.X_axis.steps_per_mm;
+                    b = R * Config.Y_axis.steps_per_mm;
                     break;
                 case AxisState.Plane.YZ:
-                    a = (int)(R * Config.Y_axis.steps_per_mm);
-                    b = (int)(R * Config.Z_axis.steps_per_mm);
+                    a = R * Config.Y_axis.steps_per_mm;
+                    b = R * Config.Z_axis.steps_per_mm;
                     break;
                 case AxisState.Plane.ZX:
-                    a = (int)(R * Config.Z_axis.steps_per_mm);
-                    b = (int)(R * Config.X_axis.steps_per_mm);
+                    a = R * Config.Z_axis.steps_per_mm;
+                    b = R * Config.X_axis.steps_per_mm;
                     break;
                 default:
                     throw new InvalidOperationException("Invalid plane");
@@ -228,81 +263,63 @@ namespace Actions
 
         }
 
+        private void Setup(Vector3 delta, bool ccw, AxisState.Plane plane, RTMovementOptions opts, MachineParameters config)
+        {
+            Plane = plane;
+            Delta = delta;
+            CCW = ccw;
+            Config = config;
+            Options = opts;
+            DeltaProj = VectorPlaneProj(Delta, Plane);
+            Height = VectorPlaneNormalProj(delta, Plane);
+        }
+
+        private void FinalSetup()
+        {
+            Angle = (decimal)(2 * Math.Asin((double)(DeltaProj.Length() / 2 / R)));
+            if (bigArc)
+            {
+                Angle = (decimal)(Math.PI * 2) - Angle;
+            }
+            LengthProj = Angle * R;
+            Length = (decimal)Math.Sqrt((double)(LengthProj*LengthProj + Height*Height));
+
+            FillDirs();
+            FindPhysicalParameters();
+        }
+
         public RTArcMoveCommand(Vector3 delta, decimal r, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
-            decimal h = VectorPlaneNormalProj(delta, plane);
-            if (Math.Abs((double)h) > eps)
-            {
-                throw new ArgumentOutOfRangeException("Only arc supported, not helix");
-            }
+            Setup(delta, ccw, plane, opts, config);
 
-            Config = config;
-            if (r < 0)
-                R = -r;
-            else
-                R = r;
-            Delta = delta;
-            CCW = ccw;
-            Plane = plane;
-            Options = opts;
-            deltaProj = VectorPlaneProj(Delta, Plane);
+            R = Math.Abs(r);
             bigArc = (r < 0);
-
-            decimal d = Delta.Length();
+            decimal d = DeltaProj.Length();
             decimal hcl = (decimal)Math.Sqrt((double)(R*R - d*d/4));
             if (ccw && !bigArc || !ccw && bigArc)
                 hcl = -hcl;
+            startToCenterProj = DeltaProj / 2 + Vector2.Normalize(DeltaProj.Right()) * hcl;
+            endToCenterProj = startToCenterProj - DeltaProj;
 
-            startToCenterProj = deltaProj / 2 + Vector2.Normalize(deltaProj.Right()) * hcl;
-            endToCenterProj = startToCenterProj - deltaProj;
-            FillDirs();
-
-            Angle = (decimal)(2*Math.Asin((double)(deltaProj.Length()/2/R)));
-            if (bigArc)
-            {
-                Angle = (decimal)(Math.PI*2) - Angle;
-            }
-            Length = Angle * R;
-            FindPhysicalParameters();
+            FinalSetup();
         }
 
         public RTArcMoveCommand(Vector3 delta, Vector3 startToCenter, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
-            decimal h = VectorPlaneNormalProj(delta, plane);
-            if (Math.Abs((double)h) > eps)
-            {
-                throw new ArgumentOutOfRangeException("Only arc supported, not helix");
-            }
-            this.Config = config;
-            Delta = delta;
-            CCW = ccw;
-            Plane = plane;
-            Options = opts;
-            deltaProj = VectorPlaneProj(Delta, Plane);
+            Setup(delta, ccw, plane, opts, config);
+
             startToCenterProj = VectorPlaneProj(startToCenter, Plane);
-            endToCenterProj = startToCenterProj - deltaProj;
-
-            decimal nd = deltaProj.x * startToCenterProj.y - deltaProj.y * startToCenterProj.x;
+            endToCenterProj = startToCenterProj - DeltaProj;
+            decimal nd = Vector2.Cross(DeltaProj, startToCenterProj);
             if (nd > 0 && CCW || nd < 0 && !CCW)
-            {
                 bigArc = false;
-            }
             else
-            {
                 bigArc = true;
-            }
-
-            FillDirs();
             R = startToCenter.Length();
-            Angle = (decimal)(2*Math.Asin((double)(deltaProj.Length()/2/R)));
-            if (bigArc)
-            {
-                Angle = (decimal)(Math.PI*2) - Angle;
-            }
-            Length = Angle * R;
-            FindPhysicalParameters();
+
+            FinalSetup();
         }
     }
 }

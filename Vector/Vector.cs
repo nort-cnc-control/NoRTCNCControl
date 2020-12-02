@@ -62,6 +62,11 @@ namespace Vector
             Vector2 n = new Vector2(v.x / l, v.y / l);
             return n;
         }
+
+        public static decimal Cross(Vector2 a, Vector2 b)
+        {
+            return a.x * b.y - a.y * b.x;
+        }
     }
 
     public class Vector3
@@ -106,6 +111,7 @@ namespace Vector
         {
             return (decimal)(Math.Sqrt((double)(x * x + y * y + z * z)));
         }
+
         public static Vector3 Normalize(Vector3 v)
         {
             decimal l = v.Length();
