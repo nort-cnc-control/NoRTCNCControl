@@ -203,6 +203,12 @@ namespace Actions
                     x2 = (int)(Math.Round(-endToCenterProj.x * Config.X_axis.steps_per_mm * Config.X_axis.sign));
                     y2 = (int)(Math.Round(-endToCenterProj.y * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
                     h = (int)(Math.Round(Height * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
+                    PhysicalDelta = new Vector3
+                    {
+                        x = (x2 - x1) / Config.X_axis.steps_per_mm * Config.X_axis.sign,
+                        y = (y2 - y1) / Config.Y_axis.steps_per_mm * Config.Y_axis.sign,
+                        z = h / Config.Z_axis.steps_per_mm * Config.Z_axis.sign,
+                    };
                     break;
                 case AxisState.Plane.YZ:
                     x1 = (int)(Math.Round(-startToCenterProj.x * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
@@ -210,6 +216,12 @@ namespace Actions
                     x2 = (int)(Math.Round(-endToCenterProj.x * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
                     y2 = (int)(Math.Round(-endToCenterProj.y * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
                     h = (int)(Math.Round(Height * Config.X_axis.steps_per_mm));
+                    PhysicalDelta = new Vector3
+                    {
+                        y = (x2 - x1) / Config.Y_axis.steps_per_mm * Config.Y_axis.sign,
+                        z = (y2 - y1) / Config.Z_axis.steps_per_mm * Config.Z_axis.sign,
+                        x = h / Config.X_axis.steps_per_mm * Config.X_axis.sign,
+                    };
                     break;
                 case AxisState.Plane.ZX:
                     x1 = (int)(Math.Round(-startToCenterProj.x * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
@@ -217,6 +229,12 @@ namespace Actions
                     x2 = (int)(Math.Round(-endToCenterProj.x * Config.Z_axis.steps_per_mm * Config.Z_axis.sign));
                     y2 = (int)(Math.Round(-endToCenterProj.y * Config.X_axis.steps_per_mm * Config.X_axis.sign));
                     h = (int)(Math.Round(Height * Config.Y_axis.steps_per_mm * Config.Y_axis.sign));
+                    PhysicalDelta = new Vector3
+                    {
+                        z = (x2 - x1) / Config.Z_axis.steps_per_mm * Config.Z_axis.sign,
+                        x = (y2 - y1) / Config.X_axis.steps_per_mm * Config.X_axis.sign,
+                        y = h / Config.Y_axis.steps_per_mm * Config.Y_axis.sign,
+                    };
                     break;
             }
 
@@ -247,20 +265,6 @@ namespace Actions
                 default:
                     throw new InvalidOperationException("Invalid plane");
             }
-
-            if (bigArc)
-            {
-                a = -a;
-                b = -b;
-            }
-
-            PhysicalDelta = new Vector3
-            {
-                x = dx / Config.X_axis.steps_per_mm * Config.X_axis.sign,
-                y = dy / Config.Y_axis.steps_per_mm * Config.Y_axis.sign,
-                z = dz / Config.Z_axis.steps_per_mm * Config.Z_axis.sign
-            };
-
         }
 
         private void Setup(Vector3 delta, bool ccw, AxisState.Plane plane, RTMovementOptions opts, MachineParameters config)
