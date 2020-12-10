@@ -14,15 +14,6 @@ namespace GCodeMachine
                 Expression
             }
 
-            public enum ExprOperation
-            {
-                Add,
-                Sub,
-                UnaryMinus,
-                Multipy,
-                Divide,
-            }
-
             public OptionType type;
 
             public char letter;
@@ -31,20 +22,7 @@ namespace GCodeMachine
             public String value2;
             public int ivalue2;
 
-            private decimal _value;
-            public decimal optValue
-            {
-                get
-                {
-                    if (expr != null)
-                        return expr.Evaluate(null);
-                    return _value;
-                }
-                set
-                {
-                    _value = value;
-                }
-            }
+            public decimal value;
             public bool dot;
 
             public Expression expr;
@@ -113,14 +91,14 @@ namespace GCodeMachine
                     }
                     opt.value2 = val;
                     opt.ivalue2 = Int32.Parse(val);
-                    opt.optValue = Decimal.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
+                    opt.value = Decimal.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
                 }
                 else
                 {
                     opt.dot = false;
                     opt.value2 = "";
                     opt.ivalue2 = 0;
-                    opt.optValue = opt.ivalue1;
+                    opt.value = opt.ivalue1;
                 }
             }
             return (opt, s.Substring(i));

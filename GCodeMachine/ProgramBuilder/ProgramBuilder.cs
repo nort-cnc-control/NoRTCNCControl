@@ -125,9 +125,16 @@ namespace GCodeMachine
             state = state.BuildCopy();
             if (block.Feed != null)
             {
-                state.AxisState.Feed = ConvertSizes(block.Feed.optValue, state) / 60.0m; // convert from min to sec
+                state.AxisState.Feed = ConvertSizes(GetValue(block.Feed), state) / 60.0m; // convert from min to sec
             }
             return state;
+        }
+
+        private decimal GetValue(Arguments.Option option)
+        {
+            if (option.type == Arguments.Option.OptionType.Expression)
+                return option.expr.Evaluate(null);
+            return option.value;
         }
 
         private CNCState.CNCState ProcessDrillingMove(Arguments block,
@@ -150,15 +157,15 @@ namespace GCodeMachine
 
             if (R != null)
             {
-                state.DrillingState.RetractHeightLocal = R.optValue;
+                state.DrillingState.RetractHeightLocal = GetValue(R);
             }
             if (Z != null)
             {
-                state.DrillingState.DrillHeightLocal = Z.optValue;
+                state.DrillingState.DrillHeightLocal = GetValue(Z);
             }
             if (Q != null)
             {
-                state.DrillingState.PeckDepth = Math.Abs(Q.optValue);
+                state.DrillingState.PeckDepth = Math.Abs(GetValue(Q));
             }
 
             if (state.DrillingState.Peck && state.DrillingState.PeckDepth == 0)
@@ -318,11 +325,11 @@ namespace GCodeMachine
         {
             decimal? Xv = null, Yv = null, Zv = null;
             if (X != null)
-                Xv = X.optValue;
+                Xv = GetValue(X);
             if (Y != null)
-                Yv = Y.optValue;
+                Yv = GetValue(Y);
             if (Z != null)
-                Zv = Z.optValue;
+                Zv = GetValue(Z);
             return FindMovement(state, currentTargetPosition, currentPhysicalPosition, Xv, Yv, Zv);
         }
 
@@ -401,7 +408,7 @@ namespace GCodeMachine
                         }
                         else if (R != null)
                         {
-                            var r = ConvertSizes(R.optValue, state);
+                            var r = ConvertSizes(GetValue(R), state);
                             state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else
@@ -410,11 +417,11 @@ namespace GCodeMachine
                             decimal j = 0;
                             decimal k = 0;
                             if (I != null)
-                                i = ConvertSizes(I.optValue, state);
+                                i = ConvertSizes(GetValue(I), state);
                             if (J != null)
-                                j = ConvertSizes(J.optValue, state);
+                                j = ConvertSizes(GetValue(J), state);
                             if (K != null)
-                                k = ConvertSizes(K.optValue, state);
+                                k = ConvertSizes(GetValue(K), state);
                             state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                     }
@@ -459,7 +466,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = block.Speed.optValue;
+                                ss.SpindleSpeed = GetValue(block.Speed);
                             ss.RotationState = SpindleState.SpindleRotationState.Clockwise;
                         }
                         else if (toolState is BinaryState bs)
@@ -487,7 +494,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = block.Speed.optValue;
+                                ss.SpindleSpeed = GetValue(block.Speed);
                             ss.RotationState = SpindleState.SpindleRotationState.CounterClockwise;
                         }
                         else if (toolState is BinaryState bs)
@@ -515,7 +522,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = block.Speed.optValue;
+                                ss.SpindleSpeed = GetValue(block.Speed);
                             ss.RotationState = SpindleState.SpindleRotationState.Off;
                         }
                         else if (toolState is BinaryState bs)
@@ -581,17 +588,17 @@ namespace GCodeMachine
             if (X != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
-                    state.AxisState.Position.x - ConvertSizes(X.optValue, state);
+                    state.AxisState.Position.x - ConvertSizes(GetValue(X), state);
             }
             if (Y != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.y =
-                    state.AxisState.Position.y - ConvertSizes(Y.optValue, state);
+                    state.AxisState.Position.y - ConvertSizes(GetValue(Y), state);
             }
             if (Z != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
-                    state.AxisState.Position.z - ConvertSizes(Z.optValue, state);
+                    state.AxisState.Position.z - ConvertSizes(GetValue(Z), state);
             }
             state.AxisState.TargetPosition = state.AxisState.Position;
             return state;
@@ -764,9 +771,7 @@ namespace GCodeMachine
                             try
                             {
                                 var P = block.SingleOptions['P'];
-                                dt = P.optValue;
-                                if (P.dot)
-                                    dt *= 1000;
+                                dt = GetValue(P);
                             }
                             catch
                             {
