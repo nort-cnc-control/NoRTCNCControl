@@ -8,13 +8,46 @@ namespace GCodeMachine
     {
         public class Option
         {
+            public enum OptionType
+            {
+                Number,
+                Expression
+            }
+
+            public enum ExprOperation
+            {
+                Add,
+                Sub,
+                UnaryMinus,
+                Multipy,
+                Divide,
+            }
+
+            public OptionType type;
+
             public char letter;
             public String value1;
             public int ivalue1;
             public String value2;
             public int ivalue2;
-            public decimal value;
+
+            private decimal _value;
+            public decimal optValue
+            {
+                get
+                {
+                    if (expr != null)
+                        return expr.Evaluate(null);
+                    return _value;
+                }
+                set
+                {
+                    _value = value;
+                }
+            }
             public bool dot;
+
+            public Expression expr;
         }
 
         private List<Option> options;
@@ -23,57 +56,81 @@ namespace GCodeMachine
         private Dictionary<Char, Option> singleOptions;
         public IReadOnlyDictionary<Char, Option> SingleOptions => singleOptions;
 
-        private Tuple<Option, String> GetOption(String s)
+        private (Option, String) GetOption(String s)
         {
             int i = 0;
             int len = s.Length;
             while (i < len && s[i] == ' ')
                 ++i;
             if (i >= len || !Char.IsLetter(s[i]))
-                return null;
-            Option opt = new Option();
-            opt.letter = s[i];
+                return (null, s);
+            Option opt = new Option
+            {
+                letter = s[i]
+            };
+
             ++i;
-            if (i >= len || !(Char.IsDigit(s[i]) || s[i] == '-'))
-                return null;
-            String val = "";
-            while (i < len && (Char.IsDigit(s[i]) || s[i] == '-'))
+            if (s[i] == '[')
             {
-                val += s[i];
                 ++i;
+                opt.type = Option.OptionType.Expression;
+                var expr = "";
+                while (i < len)
+                {
+                    if (s[i] == ']')
+                    {
+                        ++i;
+                        opt.expr = new Expression(expr);
+                        return (opt, s.Substring(i));
+                    }
+                    expr += s[i++];
+                }
             }
-            opt.value1 = val;
-            opt.ivalue1 = Int32.Parse(val);
-            if (i < len && s[i] == '.')
+            else
             {
-                opt.dot = true;
-                ++i;
-                if (!Char.IsDigit(s[i]))
-                    return null;
-                val = "";
-                while (i < len && Char.IsDigit(s[i]))
+                opt.type = Option.OptionType.Number;
+                if (i >= len || !(Char.IsDigit(s[i]) || s[i] == '-'))
+                    return (null, s);
+                String val = "";
+                while (i < len && (Char.IsDigit(s[i]) || s[i] == '-'))
                 {
                     val += s[i];
                     ++i;
                 }
-                opt.value2 = val;
-                opt.ivalue2 = Int32.Parse(val);
-                opt.value = Decimal.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
+                opt.value1 = val;
+                opt.ivalue1 = Int32.Parse(val);
+                if (i < len && s[i] == '.')
+                {
+                    opt.dot = true;
+                    ++i;
+                    if (!Char.IsDigit(s[i]))
+                        return (null, s);
+                    val = "";
+                    while (i < len && Char.IsDigit(s[i]))
+                    {
+                        val += s[i];
+                        ++i;
+                    }
+                    opt.value2 = val;
+                    opt.ivalue2 = Int32.Parse(val);
+                    opt.optValue = Decimal.Parse(opt.value1 + "." + opt.value2, System.Globalization.CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    opt.dot = false;
+                    opt.value2 = "";
+                    opt.ivalue2 = 0;
+                    opt.optValue = opt.ivalue1;
+                }
             }
-            else
-            {
-                opt.dot = false;
-                opt.value2 = "";
-                opt.ivalue2 = 0;
-                opt.value = opt.ivalue1;
-            }
-            return new Tuple<Option, String>(opt, s.Substring(i));
+            return (opt, s.Substring(i));
         }
 
         private string CutComments(string line)
         {
             string result = "";
             int brackets = 0;
+            int sqbrackets = 0;
             bool escape = false;
             foreach (char c in line)
             {
@@ -86,14 +143,32 @@ namespace GCodeMachine
                     else if (c == '%')
                     {
                     }
-                    else if (c == '(')
+                    else if (c == '(' && sqbrackets == 0)
                     {
                         brackets++;
                     }
-                    else if (c == ')')
+                    else if (c == ')' && sqbrackets == 0)
                     {
                         if (brackets > 0)
                             brackets--;
+                        else
+                            throw new ArgumentOutOfRangeException();
+                    }
+                    else if (c == '[' && brackets == 0)
+                    {
+                        if (sqbrackets > 0)
+                            throw new ArgumentOutOfRangeException();
+
+                        sqbrackets++;
+                        result += '[';
+                    }
+                    else if (c == ']' && brackets == 0)
+                    {
+                        if (sqbrackets > 0)
+                            sqbrackets--;
+                        else
+                            throw new ArgumentOutOfRangeException();
+                        result += ']';
                     }
                     else
                     {
@@ -103,6 +178,12 @@ namespace GCodeMachine
                         }
                     }
                 }
+                else
+                {
+                    result += c;
+                    escape = false;
+                }
+
                 if (brackets > 0)
                     escape = (c == '\\');
                 else
@@ -119,11 +200,10 @@ namespace GCodeMachine
             line = CutComments(line);
             while (line.Length > 0)
             {
-                var res = GetOption(line);
-                if (res == null)
+                var (opt, sl) = GetOption(line);
+                line = sl;
+                if (opt == null)
                     break;
-                Option opt = res.Item1;
-                line = res.Item2;
                 if (opt.letter != 'G' && opt.letter != 'M')
                     singleOptions[opt.letter] = opt;
                 options.Add(opt);

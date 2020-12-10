@@ -125,7 +125,7 @@ namespace GCodeMachine
             state = state.BuildCopy();
             if (block.Feed != null)
             {
-                state.AxisState.Feed = ConvertSizes(block.Feed.value, state) / 60.0m; // convert from min to sec
+                state.AxisState.Feed = ConvertSizes(block.Feed.optValue, state) / 60.0m; // convert from min to sec
             }
             return state;
         }
@@ -150,15 +150,15 @@ namespace GCodeMachine
 
             if (R != null)
             {
-                state.DrillingState.RetractHeightLocal = R.value;
+                state.DrillingState.RetractHeightLocal = R.optValue;
             }
             if (Z != null)
             {
-                state.DrillingState.DrillHeightLocal = Z.value;
+                state.DrillingState.DrillHeightLocal = Z.optValue;
             }
             if (Q != null)
             {
-                state.DrillingState.PeckDepth = Math.Abs(Q.value);
+                state.DrillingState.PeckDepth = Math.Abs(Q.optValue);
             }
 
             if (state.DrillingState.Peck && state.DrillingState.PeckDepth == 0)
@@ -318,11 +318,11 @@ namespace GCodeMachine
         {
             decimal? Xv = null, Yv = null, Zv = null;
             if (X != null)
-                Xv = X.value;
+                Xv = X.optValue;
             if (Y != null)
-                Yv = Y.value;
+                Yv = Y.optValue;
             if (Z != null)
-                Zv = Z.value;
+                Zv = Z.optValue;
             return FindMovement(state, currentTargetPosition, currentPhysicalPosition, Xv, Yv, Zv);
         }
 
@@ -401,7 +401,7 @@ namespace GCodeMachine
                         }
                         else if (R != null)
                         {
-                            var r = ConvertSizes(R.value, state);
+                            var r = ConvertSizes(R.optValue, state);
                             state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else
@@ -410,11 +410,11 @@ namespace GCodeMachine
                             decimal j = 0;
                             decimal k = 0;
                             if (I != null)
-                                i = ConvertSizes(I.value, state);
+                                i = ConvertSizes(I.optValue, state);
                             if (J != null)
-                                j = ConvertSizes(J.value, state);
+                                j = ConvertSizes(J.optValue, state);
                             if (K != null)
-                                k = ConvertSizes(K.value, state);
+                                k = ConvertSizes(K.optValue, state);
                             state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                     }
@@ -459,7 +459,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = block.Speed.value;
+                                ss.SpindleSpeed = block.Speed.optValue;
                             ss.RotationState = SpindleState.SpindleRotationState.Clockwise;
                         }
                         else if (toolState is BinaryState bs)
@@ -487,7 +487,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = block.Speed.value;
+                                ss.SpindleSpeed = block.Speed.optValue;
                             ss.RotationState = SpindleState.SpindleRotationState.CounterClockwise;
                         }
                         else if (toolState is BinaryState bs)
@@ -515,7 +515,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = block.Speed.value;
+                                ss.SpindleSpeed = block.Speed.optValue;
                             ss.RotationState = SpindleState.SpindleRotationState.Off;
                         }
                         else if (toolState is BinaryState bs)
@@ -581,17 +581,17 @@ namespace GCodeMachine
             if (X != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
-                    state.AxisState.Position.x - ConvertSizes(X.value, state);
+                    state.AxisState.Position.x - ConvertSizes(X.optValue, state);
             }
             if (Y != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.y =
-                    state.AxisState.Position.y - ConvertSizes(Y.value, state);
+                    state.AxisState.Position.y - ConvertSizes(Y.optValue, state);
             }
             if (Z != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
-                    state.AxisState.Position.z - ConvertSizes(Z.value, state);
+                    state.AxisState.Position.z - ConvertSizes(Z.optValue, state);
             }
             state.AxisState.TargetPosition = state.AxisState.Position;
             return state;
@@ -764,7 +764,7 @@ namespace GCodeMachine
                             try
                             {
                                 var P = block.SingleOptions['P'];
-                                dt = P.value;
+                                dt = P.optValue;
                                 if (P.dot)
                                     dt *= 1000;
                             }
