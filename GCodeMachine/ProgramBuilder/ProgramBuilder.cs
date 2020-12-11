@@ -132,7 +132,7 @@ namespace GCodeMachine
 
         private decimal GetValue(Arguments.Option option, CNCState.CNCState state)
         {
-            if (option.type == Arguments.Option.OptionType.Expression)
+            if (option.type == Arguments.Option.ValueType.Expression)
                 return option.expr.Evaluate(state.VarsState.Vars);
             return option.value;
         }
@@ -745,11 +745,22 @@ namespace GCodeMachine
                          ActionProgram.ActionProgram program,
                          CNCState.CNCState state)
         {
-            var cmd = block.Options.FirstOrDefault((arg) => (arg.letter == 'G' || arg.letter == 'M'));
+            var cmd = block.Options.FirstOrDefault((arg) => (arg.codeType == Arguments.Option.CodeType.Code && (arg.letter == 'G' || arg.letter == 'M')));
             ProgramBuilderCommand command = ProgramBuilderCommand.Continue;
             int pid = -1, amount = -1;
             state = state.BuildCopy();
             state = ProcessParameters(block, program, state);
+
+            foreach (var opt in block.Options)
+            {
+                if (opt.codeType == Arguments.Option.CodeType.Variable)
+                {
+                    decimal val = GetValue(opt, state);
+                    int varid = opt.varid;
+                    state = state.BuildCopy();
+                    state.VarsState.Vars[varid] = val;
+                }
+            }
 
             if (cmd == null)
             {

@@ -8,15 +8,27 @@ namespace GCodeMachine
     {
         public class Option
         {
-            public enum OptionType
+            #region code
+            public enum CodeType
+            {
+                Code,
+                Variable,
+            }
+
+            public CodeType codeType;
+            public char letter;
+            public int varid;
+            #endregion
+
+            #region value
+            public enum ValueType
             {
                 Number,
                 Expression
             }
 
-            public OptionType type;
+            public ValueType type;
 
-            public char letter;
             public String value1;
             public int ivalue1;
             public String value2;
@@ -26,6 +38,7 @@ namespace GCodeMachine
             public bool dot;
 
             public Expression expr;
+            #endregion
         }
 
         private List<Option> options;
@@ -40,18 +53,42 @@ namespace GCodeMachine
             int len = s.Length;
             while (i < len && s[i] == ' ')
                 ++i;
-            if (i >= len || !Char.IsLetter(s[i]))
-                return (null, s);
-            Option opt = new Option
-            {
-                letter = s[i]
-            };
 
-            ++i;
+            Option opt = new Option();
+
+            #region parse code
+            if (s[i] == '#')
+            {
+                i++;
+                opt.codeType = Option.CodeType.Variable;
+                int j;
+                for (j = i; j < s.Length && s[j] != '='; j++)
+                {}
+
+                if (j == s.Length)
+                    return (null, s);
+
+                var num = s.Substring(i, j - i);
+                opt.varid = int.Parse(num);
+                i = j + 1;
+            }
+            else
+            {
+                if (i >= len || !Char.IsLetter(s[i]))
+                    return (null, s);
+
+                opt.codeType = Option.CodeType.Code;
+                opt.letter = s[i];
+                ++i;
+            }
+
+            #endregion
+
+            #region parse value
             if (s[i] == '[')
             {
                 ++i;
-                opt.type = Option.OptionType.Expression;
+                opt.type = Option.ValueType.Expression;
                 var expr = "";
                 while (i < len)
                 {
@@ -66,7 +103,7 @@ namespace GCodeMachine
             }
             else
             {
-                opt.type = Option.OptionType.Number;
+                opt.type = Option.ValueType.Number;
                 if (i >= len || !(Char.IsDigit(s[i]) || s[i] == '-'))
                     return (null, s);
                 String val = "";
@@ -101,6 +138,7 @@ namespace GCodeMachine
                     opt.value = opt.ivalue1;
                 }
             }
+            #endregion
             return (opt, s.Substring(i));
         }
 
