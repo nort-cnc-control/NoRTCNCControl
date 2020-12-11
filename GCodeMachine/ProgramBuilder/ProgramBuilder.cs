@@ -125,15 +125,15 @@ namespace GCodeMachine
             state = state.BuildCopy();
             if (block.Feed != null)
             {
-                state.AxisState.Feed = ConvertSizes(GetValue(block.Feed), state) / 60.0m; // convert from min to sec
+                state.AxisState.Feed = ConvertSizes(GetValue(block.Feed, state), state) / 60.0m; // convert from min to sec
             }
             return state;
         }
 
-        private decimal GetValue(Arguments.Option option)
+        private decimal GetValue(Arguments.Option option, CNCState.CNCState state)
         {
             if (option.type == Arguments.Option.OptionType.Expression)
-                return option.expr.Evaluate(null);
+                return option.expr.Evaluate(state.VarsState.Vars);
             return option.value;
         }
 
@@ -157,15 +157,15 @@ namespace GCodeMachine
 
             if (R != null)
             {
-                state.DrillingState.RetractHeightLocal = GetValue(R);
+                state.DrillingState.RetractHeightLocal = GetValue(R, state);
             }
             if (Z != null)
             {
-                state.DrillingState.DrillHeightLocal = GetValue(Z);
+                state.DrillingState.DrillHeightLocal = GetValue(Z, state);
             }
             if (Q != null)
             {
-                state.DrillingState.PeckDepth = Math.Abs(GetValue(Q));
+                state.DrillingState.PeckDepth = Math.Abs(GetValue(Q, state));
             }
 
             if (state.DrillingState.Peck && state.DrillingState.PeckDepth == 0)
@@ -325,11 +325,11 @@ namespace GCodeMachine
         {
             decimal? Xv = null, Yv = null, Zv = null;
             if (X != null)
-                Xv = GetValue(X);
+                Xv = GetValue(X, state);
             if (Y != null)
-                Yv = GetValue(Y);
+                Yv = GetValue(Y, state);
             if (Z != null)
-                Zv = GetValue(Z);
+                Zv = GetValue(Z, state);
             return FindMovement(state, currentTargetPosition, currentPhysicalPosition, Xv, Yv, Zv);
         }
 
@@ -393,7 +393,7 @@ namespace GCodeMachine
                             switch (state.AxisState.Axis)
                             {
                                 case AxisState.Plane.XY:
-                                    r = (new Vector2(delta.x, delta.y)).Length()/2;
+                                    r = (new Vector2(delta.x, delta.y)).Length() / 2;
                                     break;
                                 case AxisState.Plane.YZ:
                                     r = (new Vector2(delta.y, delta.z)).Length() / 2;
@@ -408,7 +408,7 @@ namespace GCodeMachine
                         }
                         else if (R != null)
                         {
-                            var r = ConvertSizes(GetValue(R), state);
+                            var r = ConvertSizes(GetValue(R, state), state);
                             state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else
@@ -417,11 +417,11 @@ namespace GCodeMachine
                             decimal j = 0;
                             decimal k = 0;
                             if (I != null)
-                                i = ConvertSizes(GetValue(I), state);
+                                i = ConvertSizes(GetValue(I, state), state);
                             if (J != null)
-                                j = ConvertSizes(GetValue(J), state);
+                                j = ConvertSizes(GetValue(J, state), state);
                             if (K != null)
-                                k = ConvertSizes(GetValue(K), state);
+                                k = ConvertSizes(GetValue(K, state), state);
                             state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                     }
@@ -466,7 +466,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = GetValue(block.Speed);
+                                ss.SpindleSpeed = GetValue(block.Speed, state);
                             ss.RotationState = SpindleState.SpindleRotationState.Clockwise;
                         }
                         else if (toolState is BinaryState bs)
@@ -494,7 +494,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = GetValue(block.Speed);
+                                ss.SpindleSpeed = GetValue(block.Speed, state);
                             ss.RotationState = SpindleState.SpindleRotationState.CounterClockwise;
                         }
                         else if (toolState is BinaryState bs)
@@ -522,7 +522,7 @@ namespace GCodeMachine
                         if (toolState is SpindleState ss)
                         {
                             if (block.Speed != null)
-                                ss.SpindleSpeed = GetValue(block.Speed);
+                                ss.SpindleSpeed = GetValue(block.Speed, state);
                             ss.RotationState = SpindleState.SpindleRotationState.Off;
                         }
                         else if (toolState is BinaryState bs)
@@ -588,17 +588,17 @@ namespace GCodeMachine
             if (X != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.x =
-                    state.AxisState.Position.x - ConvertSizes(GetValue(X), state);
+                    state.AxisState.Position.x - ConvertSizes(GetValue(X, state), state);
             }
             if (Y != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.y =
-                    state.AxisState.Position.y - ConvertSizes(GetValue(Y), state);
+                    state.AxisState.Position.y - ConvertSizes(GetValue(Y, state), state);
             }
             if (Z != null)
             {
                 state.AxisState.Params.CurrentCoordinateSystem.Offset.z =
-                    state.AxisState.Position.z - ConvertSizes(GetValue(Z), state);
+                    state.AxisState.Position.z - ConvertSizes(GetValue(Z, state), state);
             }
             state.AxisState.TargetPosition = state.AxisState.Position;
             return state;
@@ -771,7 +771,7 @@ namespace GCodeMachine
                             try
                             {
                                 var P = block.SingleOptions['P'];
-                                dt = GetValue(P);
+                                dt = GetValue(P, state);
                             }
                             catch
                             {

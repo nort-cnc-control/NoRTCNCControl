@@ -11,12 +11,18 @@ namespace CNCState
     {
         private MachineParameters config;
 
-        private CNCState(MachineParameters config, AxisState axisState, DrillingState drillingState, SyncToolState syncToolState, IReadOnlyDictionary<int, IToolState> ts)
+        private CNCState(MachineParameters config,
+                         AxisState axisState,
+                         DrillingState drillingState,
+                         SyncToolState syncToolState,
+                         IReadOnlyDictionary<int, IToolState> ts,
+                         VarsState vs)
         {
             AxisState = axisState;
             toolStates = ts.ToDictionary(entry => entry.Key, entry => entry.Value);
             DrillingState = drillingState;
             SyncToolState = syncToolState;
+            VarsState = vs;
             this.config = config;
         }
 
@@ -26,6 +32,7 @@ namespace CNCState
             DrillingState = new DrillingState();
             SyncToolState = new SyncToolState();
             toolStates = new Dictionary<int, IToolState>();
+            VarsState = new VarsState();
             foreach (var item in config.tools)
             {
                 int id = item.Key;
@@ -57,7 +64,12 @@ namespace CNCState
                 else
                     throw new ArgumentOutOfRangeException("Invalid state");
             }
-            return new CNCState(config, AxisState.BuildCopy(), DrillingState.BuildCopy(), SyncToolState.BuildCopy(), newToolStates);
+            return new CNCState(config,
+                                AxisState.BuildCopy(),
+                                DrillingState.BuildCopy(),
+                                SyncToolState.BuildCopy(),
+                                newToolStates,
+                                VarsState);
         }
 
         public AxisState AxisState { get; private set; }
@@ -67,5 +79,6 @@ namespace CNCState
 
         public DrillingState DrillingState { get; private set; }
         public SyncToolState SyncToolState { get; private set; }
+        public VarsState VarsState { get; private set; }
     }
 }
