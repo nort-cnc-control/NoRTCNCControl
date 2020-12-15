@@ -96,6 +96,7 @@ namespace ReadStatusMachine
                     !action.ActionResult.ContainsKey("Y") ||
                     !action.ActionResult.ContainsKey("Z"))
                 {
+                    action.Dispose();
                     Logger.Instance.Warning(this, "readhw", String.Format("Can not read coordinates, retry."));
                     retry++;
                     if (retry >= maxretry)
@@ -109,6 +110,8 @@ namespace ReadStatusMachine
                 var xs = action.ActionResult["X"];
                 var ys = action.ActionResult["Y"];
                 var zs = action.ActionResult["Z"];
+                action.Dispose();
+
                 var pos = new Vector3(decimal.Parse(xs, CultureInfo.InvariantCulture),
                                       decimal.Parse(ys, CultureInfo.InvariantCulture),
                                       decimal.Parse(zs, CultureInfo.InvariantCulture));

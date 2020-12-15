@@ -169,6 +169,9 @@ namespace Actions
             this.sender.Started -= OnStartedHdl;
             this.sender.Completed -= OnCompletedHdl;
             this.sender.Failed -= OnFailedHdl;
+            this.sender.EmptySlotAppeared -= OnEmptySlotHdl;
+            this.sender.EmptySlotsEnded -= OnEmptySlotsEndedHdl;
+            this.sender.SlotsNumberReceived -= OnSpaceReceived;
         }
         #endregion
     }
