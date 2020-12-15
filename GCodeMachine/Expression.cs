@@ -152,7 +152,7 @@ namespace GCodeMachine
                 case OperationType.Add:
                     return eval(argument1, argument1type, vars) + eval(argument2, argument2type, vars);
                 case OperationType.Sub:
-                    return eval(argument1, argument1type, vars) + eval(argument2, argument2type, vars);
+                    return eval(argument1, argument1type, vars) - eval(argument2, argument2type, vars);
                 case OperationType.Negative:
                     return -eval(argument1, argument1type, vars);
                 case OperationType.Multiply:
@@ -475,6 +475,11 @@ namespace GCodeMachine
                     }
                     if (end == -1)
                         end = operators.Count - 1;
+
+                    if (begin == 0 && end == operators.Count - 1)
+                    {
+                        end = operators.Count - 2;
+                    }
 
                     // Move subsequence to sequence token
                     int sbegin = operators[begin] - 1;
