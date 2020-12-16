@@ -128,19 +128,25 @@ namespace ReadStatusMachine
             int retry = 0;
             while (true)
             {
+                RTAction action = null;
                 try
                 {
-                    RTAction action = new RTAction(rtSender, new RTGetEndstopsCommand());
+                    action = new RTAction(rtSender, new RTGetEndstopsCommand());
                     // action.ReadyToRun.WaitOne();
                     action.Run();
                     action.Finished.WaitOne(timeoutT);
-                    return (action.ActionResult["EX"] == "1",
+
+                    var result = (action.ActionResult["EX"] == "1",
                             action.ActionResult["EY"] == "1",
                             action.ActionResult["EZ"] == "1",
                             action.ActionResult["EP"] == "1");
+                    action.Dispose();
+                    return result;
                 }
                 catch (Exception e)
                 {
+                    if (action != null)
+                        action.Dispose();
                     Logger.Instance.Warning(this, "readhw", String.Format("Can not read position, retry. {0}", e));
                     retry++;
                     if (retry >= maxretry)

@@ -8,6 +8,45 @@ using RTSender;
 
 namespace Actions
 {
+    public class RTActionLeakManager : ILoggerSource
+    {
+        public string Name => "RTAction leak";
+
+        private int lastNid;
+
+        private static RTActionLeakManager instance;
+        public static RTActionLeakManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                    instance = new RTActionLeakManager();
+                return instance;
+            }
+        }
+
+        public Dictionary<int, int> Counter { get; private set; }
+
+        public RTActionLeakManager()
+        {
+            Counter = new Dictionary<int, int>();
+            lastNid = -1;
+        }
+
+        public void ActionExecuted(int nid)
+        {
+            if (!Counter.ContainsKey(nid))
+                Counter.Add(nid, 0);
+            Counter[nid]++;
+            if (nid != lastNid)
+            {
+                foreach (var item in Counter)
+                    Logger.Instance.Debug(this, "leak manager", String.Format("{0} : {1}", item.Key, item.Value));
+            }
+            lastNid = nid;
+        }
+    }
+
     public class RTAction : IAction, ILoggerSource
     {
         public bool RequireFinish { get { return !Command.CommandIsCached; } }
@@ -106,6 +145,7 @@ namespace Actions
 
         private void OnStartedHdl(int nid)
         {
+            //RTActionLeakManager.Instance.ActionExecuted(nid);
             if (nid != CommandId)
                 return;
             Started.Set();
