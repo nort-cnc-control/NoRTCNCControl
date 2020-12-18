@@ -49,7 +49,6 @@ namespace GCodeServer
         private ProgramBuildingState mainBuilderState;
 
         private bool runFlag;
-        private bool need_coordinate_update;
 
         private IRTSender rtSender;
         private IModbusSender modbusSender;
@@ -101,8 +100,6 @@ namespace GCodeServer
             responseSender = new MessageSender(responseStream);
             this.connectionManager = connectionManager;
             builderStates = new List<ProgramBuildingState>();
-
-            need_coordinate_update = true;
         }
 
         private void Reset()
@@ -657,7 +654,6 @@ namespace GCodeServer
                             {
                                 case "manual":
                                     {
-                                        need_coordinate_update = true;
                                         ManualFeedMachine.SetFeed(0, 0, 0, 0.1m);
                                         ManualFeedMachine.Start();
                                         break;
@@ -704,8 +700,7 @@ namespace GCodeServer
         private ProgramBuildingState BuildAndRun(ProgramBuildingState builderState)
         {
             string errorMsg;
-            if (need_coordinate_update)
-                UpdateCoordinates();
+            UpdateCoordinates();
             ActionProgram.ActionProgram program;
             ProgramBuildingState newBuilderState;
             (program, newBuilderState, starts, errorMsg) = programBuilder.BuildProgram(Machine.LastState, builderState);
@@ -888,7 +883,6 @@ namespace GCodeServer
             state.AxisState.Position = gl_crds;
             state.AxisState.TargetPosition = gl_crds;
             Machine.ConfigureState(state);
-            need_coordinate_update = false;
         }
     }
 }
