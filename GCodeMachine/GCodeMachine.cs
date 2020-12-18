@@ -301,6 +301,7 @@ namespace GCodeMachine
             if (wasReset)
                 reseted.Set();
             ProgramFinished?.Invoke();
+            RunState = State.Stopped;
         }
 
         private void Action_OnStarted(IAction action)
