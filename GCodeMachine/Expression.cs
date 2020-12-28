@@ -288,7 +288,7 @@ namespace GCodeMachine
                 }
                 else if (c == '#')
                 {
-                    if (!varid_processing)
+                    if (!varid_processing && !name_processing && !number_processing)
                     {
                         name = "";
                         varid_processing = true;
@@ -296,7 +296,7 @@ namespace GCodeMachine
                 }
                 else if (char.IsLetter(c))
                 {
-                    if (!name_processing)
+                    if (!name_processing && !varid_processing && !number_processing)
                     {
                         name = c.ToString();
                         name_processing = true;
