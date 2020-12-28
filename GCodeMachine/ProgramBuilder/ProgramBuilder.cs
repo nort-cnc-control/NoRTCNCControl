@@ -1059,6 +1059,11 @@ namespace GCodeMachine
             Sequence sequence = builderState.Source.Procedures[builderState.CurrentProcedure];
             var state = initialMachineState.BuildCopy();
 
+            var currentPos = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(state.AxisState.TargetPosition);
+            state.VarsState.Vars["x"] = currentPos.x;
+            state.VarsState.Vars["y"] = currentPos.y;
+            state.VarsState.Vars["z"] = currentPos.z;
+
             program.AddRTUnlock(state);
             actionLines[program.Actions[0].action] = (-1, -1);
             bool finish = false;
@@ -1145,6 +1150,11 @@ namespace GCodeMachine
                     Logger.Instance.Error(this, "compile error", msg);
                     return (null, null, new Dictionary<IAction, (int, int)>(), e.Message);
                 }
+
+                currentPos = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(state.AxisState.TargetPosition);
+                state.VarsState.Vars["x"] = currentPos.x;
+                state.VarsState.Vars["y"] = currentPos.y;
+                state.VarsState.Vars["z"] = currentPos.z;
             }
 
             program.AddPlaceholder(state);
