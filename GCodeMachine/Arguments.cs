@@ -17,7 +17,7 @@ namespace GCodeMachine
 
             public CodeType codeType;
             public char letter;
-            public int varid;
+            public string varid;
             #endregion
 
             #region value
@@ -68,8 +68,7 @@ namespace GCodeMachine
                 if (j == s.Length)
                     return (null, s);
 
-                var num = s.Substring(i, j - i);
-                opt.varid = int.Parse(num);
+                opt.varid = s.Substring(i, j - i).ToLower();
                 i = j + 1;
             }
             else

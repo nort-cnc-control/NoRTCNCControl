@@ -6,10 +6,10 @@ namespace CNCState
 {
     public class VarsState : IState
     {
-        public Dictionary<int, decimal> Vars;
+        public Dictionary<string, decimal> Vars;
         public VarsState()
         {
-            Vars = new Dictionary<int, decimal>();
+            Vars = new Dictionary<string, decimal>();
         }
 
         VarsState BuildCopy()

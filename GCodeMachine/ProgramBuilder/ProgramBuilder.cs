@@ -756,7 +756,7 @@ namespace GCodeMachine
                 if (opt.codeType == Arguments.Option.CodeType.Variable)
                 {
                     decimal val = GetValue(opt, state);
-                    int varid = opt.varid;
+                    string varid = opt.varid;
                     state = state.BuildCopy();
                     state.VarsState.Vars[varid] = val;
                 }

@@ -58,7 +58,7 @@ namespace GCodeMachine
         public OperationToken operationToken;
         public string name;
         public decimal value;
-        public int variableId;
+        public string variableId;
         public List<Token> sequence = null;
         public Token argument = null;
     }
@@ -94,7 +94,7 @@ namespace GCodeMachine
         public object argument2;
         public ArgumentType argument2type;
 
-        private decimal eval(object arg, ArgumentType type, IReadOnlyDictionary<int, decimal> vars)
+        private decimal eval(object arg, ArgumentType type, IReadOnlyDictionary<string, decimal> vars)
         {
             switch (type)
             {
@@ -104,7 +104,7 @@ namespace GCodeMachine
                     }
                 case ArgumentType.Variable:
                     {
-                        int varid = (arg as int?).Value;
+                        string varid = arg as string;
                         return vars[varid];
                     }
                 case ArgumentType.Expression:
@@ -143,7 +143,7 @@ namespace GCodeMachine
             }
         }
 
-        public decimal Evaluate(IReadOnlyDictionary<int, decimal> vars)
+        public decimal Evaluate(IReadOnlyDictionary<string, decimal> vars)
         {
             switch (operation)
             {
@@ -200,8 +200,7 @@ namespace GCodeMachine
                     return;
                 if (varid_processing)
                 {
-                    int id = int.Parse(name);
-                    list.Add(new Token { tokenType = Token.TokenType.Variable, variableId = id });
+                    list.Add(new Token { tokenType = Token.TokenType.Variable, variableId = name });
                 }
                 else if (name_processing)
                 {
@@ -225,7 +224,7 @@ namespace GCodeMachine
 
                 if (varid_processing)
                 {
-                    if (char.IsDigit(c))
+                    if (char.IsDigit(c) || char.IsLetter(c) || c == '_')
                         name += c;
                     else
                         tokenizer_finish_name();
@@ -521,7 +520,7 @@ namespace GCodeMachine
                 case Token.TokenType.Number:
                     return ((decimal?)token.value, Operation.ArgumentType.Number);
                 case Token.TokenType.Variable:
-                    return ((int?)token.variableId, Operation.ArgumentType.Variable);
+                    return (token.variableId, Operation.ArgumentType.Variable);
                 case Token.TokenType.Name:
                     {
                         if (token.argument == null)
@@ -711,7 +710,7 @@ namespace GCodeMachine
             operation = BuildOperation(root);
         }
 
-        public decimal Evaluate(IReadOnlyDictionary<int, decimal> vars)
+        public decimal Evaluate(IReadOnlyDictionary<string, decimal> vars)
         {
             return operation.Evaluate(vars);
         }
