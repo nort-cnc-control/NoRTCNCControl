@@ -13,6 +13,9 @@ namespace GCodeMachine
     {
         Cos,            // cos(x)
         Sin,            // sin(x)
+        Floor,          // floor(x)
+        Ceil,           // ceil(x)
+        Int,            // int(x)
     }
 
     public class Token
@@ -138,6 +141,12 @@ namespace GCodeMachine
                     return (decimal)Math.Cos((double)argument);
                 case MathFunction.Sin:
                     return (decimal)Math.Sin((double)argument);
+                case MathFunction.Floor:
+                    return (decimal)Math.Floor((double)argument);
+                case MathFunction.Ceil:
+                    return (decimal)Math.Ceiling((double)argument);
+                case MathFunction.Int:
+                    return (int)argument;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -543,6 +552,15 @@ namespace GCodeMachine
                                     break;
                                 case "sin":
                                     fun = MathFunction.Sin;
+                                    break;
+                                case "floor":
+                                    fun = MathFunction.Floor;
+                                    break;
+                                case "ceil":
+                                    fun = MathFunction.Ceil;
+                                    break;
+                                case "int":
+                                    fun = MathFunction.Int;
                                     break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
