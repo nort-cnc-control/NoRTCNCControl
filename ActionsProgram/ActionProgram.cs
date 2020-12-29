@@ -50,6 +50,16 @@ namespace ActionProgram
         }
 
         #region control
+        public void AddConfiguration(CNCState.CNCState currentState)
+        {
+            var maxfeed = Math.Max(Math.Max(config.X_axis.maxfeed, config.Y_axis.maxfeed), config.Z_axis.maxfeed);
+            IRTCommand cmd;
+            cmd = new RTConfigureSteppersCommand(config.X_axis.steps_per_mm, config.Y_axis.steps_per_mm, config.Z_axis.steps_per_mm);
+            AddAction(new RTAction(rtSender, cmd), currentState, currentState);
+            cmd = new RTConfigureFeedCommand(maxfeed, config.max_acceleration, config.basefeed);
+            AddAction(new RTAction(rtSender, cmd), currentState, currentState);
+        }
+
         public void AddRTUnlock(CNCState.CNCState currentState)
         {
             AddAction(new RTAction(rtSender, new RTLockCommand(false)), currentState, currentState);

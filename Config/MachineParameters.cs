@@ -155,6 +155,7 @@ namespace Config
 
         public decimal fastfeed { get; set; }
         public decimal slowfeed { get; set; }
+        public decimal basefeed { get; set; }
 
         public decimal max_movement_leap { get; set; }
         public decimal max_acceleration => Math.Min(Math.Min(X_axis.max_acceleration, Y_axis.max_acceleration), Z_axis.max_acceleration);
@@ -172,6 +173,7 @@ namespace Config
                 Z_axis = Axis.ParseConfig(config["axises"]["z"]),
                 fastfeed = config["movement"]["fastfeed"],
                 slowfeed = config["movement"]["slowfeed"],
+                basefeed = config["movement"]["basefeed"],
                 max_movement_leap = config["movement"]["max_movement_leap"],
                 tools = new Dictionary<int, IToolDriver>(),
             };

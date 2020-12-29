@@ -1064,6 +1064,7 @@ namespace GCodeMachine
             state.VarsState.Vars["y"] = currentPos.y;
             state.VarsState.Vars["z"] = currentPos.z;
 
+            program.AddConfiguration(state);
             program.AddRTUnlock(state);
             actionLines[program.Actions[0].action] = (-1, -1);
             bool finish = false;
