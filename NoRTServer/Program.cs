@@ -191,7 +191,7 @@ namespace NoRTServer
                             sport = new SerialPort(port)
                             {
                                 StopBits = StopBits.One,
-                                BaudRate = 38400,
+                                BaudRate = config["baudrate"],
                                 Parity = Parity.None,
                                 DataBits = 8
                             };

@@ -486,8 +486,6 @@ namespace GCodeMachine
                         else
                             toolid = config.deftool_id;
 
-                        toolsPending.Add(toolid);
-
                         state = state.BuildCopy();
                         toolsPending.Add(toolid);
                         IToolState toolState = state.ToolStates[toolid];
@@ -513,8 +511,6 @@ namespace GCodeMachine
                             toolid = cmd.ivalue2;
                         else
                             toolid = config.deftool_id;
-
-                        toolsPending.Add(toolid);
 
                         state = state.BuildCopy();
                         toolsPending.Add(toolid);
