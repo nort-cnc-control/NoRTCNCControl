@@ -5,7 +5,7 @@ namespace Actions
     {
         public RTConfigureSteppersCommand(decimal spx, decimal spy, decimal spz)
         {
-            Command = $"M100 X{spx:0.000} Y{spx:0.000} Z{spx:0.000}";
+            Command = $"M100 X{spx:0.000} Y{spy:0.000} Z{spz:0.000}";
         }
 
         public bool CommandIsCached => false;
