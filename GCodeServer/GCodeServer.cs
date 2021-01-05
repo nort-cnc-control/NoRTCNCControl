@@ -307,6 +307,7 @@ namespace GCodeServer
 
             var loc_crds = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(gl_crds);
             var crd_system = String.Format("G5{0}", 3 + state.AxisState.Params.CurrentCoordinateSystemIndex);
+            var loc_state_crds = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(state.AxisState.TargetPosition);
 
             string movecmd = "";
             switch (state.AxisState.MoveType)
@@ -392,6 +393,15 @@ namespace GCodeServer
                                 loc_crds.z
                             },
                     ["cs"] = crd_system,
+                },
+                ["state"] = new JsonObject
+                {
+                    ["local"] = new JsonArray
+                            {
+                                loc_state_crds.x,
+                                loc_state_crds.y,
+                                loc_state_crds.z,
+                            }
                 },
                 ["endstops"] = new JsonObject
                 {
