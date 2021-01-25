@@ -22,12 +22,6 @@ using ManualFeedMachine;
 
 namespace GCodeServer
 {
-    public interface IConnectionManager
-    {
-        void CreateConnections(JsonValue config, out IPacketSender writer, out IPacketReceiver reader);
-        void Disconnect();
-    }
-
     public class GCodeServer : IDisposable, IMessageRouter, IStateSyncManager, ILoggerSource
     {
         public class IncostistensStateException : Exception
@@ -83,11 +77,10 @@ namespace GCodeServer
 
         private BlockingCollection<JsonObject> commands;
 
-        private IConnectionManager connectionManager;
+        private ConnectionManager connectionManager;
 
         public GCodeServer(Stream commandStream,
-                           Stream responseStream,
-                           IConnectionManager connectionManager)
+                           Stream responseStream)
         {
             this.rtSender = null;
             this.modbusSender = null;
@@ -98,7 +91,7 @@ namespace GCodeServer
 
             cmdReceiver = new MessageReceiver(commandStream);
             responseSender = new MessageSender(responseStream);
-            this.connectionManager = connectionManager;
+            connectionManager = new ConnectionManager();
             builderStates = new List<ProgramBuildingState>();
         }
 
@@ -108,17 +101,17 @@ namespace GCodeServer
             Machine.ConfigureState(newState);
         }
 
-        private void Init(JsonValue configuration, IConnectionManager cm)
+        private void Init(JsonValue configuration)
         {
             JsonValue runConfig = configuration["run"];
             JsonValue machineConfig = configuration["machine"];
 
             Config = MachineParameters.ParseConfig(machineConfig);
 
-            cm.CreateConnections(runConfig["connection"], out IPacketSender writer, out IPacketReceiver reader);
+            connectionManager.CreateConnections(runConfig["connections"]);
 
-            rtSender = new PacketRTSender(writer, reader);
-            modbusSender = new PacketModbusSender(writer, reader);
+            rtSender = new PacketRTSender(connectionManager.Connections["RT"].writer, connectionManager.Connections["RT"].reader);
+            modbusSender = new PacketModbusSender(connectionManager.Connections["Modbus"].writer, connectionManager.Connections["Modbus"].reader);
 
             rtSender.Init();
             modbusSender.Init();
@@ -650,7 +643,7 @@ namespace GCodeServer
                         }
                     case "configuration":
                         {
-                            Init(message["configuration"], connectionManager);
+                            Init(message["configuration"]);
                             break;
                         }
                     case "mode_selection":

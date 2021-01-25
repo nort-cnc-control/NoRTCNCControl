@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using PacketSender;
 using System.IO.Ports;
 using GCodeServer;
+using System.Collections.Generic;
 
 namespace NoRTServer
 {
@@ -147,93 +148,11 @@ namespace NoRTServer
             }
         }
 
-        class ConnectionManager : IConnectionManager
-        {
-            private TcpClient tcpClient;
-            private UdpClient udpClient;
-            private SerialPort sport;
-
-            public ConnectionManager()
-            {
-                tcpClient = null;
-                udpClient = null;
-                sport = null;
-            }
-
-            public void CreateConnections(JsonValue config, out IPacketSender writer, out IPacketReceiver reader)
-            {
-                string proto = config["proto"];
-                switch (proto)
-                {
-                    case "TCP":
-                        {
-                            string addr = config["addr"];
-                            int port = config["port"];
-                            tcpClient = new TcpClient();
-                            tcpClient.Connect(IPAddress.Parse(addr), port);
-                            reader = new TcpPacketReceiver(tcpClient);
-                            writer = new TcpPacketSender(tcpClient);
-                            break;
-                        }
-                    case "UDP":
-                        {
-                            string addr = config["addr"];
-                            int port = config["port"];
-                            udpClient = new UdpClient();
-                            udpClient.Connect(IPAddress.Parse(addr), port);
-                            reader = new UDPPacketReceiver(udpClient, addr, port);
-                            writer = new UDPPacketSender(udpClient);
-                            break;
-                        }
-                    case "UART":
-                        {
-                            string port = config["port"];
-                            sport = new SerialPort(port)
-                            {
-                                StopBits = StopBits.One,
-                                BaudRate = config["baudrate"],
-                                Parity = Parity.None,
-                                DataBits = 8
-                            };
-                            sport.Open();
-                            reader = new SerialPacketReceiver(sport);
-                            writer = new SerialPacketSender(sport);
-                            break;
-                        }
-                    default:
-                        {
-                            throw new ArgumentOutOfRangeException();
-                        }
-                }
-            }
-
-            public void Disconnect()
-            {
-                if (tcpClient != null)
-                {
-                    tcpClient.Close();
-                    tcpClient = null;
-                }
-                if (udpClient != null)
-                {
-                    udpClient.Close();
-                    udpClient = null;
-                }
-                if (sport != null)
-                {
-                    sport.Close();
-                    sport = null;
-                }
-            }
-        }
-
-
         static void Main(string[] args)
         {
             var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:x:l:");
 
             int controlPort = 8888;
-            var connManager = new ConnectionManager();
 
             int arg;
             while ((arg = opts.getopt()) != -1)
@@ -270,7 +189,7 @@ namespace NoRTServer
 
                 Stream stream = new SocketStream(tcpClient);
 
-                var machineServer = new GCodeServer.GCodeServer(stream, stream, connManager);
+                var machineServer = new GCodeServer.GCodeServer(stream, stream);
 
                 try
                 {
