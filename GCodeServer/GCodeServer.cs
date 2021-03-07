@@ -101,14 +101,33 @@ namespace GCodeServer
             Machine.ConfigureState(newState);
         }
 
-        private void Init(JsonValue configuration)
+        private (bool, string) Init(JsonValue configuration)
         {
-            JsonValue runConfig = configuration["run"];
-            JsonValue machineConfig = configuration["machine"];
+            JsonValue runConfig;
+            JsonValue machineConfig;
+            try
+            {
+                runConfig = configuration["run"];
+                machineConfig = configuration["machine"];
+                Config = MachineParameters.ParseConfig(machineConfig);
+            }
+            catch (Exception e)
+            {
+                var msg = String.Format("Can not parse config: {0}", e);
+                Logger.Instance.Error(this, "config error", msg);
+                return (false, msg);
+            }
 
-            Config = MachineParameters.ParseConfig(machineConfig);
-
-            connectionManager.CreateConnections(runConfig["connections"]);
+            try
+            {
+                connectionManager.CreateConnections(runConfig["connections"]);
+            }
+            catch (Exception e)
+            {
+                var msg = String.Format("Can not connect: {0}", e);
+                Logger.Instance.Error(this, "connection", msg);
+                return (false, msg);
+            }
 
             rtSender = new PacketRTSender(connectionManager.Connections["RT"].writer, connectionManager.Connections["RT"].reader);
             modbusSender = new PacketModbusSender(connectionManager.Connections["Modbus"].writer, connectionManager.Connections["Modbus"].reader);
@@ -149,6 +168,7 @@ namespace GCodeServer
             UploadConfiguration();
             StatusMachine.Start();
             StatusMachine.Continue();
+            return (true, null);
         }
 
         private void Machine_ProgramStarted()
@@ -211,7 +231,7 @@ namespace GCodeServer
 
                 switch (tool.tooltype)
                 {
-                    case  ToolDriverType.Spindle:
+                    case ToolDriverType.Spindle:
                         type = "spindle";
                         break;
                     case ToolDriverType.Binary:
@@ -643,7 +663,17 @@ namespace GCodeServer
                         }
                     case "configuration":
                         {
-                            Init(message["configuration"]);
+                            var (result, msg) = Init(message["configuration"]);
+                            if (result == false)
+                            {
+                                var response = new JsonObject
+                                {
+                                    ["type"] = "message",
+                                    ["message"] = msg,
+                                    ["message_type"] = "init error",
+                                };
+                                responseSender.MessageSend(response.ToString());
+                            }
                             break;
                         }
                     case "mode_selection":
@@ -807,7 +837,7 @@ namespace GCodeServer
                             ReadActualPosition();
                             break;
                         }
-                   
+
                     default:
                         {
                             // ERROR
