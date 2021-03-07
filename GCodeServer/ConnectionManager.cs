@@ -52,6 +52,7 @@ namespace GCodeServer
                             DataBits = 8
                         };
                         sport.Open();
+                        System.Threading.Thread.Sleep(2000);
                         reader = new SerialPacketReceiver(sport);
                         writer = new SerialPacketSender(sport);
                         break;
