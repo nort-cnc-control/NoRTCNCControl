@@ -75,6 +75,10 @@ namespace Actions
         public event Action<IAction> EventStarted;
         public event Action<IAction> EventFinished;
 
+        private int resendMax = 2;
+        private int resendCount;
+        private string cmd;
+
         public RTAction(IRTSender sender, IRTCommand command)
         {
             this.sender = sender;
@@ -87,7 +91,7 @@ namespace Actions
             this.sender.EmptySlotsEnded += OnEmptySlotsEndedHdl;
             this.sender.SlotsNumberReceived += OnSpaceReceived;
             Command = command;
-            
+
             ContiniousBlockCompleted = new EventWaitHandle(false, EventResetMode.ManualReset);
             ReadyToRun = new EventWaitHandle(sender.HasSlots, EventResetMode.ManualReset);
             Started = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -159,7 +163,6 @@ namespace Actions
             if (nid != CommandId)
                 return;
             Logger.Instance.Debug(this, "queued", nid.ToString());
-
         }
 
         private void OnDroppedHdl(int nid)
@@ -182,13 +185,14 @@ namespace Actions
 
         public void Run()
         {
-            String cmd = Command.Command;
+            cmd = Command.Command;
             if (!sender.HasSlots && Command.CommandIsCached)
             {
                 Logger.Instance.Error(this, "no slots", String.Format("Command = \"{0}\"", cmd));
                 throw new OutOfMemoryException("MCU doesn't have empty slots");
             }
 
+            resendCount = 0;
             lock (sender)
             {
                 sender.Indexed += OnIndexed;

@@ -113,7 +113,7 @@ namespace GCodeServer
             }
             catch (Exception e)
             {
-                var msg = String.Format("Can not parse config: {0}", e);
+                var msg = String.Format("Can not parse config: {0}", e.Message);
                 Logger.Instance.Error(this, "config error", msg);
                 return (false, msg);
             }
@@ -124,12 +124,12 @@ namespace GCodeServer
             }
             catch (Exception e)
             {
-                var msg = String.Format("Can not connect: {0}", e);
+                var msg = String.Format("Can not connect: {0}", e.Message);
                 Logger.Instance.Error(this, "connection", msg);
                 return (false, msg);
             }
 
-            rtSender = new PacketRTSender(connectionManager.Connections["RT"].writer, connectionManager.Connections["RT"].reader);
+            rtSender = new SyncRTSender(new PacketRTSender(connectionManager.Connections["RT"].writer, connectionManager.Connections["RT"].reader));
             modbusSender = new PacketModbusSender(connectionManager.Connections["Modbus"].writer, connectionManager.Connections["Modbus"].reader);
 
             rtSender.Init();
@@ -146,7 +146,7 @@ namespace GCodeServer
 
             var crds = StatusMachine.ReadHardwareCoordinates();
 
-            Machine = new GCodeMachine.GCodeMachine(this.rtSender, this, newState, Config);
+            Machine = new GCodeMachine.GCodeMachine(rtSender, this, newState, Config);
             Machine.ActionStarted += Machine_ActionStarted;
             Machine.ActionFinished += Machine_ActionCompleted;
             Machine.ActionFailed += Machine_ActionFailed;
