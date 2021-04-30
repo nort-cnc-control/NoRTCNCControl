@@ -280,7 +280,17 @@ namespace Actions
 
         private void FinalSetup()
         {
-            Angle = (decimal)(2 * Math.Asin((double)(DeltaProj.Length() / 2 / R)));
+            double sina = (double)(DeltaProj.Length() / 2 / R);
+	    if (sina > 1.1 || sina < -1.1)
+                throw new ArgumentOutOfRangeException("Too small radius!");
+	    if (sina > 1)
+                sina = 1;
+	    if (sina < -1)
+                sina = -1;
+//            System.Console.Write(String.Format("sina = {0}\n", sina));
+            double asin = Math.Asin(sina);
+
+            Angle = (decimal)(2 * asin);
             if (bigArc)
             {
                 Angle = (decimal)(Math.PI * 2) - Angle;
