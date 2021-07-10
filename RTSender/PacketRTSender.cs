@@ -96,7 +96,7 @@ namespace RTSender
             }
             catch
             {
-                Logger.Instance.Error(this, "parse error", line);
+                Logger.Instance.Error(this, "exception", line);
             }
         }
 

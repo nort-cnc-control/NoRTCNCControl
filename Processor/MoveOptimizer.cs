@@ -222,11 +222,14 @@ namespace Processor
                 var ma = action.action as RTAction;
                 if (ma == null || ma.RequireFinish || ma.Command as IRTMoveCommand == null)
                 {
-                    if (chain.Actions.Count > 0)
+                    if (ma == null || ma.RequireFinish)
                     {
-                        var subc = SplitChainByDirectionFlip(chain);
-                        chains.AddRange(subc);
-                        chain = new MoveActionChain();
+                        if (chain.Actions.Count > 0)
+                        {
+                            var subc = SplitChainByDirectionFlip(chain);
+                            chains.AddRange(subc);
+                            chain = new MoveActionChain();
+                        }
                     }
                 }
                 else
