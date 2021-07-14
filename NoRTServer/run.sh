@@ -1,4 +1,4 @@
 #!/bin/sh
 
-mono bin/Debug/net472/NoRTServer.exe
+dotnet run bin/Debug/net472/NoRTServer.exe
 

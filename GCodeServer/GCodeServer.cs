@@ -618,6 +618,16 @@ namespace GCodeServer
                                         Machine.Reboot();
                                         break;
                                     }
+                                case "enable_steppers":
+                                    {
+                                        Machine.EnableSteppers(true);
+                                        break;
+                                    }
+                                case "disable_steppers":
+                                    {
+                                        Machine.EnableSteppers(false);
+                                        break;
+                                    }
                                 case "reset":
                                 case "stop":
                                     {

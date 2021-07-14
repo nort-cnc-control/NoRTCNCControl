@@ -345,6 +345,12 @@ namespace GCodeMachine
             RunState = State.Paused;
         }
 
+        public void EnableSteppers(bool en)
+        {
+            var cmd = new RTSteppersEnableCommand(en);
+            rtSender.SendCommand(cmd.Command);
+        }
+
         public void Reboot()
         {
             reseted.Reset();
