@@ -124,6 +124,7 @@ namespace ManualFeedMachine
 
         private IAction BuildStepAction(decimal fx, decimal fy, decimal fz, decimal dt)
         {
+			Vector3 comp = new Vector3();
             var feed = (decimal)(Math.Sqrt((double)(fx * fx + fy * fy + fz * fz)));
             var delta = new Vector3(fx * dt, fy * dt, fz * dt);
             if (delta.Length() == 0)
@@ -135,7 +136,7 @@ namespace ManualFeedMachine
                 FeedStart = feed,
                 FeedEnd = feed
             };
-            var command = new RTLineMoveCommand(delta, opts, config);
+            var command = new RTLineMoveCommand(delta, comp, opts, config);
             var action = new RTAction(rtSender, command);
             return action;
         }

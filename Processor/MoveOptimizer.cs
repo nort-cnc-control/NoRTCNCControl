@@ -5,11 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Config;
 using Vector;
+using Log;
 
 namespace Processor
 {
-    public class MoveOptimizer : IProcessor
+    public class MoveOptimizer : IProcessor, ILoggerSource
     {
+        public string Name => "move optimizer";
+
         private class MoveActionChain
         {
             public List<IRTMoveCommand> Actions;
@@ -217,8 +220,13 @@ namespace Processor
             List<MoveActionChain> chains = new List<MoveActionChain>();
             MoveActionChain chain = new MoveActionChain();
             var actions = program.Actions;
+            Logger.Instance.Debug(this, "optimize", "begin optimization");
+
+            int index = 1;
+            int na = actions.Count;
             foreach (var action in actions)
             {
+                Logger.Instance.Debug(this, "optimize", string.Format("Process action #{0} / {1}", index, na));
                 var ma = action.action as RTAction;
                 if (ma == null || ma.RequireFinish || ma.Command as IRTMoveCommand == null)
                 {
@@ -237,17 +245,26 @@ namespace Processor
                     var cmd = ma.Command as IRTMoveCommand;
                     chain.Actions.Add(cmd);
                 }
+
+                index += 1;
             }
+			
             if (chain.Actions.Count > 0)
             {
                 var subc = SplitChainByDirectionFlip(chain);
                 chains.AddRange(subc);
             }
 
+            index = 1;
+            int nc = chains.Count;
             foreach (var c in chains)
             {
+                Logger.Instance.Debug(this, "optimize", string.Format("Optimize chain #{0} / {1}. It has {2} actions", index, nc, c.Actions.Count));
                 OptimizeChain(c);
+                index += 1;
             }
+
+            Logger.Instance.Debug(this, "optimize", "ready optimization");
         }
     }
 }

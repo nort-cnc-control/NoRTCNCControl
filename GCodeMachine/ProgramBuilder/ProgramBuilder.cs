@@ -151,7 +151,7 @@ namespace GCodeMachine
             var R = block.R; // Retract
             var Q = block.Q; // Pecking
 
-            Vector3 delta;
+            Vector3 delta, compensation;
 
             var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
 
@@ -180,9 +180,9 @@ namespace GCodeMachine
             }
 
             Vector3 topPosition;
-            (delta, topPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, null);
+            (delta, compensation, topPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, null);
             state.AxisState.TargetPosition = topPosition;
-            state = program.AddFastLineMovement(delta, state);
+            state = program.AddFastLineMovement(delta, compensation, state);
             #endregion Positioning
 
             var absmode = state.AxisState.Absolute;
@@ -190,9 +190,9 @@ namespace GCodeMachine
 
             #region R height
             Vector3 rPosition;
-            (delta, rPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.RetractHeightLocal);
+            (delta, compensation, rPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.RetractHeightLocal);
             state.AxisState.TargetPosition = rPosition;
-            state = program.AddFastLineMovement(delta, state);
+            state = program.AddFastLineMovement(delta, compensation, state);
             #endregion R height
 
             // TODO: dwelling, etc
@@ -200,7 +200,7 @@ namespace GCodeMachine
             Vector3 currentDrillPosition = state.AxisState.TargetPosition;
 
             Vector3 bottomPosition;
-            (_, bottomPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.DrillHeightLocal);
+            (_, _, bottomPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, state.DrillingState.DrillHeightLocal);
 
             decimal startHeight = coordinateSystem.ToLocal(rPosition).z;
             decimal preparationHeight = startHeight;
@@ -231,22 +231,22 @@ namespace GCodeMachine
                 #region preparation
                 if (preparationHeight != startHeight)
                 {
-                    (delta, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, preparationHeight);
+                    (delta, compensation, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, preparationHeight);
                     state.AxisState.TargetPosition = currentDrillPosition;
-                    state = program.AddFastLineMovement(delta, state);
+                    state = program.AddFastLineMovement(delta, compensation, state);
                 }
                 #endregion
 
                 #region drilling
-                (delta, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, targetHeight);
+                (delta, compensation, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, targetHeight);
                 state.AxisState.TargetPosition = currentDrillPosition;
-                state = program.AddLineMovement(delta, state.AxisState.Feed, state);
+                state = program.AddLineMovement(delta, compensation, state.AxisState.Feed, state);
                 #endregion
 
                 #region retracting
-                (delta, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, startHeight);
+                (delta, compensation, currentDrillPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, null, null, startHeight);
                 state.AxisState.TargetPosition = currentDrillPosition;
-                state = program.AddFastLineMovement(delta, state);
+                state = program.AddFastLineMovement(delta, compensation, state);
                 #endregion
 
                 preparationHeight = currentHeight;
@@ -257,9 +257,10 @@ namespace GCodeMachine
             switch (state.DrillingState.RetractDepth)
             {
                 case DrillingState.RetractDepthType.InitialHeight:
-                    state.AxisState.TargetPosition = topPosition;
-                    delta = state.AxisState.TargetPosition - state.AxisState.Position;
-                    state = program.AddFastLineMovement(delta, state);
+                    delta = topPosition - state.AxisState.TargetPosition;
+					compensation = state.AxisState.TargetPosition - state.AxisState.Position;
+					state.AxisState.TargetPosition = topPosition;
+                    state = program.AddFastLineMovement(delta, compensation, state);
                     break;
                 case DrillingState.RetractDepthType.RHeight:
                     break;
@@ -311,17 +312,18 @@ namespace GCodeMachine
             return pos;
         }
 
-        private (Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, decimal? X, decimal? Y, decimal? Z)
+        private (Vector3, Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, decimal? X, decimal? Y, decimal? Z)
         {
             var coordinateSystem = state.AxisState.Params.CurrentCoordinateSystem;
             Vector3 currentTargetPositionLocal = coordinateSystem.ToLocal(currentTargetPosition);
             Vector3 nextTargetPositionLocal = MakeMove(state, currentTargetPositionLocal, X, Y, Z);
             Vector3 nextTargetPositionGlobal = coordinateSystem.ToGlobal(nextTargetPositionLocal);
-            Vector3 delta = nextTargetPositionGlobal - currentPhysicalPosition;
-            return (delta, nextTargetPositionGlobal);
+            Vector3 delta = nextTargetPositionGlobal - currentTargetPosition;
+			Vector3 compensation = currentTargetPosition - currentPhysicalPosition;
+            return (delta, compensation, nextTargetPositionGlobal);
         }
 
-        private (Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
+        private (Vector3, Vector3, Vector3) FindMovement(CNCState.CNCState state, Vector3 currentTargetPosition, Vector3 currentPhysicalPosition, Arguments.Option X, Arguments.Option Y, Arguments.Option Z)
         {
             decimal? Xv = null, Yv = null, Zv = null;
             if (X != null)
@@ -371,17 +373,18 @@ namespace GCodeMachine
                 return state;
 
             Vector3 delta;
+			Vector3 compensation;
             Vector3 targetPosition;
-            (delta, targetPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, Z);
+            (delta, compensation, targetPosition) = FindMovement(state, state.AxisState.TargetPosition, state.AxisState.Position, X, Y, Z);
             state.AxisState.TargetPosition = targetPosition;
 
             switch (state.AxisState.MoveType)
             {
                 case AxisState.MType.FastLine:
-                    state = program.AddFastLineMovement(delta, state);
+                    state = program.AddFastLineMovement(delta, compensation, state);
                     break;
                 case AxisState.MType.Line:
-                    state = program.AddLineMovement(delta, state.AxisState.Feed, state);
+                    state = program.AddLineMovement(delta, compensation, state.AxisState.Feed, state);
                     break;
                 case AxisState.MType.ArcCW:
                 case AxisState.MType.ArcCCW:
@@ -404,12 +407,12 @@ namespace GCodeMachine
                                 default:
                                     throw new InvalidOperationException();
                             }
-                            state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, compensation, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else if (R != null)
                         {
                             var r = ConvertSizes(GetValue(R, state), state);
-                            state = program.AddArcMovement(delta, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, compensation, r, ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                         else
                         {
@@ -422,7 +425,7 @@ namespace GCodeMachine
                                 j = ConvertSizes(GetValue(J, state), state);
                             if (K != null)
                                 k = ConvertSizes(GetValue(K, state), state);
-                            state = program.AddArcMovement(delta, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
+                            state = program.AddArcMovement(delta, compensation, new Vector3(i, j, k), ccw, state.AxisState.Axis, state.AxisState.Feed, state);
                         }
                     }
                     break;
@@ -1060,6 +1063,8 @@ namespace GCodeMachine
             state.VarsState.Vars["y"] = currentPos.y;
             state.VarsState.Vars["z"] = currentPos.z;
 
+            Logger.Instance.Debug(this, "build", "start build program");
+
             program.AddConfiguration(state);
             program.AddRTUnlock(state);
             actionLines[program.Actions[0].action] = (-1, -1);
@@ -1067,6 +1072,7 @@ namespace GCodeMachine
 
             while (!finish)
             {
+                Logger.Instance.Debug(this, "build", string.Format("processing line {0}", builderState.CurrentLine));
                 if (builderState.CurrentLine >= sequence.Lines.Count)
                 {
                     builderState.Completed = true;
@@ -1155,9 +1161,14 @@ namespace GCodeMachine
             }
 
             program.AddPlaceholder(state);
+            Logger.Instance.Debug(this, "build", "finish build program");
+            Logger.Instance.Debug(this, "build", "move feed limit");
             moveFeedLimiter.ProcessProgram(program);
+            Logger.Instance.Debug(this, "build", "optimize program");
             optimizer.ProcessProgram(program);
+            Logger.Instance.Debug(this, "build", "calculate time of execution");
             timeCalculator.ProcessProgram(program);
+            Logger.Instance.Debug(this, "build", string.Format("program ready. Time = {0}", timeCalculator.ExecutionTime));
             return (program, builderState, actionLines, "");
         }
     }

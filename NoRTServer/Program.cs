@@ -6,7 +6,6 @@ using ModbusSender;
 using System.IO;
 using System;
 using Actions.Mills;
-using Gnu.Getopt;
 using System.Json;
 using Newtonsoft.Json;
 using PacketSender;
@@ -148,30 +147,39 @@ namespace NoRTServer
             }
         }
 
+
         static void Main(string[] args)
         {
-            var opts = new Getopt("NoRTServer.exe", args, "m:p:hr:x:l:");
-
             int controlPort = 8888;
+			
+			foreach (var arg in args)
+			{
+				System.Console.WriteLine(arg);
+			}
 
-            int arg;
-            while ((arg = opts.getopt()) != -1)
+			var optsparser = new FormatParser("NoRTServer", "p:hl:");
+			var opts = optsparser.ParseArgs(args);
+			if (opts == null)
+			{
+				System.Console.WriteLine("Can not parse arguments");
+				return;
+			}
+            foreach (var (key, val) in opts)
             {
-                switch (arg)
+                switch (key)
                 {
                     case 'p':
                         {
-                            controlPort = int.Parse(opts.Optarg);
+                            controlPort = int.Parse(val);
                             break;
                         }
                     case 'l':
                         {
-                            var file = File.Open(opts.Optarg, FileMode.Create);
+                            var file = File.Open(val, FileMode.Create);
                             Log.Logger.Instance.Writer = new StreamWriter(file);
                         }
                         break;
                     case 'h':
-                    default:
                         Usage();
                         return;
                 }

@@ -743,6 +743,9 @@ namespace GCodeServer
         private ProgramBuildingState BuildAndRun(ProgramBuildingState builderState)
         {
             string errorMsg;
+            // send status
+            SendState("yes_sir");
+
             UpdateCoordinates();
             ActionProgram.ActionProgram program;
             ProgramBuildingState newBuilderState;

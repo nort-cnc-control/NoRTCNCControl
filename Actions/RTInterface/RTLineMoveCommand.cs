@@ -11,6 +11,7 @@ namespace Actions
         public Vector3 DirStart { get; private set; }
         public Vector3 DirEnd { get; private set; }
         public Vector3 Delta { get; private set; }
+		public Vector3 Compenstation { get; private set; }
         public Vector3 PhysicalDelta { get; private set; }
         public decimal Length { get; private set; }
         public RTMovementOptions Options { get; private set; }
@@ -21,14 +22,14 @@ namespace Actions
         {
             Vector3 hwdelta = new Vector3
             {
-                x = Delta.x * config.X_axis.sign,
-                y = Delta.y * config.Y_axis.sign,
-                z = Delta.z * config.Z_axis.sign
+                x = (Delta.x + Compenstation.x) * config.X_axis.sign,
+                y = (Delta.y + Compenstation.y) * config.Y_axis.sign,
+                z = (Delta.z + Compenstation.z) * config.Z_axis.sign
             };
 
-            dx = (int)(hwdelta.x * config.X_axis.steps_per_mm);
-            dy = (int)(hwdelta.y * config.Y_axis.steps_per_mm);
-            dz = (int)(hwdelta.z * config.Z_axis.steps_per_mm);
+            dx = (int)Math.Round(hwdelta.x * config.X_axis.steps_per_mm);
+            dy = (int)Math.Round(hwdelta.y * config.Y_axis.steps_per_mm);
+            dz = (int)Math.Round(hwdelta.z * config.Z_axis.steps_per_mm);
 
             PhysicalDelta = new Vector3
             {
@@ -38,24 +39,26 @@ namespace Actions
             };
         }
 
-        public RTLineMoveCommand(Vector3 delta, RTMovementOptions opts, MachineParameters config)
+        public RTLineMoveCommand(Vector3 delta, Vector3 compensation, RTMovementOptions opts, MachineParameters config)
         {
             this.config = config;
             this.Delta = delta;
-            this.DirStart = this.DirEnd = Vector3.Normalize(this.Delta);
+			this.Compenstation = compensation;
             this.Options = opts;
-            Length = Delta.Length();
-            FindPhysicalParameters();
+            this.DirStart = this.DirEnd = Vector3.Normalize(this.Delta);
+			FindPhysicalParameters();
+			Length = Delta.Length();
         }
 
-        public RTLineMoveCommand(decimal dx, decimal dy, decimal dz, RTMovementOptions opts, MachineParameters config)
+        public RTLineMoveCommand(decimal dx, decimal dy, decimal dz, Vector3 compensation, RTMovementOptions opts, MachineParameters config)
         {
             this.config = config;
             this.Delta = new Vector3(dx, dy, dz);
-            this.DirStart = this.DirEnd = Vector3.Normalize(this.Delta);
+			this.Compenstation = compensation;
             this.Options = opts;
-            Length = Delta.Length();
-            FindPhysicalParameters();
+            this.DirStart = this.DirEnd = Vector3.Normalize(this.Delta);
+			FindPhysicalParameters();
+			Length = PhysicalDelta.Length();
         }
 
         private string FormatD(decimal x)

@@ -20,6 +20,7 @@ namespace Actions
         public AxisState.Plane Plane { get; private set; }
         public RTMovementOptions Options { get; private set; }
         public Vector3 Delta { get; private set; }
+		public Vector3 Compensation { get; private set; }
         public Vector3 PhysicalDelta { get; private set; }
         public bool CCW { get; private set; }
         public decimal R { get; private set; }
@@ -267,25 +268,26 @@ namespace Actions
             }
         }
 
-        private void Setup(Vector3 delta, bool ccw, AxisState.Plane plane, RTMovementOptions opts, MachineParameters config)
+        private void Setup(Vector3 delta, Vector3 compensation, bool ccw, AxisState.Plane plane, RTMovementOptions opts, MachineParameters config)
         {
             Plane = plane;
             Delta = delta;
+			Compensation = compensation;
             CCW = ccw;
             Config = config;
             Options = opts;
-            DeltaProj = VectorPlaneProj(Delta, Plane);
-            Height = VectorPlaneNormalProj(delta, Plane);
+            DeltaProj = VectorPlaneProj(Delta + Compensation, Plane);
+            Height = VectorPlaneNormalProj(Delta + Compensation, Plane);
         }
 
         private void FinalSetup()
         {
             double sina = (double)(DeltaProj.Length() / 2 / R);
-	    if (sina > 1.1 || sina < -1.1)
+	    	if (sina > 1.1 || sina < -1.1)
                 throw new ArgumentOutOfRangeException("Too small radius!");
-	    if (sina > 1)
+	    	if (sina > 1)
                 sina = 1;
-	    if (sina < -1)
+	    	if (sina < -1)
                 sina = -1;
 //            System.Console.Write(String.Format("sina = {0}\n", sina));
             double asin = Math.Asin(sina);
@@ -302,10 +304,10 @@ namespace Actions
             FindPhysicalParameters();
         }
 
-        public RTArcMoveCommand(Vector3 delta, decimal r, bool ccw, AxisState.Plane plane,
+        public RTArcMoveCommand(Vector3 delta, Vector3 compensation, decimal r, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
-            Setup(delta, ccw, plane, opts, config);
+            Setup(delta, compensation, ccw, plane, opts, config);
 
             R = Math.Abs(r);
             bigArc = (r < 0);
@@ -319,10 +321,10 @@ namespace Actions
             FinalSetup();
         }
 
-        public RTArcMoveCommand(Vector3 delta, Vector3 startToCenter, bool ccw, AxisState.Plane plane,
+        public RTArcMoveCommand(Vector3 delta, Vector3 compensation, Vector3 startToCenter, bool ccw, AxisState.Plane plane,
                                 RTMovementOptions opts, MachineParameters config)
         {
-            Setup(delta, ccw, plane, opts, config);
+            Setup(delta, compensation, ccw, plane, opts, config);
 
             startToCenterProj = VectorPlaneProj(startToCenter, Plane);
             endToCenterProj = startToCenterProj - DeltaProj;
