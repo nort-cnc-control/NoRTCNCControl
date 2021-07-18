@@ -9,7 +9,4 @@
     <ProjectReference Include="..\Log\Log.csproj" />
     <ProjectReference Include="..\PacketSender\PacketSender.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Remove="mono_crash.2530d91465.0.json" />
-  </ItemGroup>
 </Project>
