@@ -43,7 +43,7 @@ namespace NoRTServer
 			List<Tuple<char, string>> parsed = new List<Tuple<char, string>>();
 			bool expectValue = false;
 			char key = '\x0';
-			if (args.Count == 0)
+			if (args.Count() == 0)
 				return parsed;
 			if (args[0].EndsWith(progname))
 				args = args.Skip(1).ToArray();

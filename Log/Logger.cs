@@ -33,8 +33,9 @@ namespace Log
             lock (writer)
             {
                 writer.WriteLine("[{0}] {1} | {2,16} : {3,16} : {4}", timeStamp, level, source.Name, type, message);
+		writer.Flush();
             }
-	    }
+    	}
 
         public void Debug(ILoggerSource source, string type, string message)
         {

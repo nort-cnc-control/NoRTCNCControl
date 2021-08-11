@@ -1,5 +1,6 @@
 #!/bin/sh
 
-dotnet run bin/Debug/net472/NoRTServer.exe -l debug.log
+dotnet bin/Debug/net5.0/NoRTServer.dll -l debug.log
+#dotnet bin/Debug/net5.0/NoRTServer.dll 
 
 
