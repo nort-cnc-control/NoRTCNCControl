@@ -6,7 +6,6 @@ namespace RTSender
     public interface IRTSender : IDisposable
     {
         event Action Reseted;
-        event Action<int> Indexed;
         event Action<int> Queued;
         event Action<int> Dropped;
         event Action<int> Started;
@@ -19,7 +18,8 @@ namespace RTSender
         event Action<String> Debug;
 
         bool HasSlots { get; }
-        void SendCommand(String command);
+        int GetNewIndex();
+        void SendCommand(String command, int cmdIndex);
         void Init();
     }
 }

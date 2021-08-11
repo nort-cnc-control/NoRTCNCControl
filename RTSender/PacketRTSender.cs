@@ -13,7 +13,6 @@ namespace RTSender
         public event Action EmptySlotsEnded;
 
         public event Action Reseted;
-        public event Action<int> Indexed;
         public event Action<int> Queued;
         public event Action<int> Dropped;
         public event Action<int> Started;
@@ -142,18 +141,23 @@ namespace RTSender
             }
         }
 
-        public void SendCommand(String command)
+        public int GetNewIndex()
+	{
+	    lock (lockObj)
+	    {
+	        return index++;
+	    }
+	}
+
+        public void SendCommand(String command, int cmdIndex)
         {
-            var cmd = String.Format("RT:N{0} {1}", index, command);
+            var cmd = String.Format("RT:N{0} {1}", cmdIndex, command);
             Logger.Instance.Debug(this, "send", cmd);
             lock (lockObj)
             {
-                Logger.Instance.Debug(this, "lock", "success");
                 try
                 {
-                    Indexed?.Invoke(index);
                     output.SendPacket(cmd);
-                    index++;
                 }
                 catch (Exception e)
                 {

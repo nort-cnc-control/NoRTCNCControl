@@ -16,7 +16,6 @@ namespace RTSender
         public event Action EmptySlotsEnded;
 
         public event Action Reseted;
-        public event Action<int> Indexed;
         public event Action<int> Queued;
         public event Action<int> Dropped;
         public event Action<int> Started;
@@ -37,7 +36,6 @@ namespace RTSender
             this.rtSender.Reseted             += RTSender_Reseted;
             this.rtSender.Queued              += RTSender_Queued;
             this.rtSender.Dropped             += RTSender_Dropped;
-            this.rtSender.Indexed             += RTSender_Indexed;
             this.rtSender.Started             += RTSender_Started;
             this.rtSender.Failed              += RTSender_Failed;
             this.rtSender.Completed           += RTSender_Completed;
@@ -96,11 +94,6 @@ namespace RTSender
             Failed?.Invoke(N, reason);
         }
 
-        private void RTSender_Indexed(int N)
-        {
-            Indexed?.Invoke(N);
-        }
-
         private void RTSender_Dropped(int N)
         {
             Logger.Instance.Debug(this, "unlock", "dropped");
@@ -117,15 +110,20 @@ namespace RTSender
 
         #endregion events
 
-        public void SendCommand(string command)
+        public void SendCommand(string command, int cmdIndex)
         {
             Logger.Instance.Debug(this, "send", "sending command");
             waitResponse.Reset();
-            rtSender.SendCommand(command);
+            rtSender.SendCommand(command, cmdIndex);
             Logger.Instance.Debug(this, "send", "wait for response");
             waitResponse.WaitOne();
             Logger.Instance.Debug(this, "send", "wait: done");
         }
+
+        public int GetNewIndex()
+	{
+	    return rtSender.GetNewIndex();
+	}
 
         public void Init()
         {
@@ -137,7 +135,6 @@ namespace RTSender
             this.rtSender.Started             -= RTSender_Started;
             this.rtSender.Queued              -= RTSender_Queued;
             this.rtSender.Dropped             -= RTSender_Dropped;
-            this.rtSender.Indexed             -= RTSender_Indexed;
             this.rtSender.Failed              -= RTSender_Failed;
             this.rtSender.Completed           -= RTSender_Completed;
             this.rtSender.EmptySlotAppeared   -= RTSender_EmptySlotAppeared;

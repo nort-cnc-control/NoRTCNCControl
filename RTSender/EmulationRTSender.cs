@@ -23,8 +23,6 @@ namespace RTSender
 
         public event Action EmptySlotAppeared;
         public event Action EmptySlotsEnded;
-
-        public event Action<int> Indexed;
         public event Action<int> Queued;
         public event Action<int> Started;
         public event Action<int, IReadOnlyDictionary<String, String>> Completed;
@@ -53,17 +51,24 @@ namespace RTSender
         private ConcurrentQueue<Command> commandsRun;
         private readonly int maxLength;
 
-        public void SendCommand(String command)
+        public void SendCommand(String command, int cmdIndex)
         {
             lock (lockObj)
             {
-                var msg = "RT: " + String.Format("N{0} {1}", index, command);
+                var msg = "RT: " + String.Format("N{0} {1}", cmdIndex, command);
                 output.WriteLine(msg);
-                Indexed?.Invoke(index);
+		output.Flush();
                 commandsQueue.Enqueue(new Command(index, command));
-                index++;
             }
         }
+
+        public int GetNewIndex()
+	{
+	    lock (lockObj)
+	    {
+	        return index++;
+	    }
+	}
 
         private bool running;
         private void QueueThreadProc()

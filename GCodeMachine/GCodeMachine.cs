@@ -348,13 +348,13 @@ namespace GCodeMachine
         public void EnableSteppers(bool en)
         {
             var cmd = new RTSteppersEnableCommand(en);
-            rtSender.SendCommand(cmd.Command);
+            rtSender.SendCommand(cmd.Command, rtSender.GetNewIndex());
         }
 
         public void Reboot()
         {
             reseted.Reset();
-            rtSender.SendCommand("M999");
+            rtSender.SendCommand("M999", rtSender.GetNewIndex());
             Thread.Sleep(3000);
             rtSender.Init();
             reseted.WaitOne();
@@ -363,7 +363,7 @@ namespace GCodeMachine
         public void Abort()
         {
             reseted.Reset();
-            rtSender.SendCommand("M999");
+            rtSender.SendCommand("M999", rtSender.GetNewIndex());
             Thread.Sleep(3000);
             rtSender.Init();
             reseted.WaitOne();

@@ -176,11 +176,6 @@ namespace Actions
             EventFinished?.Invoke(this);
         }
 
-        private void OnIndexed(int nid)
-        {
-            CommandId = nid;
-        }
-
         #region methods
 
         public void Run()
@@ -193,12 +188,9 @@ namespace Actions
             }
 
             resendCount = 0;
-            lock (sender)
-            {
-                sender.Indexed += OnIndexed;
-                sender.SendCommand(cmd);
-                sender.Indexed -= OnIndexed;
-            }
+	
+            CommandId = sender.GetNewIndex();
+            sender.SendCommand(cmd, CommandId);
         }
 
         public void Abort()
