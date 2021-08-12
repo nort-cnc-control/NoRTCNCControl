@@ -30,8 +30,6 @@ namespace Actions
         public decimal Length { get; private set; }
         public decimal Angle { get; private set; }
 
-        private readonly double eps = 1e-6;
-
         private bool left_basis
         {
             get

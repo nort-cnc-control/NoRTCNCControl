@@ -1,6 +1,7 @@
 using System.Linq;
 using System;
 using System.Collections.Generic;
+using Expression;
 
 namespace GCodeMachine
 {
@@ -37,7 +38,7 @@ namespace GCodeMachine
             public decimal value;
             public bool dot;
 
-            public Expression expr;
+            public Expression.Expression expr;
             #endregion
         }
 
@@ -94,7 +95,7 @@ namespace GCodeMachine
                     if (s[i] == ']')
                     {
                         ++i;
-                        opt.expr = new Expression(expr);
+                        opt.expr = new Expression.Expression(expr);
                         return (opt, s.Substring(i));
                     }
                     expr += s[i++];

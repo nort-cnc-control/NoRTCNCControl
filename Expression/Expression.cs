@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace GCodeMachine
+namespace Expression
 {
     public enum MathConstant
     {
@@ -390,9 +390,13 @@ namespace GCodeMachine
                     token = DetectCalls(token);
                 }
 
-                if (prev != null &&
-                    prev.tokenType == Token.TokenType.Name &&
-                    token.tokenType != Token.TokenType.Operation)
+                if (prev != null && prev.tokenType == Token.TokenType.Name &&
+                    (	
+						token.tokenType == Token.TokenType.Sequence ||
+						token.tokenType == Token.TokenType.Number ||
+						token.tokenType == Token.TokenType.Variable ||
+						token.tokenType == Token.TokenType.Name
+					))
                 {
                     prev.argument = token;
                     newroot.sequence.Add(prev);
@@ -490,7 +494,7 @@ namespace GCodeMachine
                     }
 
                     // Move subsequence to sequence token
-                    int sbegin = operators[begin] - 1;
+                    int sbegin = Math.Max(operators[begin] - 1, 0);
                     int send = operators[end] + 1;
 
                     Token subtoken = new Token

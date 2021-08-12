@@ -5,9 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Class1.cs" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\Expression\Expression.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\Actions\Actions.csproj" />
     <ProjectReference Include="..\ActionsProgram\ActionsProgram.csproj" />
@@ -19,9 +17,6 @@
     <ProjectReference Include="..\ActionExecutor\ActionExecutor.csproj" />
     <ProjectReference Include="..\Log\Log.csproj" />
     <ProjectReference Include="..\Vector\Vector.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\test.gcode" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ProgramBuilder\" />
