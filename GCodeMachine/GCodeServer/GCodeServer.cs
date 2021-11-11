@@ -19,6 +19,8 @@ using Vector;
 using ControlConnection;
 using PacketSender;
 using ManualFeedMachine;
+using ProgramBuilder;
+using ProgramBuilder.GCode;
 
 namespace GCodeServer
 {
@@ -38,7 +40,8 @@ namespace GCodeServer
 
         public string Name => "gcode server";
 
-        private ProgramBuilder programBuilder;
+        private ProgramBuilder.ProgramBuilder programBuilder;
+		private ProgramBuilder.GCode.ProgramBuilder_GCode programBuilderGCode;
         private List<ProgramBuildingState> builderStates;
         private ProgramBuildingState mainBuilderState;
 
@@ -157,13 +160,15 @@ namespace GCodeServer
 
             toolManager = new ManualMillManager(this, Machine);
             tool_drivers = ConfigureToolDrivers(Config);
-            programBuilder = new ProgramBuilder(Machine,
+            programBuilder = new ProgramBuilder.ProgramBuilder(Machine,
                                                 this,
                                                 rtSender,
                                                 modbusSender,
                                                 toolManager,
                                                 Config,
                                                 tool_drivers);
+
+			programBuilderGCode = new ProgramBuilder_GCode(programBuilder, Machine, toolManager, Config, rtSender, modbusSender);
 
             UploadConfiguration();
             StatusMachine.Start();
@@ -749,7 +754,7 @@ namespace GCodeServer
             UpdateCoordinates();
             ActionProgram.ActionProgram program;
             ProgramBuildingState newBuilderState;
-            (program, newBuilderState, starts, errorMsg) = programBuilder.BuildProgram(Machine.LastState, builderState);
+            (program, newBuilderState, starts, errorMsg) = programBuilderGCode.BuildProgram(Machine.LastState, builderState);
             if (program != null)
             {
                 Machine.LoadProgram(program);
@@ -792,7 +797,7 @@ namespace GCodeServer
                             programs[0] = sequencer.MainProgram;
                             ProgramSource source = new ProgramSource(programs, 0);
 
-                            mainBuilderState = programBuilder.InitNewProgram(source);
+                            mainBuilderState = programBuilderGCode.InitNewProgram(source);
                             break;
                         }
                     case "execute":
@@ -812,7 +817,7 @@ namespace GCodeServer
                             programs[0] = excommand;
                             ProgramSource source = new ProgramSource(programs, 0);
 
-                            var executeBuilderState = programBuilder.InitNewProgram(source);
+                            var executeBuilderState = programBuilderGCode.InitNewProgram(source);
                             executeBuilderState.Init(0, 0);
                             builderStates.Add(executeBuilderState);
                             BuildAndRun(executeBuilderState);

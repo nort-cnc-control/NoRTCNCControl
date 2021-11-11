@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using GCodeMachine;
 
-namespace GCodeMachine
+namespace ProgramBuilder
 {
     public class Sequence
     {

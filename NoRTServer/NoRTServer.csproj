@@ -3,7 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ModbusSender\ModbusSender.csproj" />
     <ProjectReference Include="..\Config\Config.csproj" />
-    <ProjectReference Include="..\GCodeServer\GCodeServer.csproj" />
+    <ProjectReference Include="..\GCodeMachine\GCodeServer\GCodeServer.csproj" />
+	<ProjectReference Include="..\Actions\Actions.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />

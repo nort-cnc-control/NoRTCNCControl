@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Config\Config.csproj" />
+    <ProjectReference Include="..\..\Log\Log.csproj" />
+	<ProjectReference Include="..\..\Actions\Actions.csproj" />
+    <ProjectReference Include="..\GCodeMachine\GCodeMachine.csproj" />
+	<ProjectReference Include="..\..\CNCState\CNCState.csproj" />
+	<ProjectReference Include="..\..\Machine\Machine.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Expression\Expression.csproj" />
+    <ProjectReference Include="..\..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\..\Actions\Actions.csproj" />
+    <ProjectReference Include="..\..\ActionsProgram\ActionsProgram.csproj" />
+    <ProjectReference Include="..\..\RTSender\RTSender.csproj" />
+    <ProjectReference Include="..\..\ModbusSender\ModbusSender.csproj" />
+    <ProjectReference Include="..\..\Config\Config.csproj" />
+    <ProjectReference Include="..\..\CNCState\CNCState.csproj" />
+    <ProjectReference Include="..\..\Processor\Processor.csproj" />
+    <ProjectReference Include="..\..\ActionExecutor\ActionExecutor.csproj" />
+    <ProjectReference Include="..\..\Log\Log.csproj" />
+    <ProjectReference Include="..\..\Vector\Vector.csproj" />
+  </ItemGroup>
+</Project>
