@@ -204,6 +204,13 @@ namespace ProgramBuilder
             return state;
         }
 
+		public CNCState.CNCState ProcessToolChange(int tool, ActionProgram.ActionProgram program, CNCState.CNCState state)
+		{
+			var newstate = state.BuildCopy();
+			program.AddToolChange(tool);    // change tool
+			return newstate;
+		}
+
         private Vector3 MakeMove(CNCState.CNCState state, Vector3 pos, decimal? X, decimal? Y, decimal? Z)
         {
             pos = new Vector3(pos.x, pos.y, pos.z);

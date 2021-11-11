@@ -534,23 +534,26 @@ namespace ProgramBuilder.GCode
 				switch (cmd.ivalue1)
 				{
 					case 0:
-						
+						program.AddBreak(state);
+						command = ProgramBuilderCommand.Pause;
 						break;
 					case 2:
-						
+						program.AddStop(state);
+						command = ProgramBuilderCommand.Finish;
 						break;
 					case 3:
 					case 4:
 					case 5:
 						state = ProcessToolCommand(block, program, state);
 						break;
-					
 					case 6:
 						if (block.SingleOptions.ContainsKey('T'))
 						{
 							// TODO: stop spindle
 							int tool = block.SingleOptions['T'].ivalue1;
-							
+							state = builder.ProcessToolChange(tool, program, state);
+							if (toolManager.ToolChangeInterrupts)
+								command = ProgramBuilderCommand.Pause;
 						}
 						break;
 					case 97:
