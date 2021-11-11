@@ -5,6 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Log\Log.csproj" />
+  <ProjectReference Include="..\..\Config\Config.csproj" />
+    <ProjectReference Include="..\..\Log\Log.csproj" />
+    <ProjectReference Include="..\GCodeMachine\GCodeMachine.csproj" />
+	<ProjectReference Include="..\ProgramBuilder\ProgramBuilder.csproj" />
+	<ProjectReference Include="..\..\CNCState\CNCState.csproj" />
+	<ProjectReference Include="..\..\RTSender\RTSender.csproj" />
+	<ProjectReference Include="..\..\Machine\Machine.csproj" />
+	<ProjectReference Include="..\..\Actions\Actions.csproj" />
+	<ProjectReference Include="..\..\ModbusSender\ModbusSender.csproj" />
   </ItemGroup>
 </Project>
