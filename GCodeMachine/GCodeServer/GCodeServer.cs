@@ -778,20 +778,15 @@ namespace GCodeServer
             return newBuilderState;
         }
 
-		private void BuildAndRun_Excellon(ProgramSource source)
+		private ProgramBuildingState BuildAndRun_Excellon(ProgramBuildingState builderState)
 		{
-			ActionProgram.ActionProgram program;
-			IReadOnlyDictionary<IAction, int> actionLines;
 			string errorMessage;
-            (program, actionLines, errorMessage) = programBuilderExcellon.BuildProgram(Machine.LastState, source.Procedures[source.MainProcedureId]);
+			SendState("yes_sir");
 
-			var al = new Dictionary<IAction, (int, int)>();
-			foreach (var action in actionLines.Keys)
-			{
-				al[action] = (0, actionLines[action]);
-			}
-			starts = al;
-
+			UpdateCoordinates();
+			ActionProgram.ActionProgram program;
+			ProgramBuildingState newBuilderState;
+            (program, newBuilderState, starts, errorMessage) = programBuilderExcellon.BuildProgram(Machine.LastState, builderState);
 			if (program != null)
 			{
 				Machine.LoadProgram(program);
@@ -799,6 +794,21 @@ namespace GCodeServer
                 SyncCoordinates(Machine.LastState.AxisState.Position);
                 Machine.Continue();
 			}
+			else
+            {
+                CompileErrorMessageSend(errorMessage);
+            }
+			return newBuilderState;
+		}
+
+		private ProgramBuildingState InitNewProgram(ProgramSource source)
+		{
+			var builderState = new ProgramBuildingState(source)
+			{
+				CurrentProcedure = source.MainProcedureId,
+				CurrentLine = 0
+			};
+			return builderState;
 		}
 
         public bool Run()
@@ -834,16 +844,22 @@ namespace GCodeServer
                             	ProgramSequencer gcode_program = LoadGcode(program.ToArray());
                             	programs = gcode_program.Subprograms.ToDictionary(item => item.Key, item => item.Value);
                             	programs[0] = gcode_program.MainProgram;
-                            	
 							}
 							else if (program_format == "excellon")
 							{
 								Sequence excellon_program = new Sequence();
 								foreach (var line in program)
 									excellon_program.AddLine(new Arguments(line));
+								programs = new Dictionary<int, Sequence>();
 								programs[0] = excellon_program;
 							}
+							else
+							{
+								CompileErrorMessageSend("Unknown source format: " + program_format);
+								break;
+							}
 							program_source = new ProgramSource(programs, 0);
+							mainBuilderState = InitNewProgram(program_source);
                             break;
                         }
                     case "execute":
@@ -863,7 +879,7 @@ namespace GCodeServer
                             programs[0] = excommand;
                             ProgramSource source = new ProgramSource(programs, 0);
 
-                            var executeBuilderState = programBuilderGCode.InitNewProgram(source);
+                            var executeBuilderState = InitNewProgram(source);
                             executeBuilderState.Init(0, 0);
                             builderStates.Add(executeBuilderState);
                             BuildAndRun_GCode(executeBuilderState);
@@ -871,21 +887,16 @@ namespace GCodeServer
                         }
                     case "start":
                         {
+							// Remove all programs from stack
+                            builderStates.Clear();
+                            mainBuilderState.Init(0, 0);
+                            	
                             if (program_format == "gcode")
-							{
-								mainBuilderState = programBuilderGCode.InitNewProgram(program_source);
-
-								// Remove all programs from stack
-                            	builderStates.Clear();
-
-                            	mainBuilderState.Init(0, 0);
-                            	mainBuilderState = BuildAndRun_GCode(mainBuilderState);
-							}
+								mainBuilderState = BuildAndRun_GCode(mainBuilderState);
 							else if (program_format == "excellon")
-							{
-								BuildAndRun_Excellon(program_source);
-							}
-                            break;
+								mainBuilderState = BuildAndRun_Excellon(mainBuilderState);
+
+							break;
                         }
                     case "continue":
                         {

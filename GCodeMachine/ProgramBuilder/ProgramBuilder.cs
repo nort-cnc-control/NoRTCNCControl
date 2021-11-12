@@ -29,6 +29,42 @@ namespace ProgramBuilder
 		}
 	}
 
+	public class ProgramBuildingState
+	{
+		public ProgramSource Source;
+		public Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)> Callstack;
+		public int CurrentProcedure;
+		public int CurrentLine;
+		public bool Completed;
+
+		public ProgramBuildingState(ProgramSource source)
+		{
+			Completed = true;
+			Source = source;
+			Callstack = new Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)>();
+			CurrentLine = 0;
+			CurrentProcedure = Source.MainProcedureId;
+		}
+
+		public ProgramBuildingState(Sequence sequence)
+		{
+			Completed = true;
+			var programs = new Dictionary<int, Sequence>();
+			programs[0] = sequence;
+			Source = new ProgramSource(programs, 0);
+			CurrentLine = 0;
+			CurrentProcedure = Source.MainProcedureId;
+		}
+
+		public void Init(int program, int line)
+		{
+			CurrentLine = line;
+			CurrentProcedure = program;
+			Completed = false;
+			Callstack.Clear();
+		}
+	}
+
     public class ProgramBuilder : ILoggerSource
     {
         private readonly IRTSender rtSender;

@@ -67,8 +67,6 @@ namespace ProgramBuilder.Excellon
 			return builder.ProcessDrillingMove(X, Y, Z, R, Q, program, state);
 		}
 
-		
-
 		private CNCState.CNCState Process(Arguments frame,
 										  ActionProgram.ActionProgram program,
 										  CNCState.CNCState state)
@@ -89,21 +87,31 @@ namespace ProgramBuilder.Excellon
 			return state;
 		}
 
-		public (ActionProgram.ActionProgram actionProgram, IReadOnlyDictionary<IAction, int> actionLines, string errorMessage) BuildProgram(CNCState.CNCState initialMachineState, Sequence source)
+		public (ActionProgram.ActionProgram actionProgram, ProgramBuildingState finalState, IReadOnlyDictionary<IAction, (int procedure, int line)> actionLines, string errorMessage) BuildProgram(CNCState.CNCState initialMachineState, ProgramBuildingState builderState)
 		{
 			var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
-			var actionLines = new Dictionary<IAction, int>();
+			var actionLines = new Dictionary<IAction, (int, int)>();
 			
 			var state = builder.BeginProgram(program, initialMachineState);
-			actionLines[program.Actions[0].action] = -1;
+			actionLines[program.Actions[0].action] = (-1, -1);
 			
+			Sequence sequence = builderState.Source.Procedures[builderState.CurrentProcedure];
+
 			state = builder.ProcessDrillingMove(null, null, -1, 10, 10, program, state);
 
-			for (int line = 0; line < source.Lines.Count; line++)
+			bool finish = false;
+
+			while (!finish)
 			{
-				Logger.Instance.Debug(this, "build", string.Format("processing line {0}", line));
+				if (builderState.CurrentLine >= sequence.Lines.Count)
+				{
+					builderState.Completed = true;
+					break;
+				}
+
+				Logger.Instance.Debug(this, "build", string.Format("processing line {0}", builderState.CurrentLine));
 				
-				Arguments frame = source.Lines[line];
+				Arguments frame = sequence.Lines[builderState.CurrentLine];
 				try
 				{
 					var len0 = program.Actions.Count;
@@ -112,24 +120,26 @@ namespace ProgramBuilder.Excellon
 					if (len1 > len0)
 					{
 						var first = program.Actions[len0].action;
-						actionLines[first] = line;
+						actionLines[first] = (builderState.CurrentProcedure, builderState.CurrentLine);
 					}
 				}
 				catch (Exception e)
 				{
 					var msg = String.Format("{0} : {1}", frame, e.ToString());
 					Logger.Instance.Error(this, "compile error", msg);
-					return (null, new Dictionary<IAction, int>(), e.Message);
+					return (null, null, new Dictionary<IAction, (int, int)>(), e.Message);
 				}
 
 				var currentPos = state.AxisState.Params.CurrentCoordinateSystem.ToLocal(state.AxisState.TargetPosition);
 				state.VarsState.Vars["x"] = currentPos.x;
 				state.VarsState.Vars["y"] = currentPos.y;
 				state.VarsState.Vars["z"] = currentPos.z;
+
+				builderState.CurrentLine += 1;
 			}
 
 			state = builder.FinishProgram(program, state);
-			return (program, actionLines, "");
+			return (program, builderState, actionLines, "");
 		}
 	}
 }

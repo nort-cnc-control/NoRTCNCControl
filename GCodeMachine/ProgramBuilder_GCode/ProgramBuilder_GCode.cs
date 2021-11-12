@@ -14,32 +14,6 @@ using GCodeMachine;
 
 namespace ProgramBuilder.GCode
 {
-	public class ProgramBuildingState
-	{
-		public ProgramSource Source;
-		public Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)> Callstack;
-		public int CurrentProcedure;
-		public int CurrentLine;
-		public bool Completed;
-
-		public ProgramBuildingState(ProgramSource source)
-		{
-			Completed = true;
-			Source = source;
-			Callstack = new Stack<(int fromProcedure, int fromLine, int toProcedure, int repeat)>();
-			CurrentLine = 0;
-			CurrentProcedure = Source.MainProcedureId;
-		}
-
-		public void Init(int program, int line)
-		{
-			CurrentLine = line;
-			CurrentProcedure = program;
-			Completed = false;
-			Callstack.Clear();
-		}
-	}
-
 	public class ProgramBuilder_GCode : ILoggerSource
 	{
 		private readonly MachineParameters config;
@@ -567,16 +541,12 @@ namespace ProgramBuilder.GCode
 			return (state, command, pid, amount);
 		}
 
-		private (CNCState.CNCState,
-				 ProgramBuilderCommand command,
-				 int programid,
-				 int amount)
-
-			Process(Arguments args,
-					ActionProgram.ActionProgram program,
-					CNCState.CNCState state,
-					int curprogram, int curline,
-					Dictionary<IAction, (int, int)> starts)
+		private (CNCState.CNCState, ProgramBuilderCommand command, int programid, int amount) Process(Arguments args,
+																										ActionProgram.ActionProgram program,
+																										CNCState.CNCState state,
+																										int curprogram,
+																										int curline,
+																										Dictionary<IAction, (int, int)> starts)
 		{
 			ProgramBuilderCommand command = ProgramBuilderCommand.Continue;
 			int pid = -1, amount = -1;
@@ -598,16 +568,6 @@ namespace ProgramBuilder.GCode
 			return (state, command, pid, amount);
 		}
 
-		public ProgramBuildingState InitNewProgram(ProgramSource source)
-		{
-			var builderState = new ProgramBuildingState(source)
-			{
-				CurrentProcedure = source.MainProcedureId,
-				CurrentLine = 0
-			};
-			return builderState;
-		}
-
 		public (ActionProgram.ActionProgram actionProgram,
 				ProgramBuildingState finalState,
 				IReadOnlyDictionary<IAction, (int procedure, int line)> actionLines,
@@ -619,7 +579,7 @@ namespace ProgramBuilder.GCode
 			var program = new ActionProgram.ActionProgram(rtSender, modbusSender, config, machine, toolManager);
 			var actionLines = new Dictionary<IAction, (int procedure, int line)>();
 			Sequence sequence = builderState.Source.Procedures[builderState.CurrentProcedure];
-			
+
 			var state = builder.BeginProgram(program, initialMachineState);
 			actionLines[program.Actions[0].action] = (-1, -1);
 			bool finish = false;
