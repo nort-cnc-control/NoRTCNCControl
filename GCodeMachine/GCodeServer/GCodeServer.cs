@@ -85,8 +85,8 @@ namespace GCodeServer
 
         private ConnectionManager connectionManager;
 
-		ProgramSequencer gcode_program;
-		Sequence excellon_program;
+		private ProgramSource program_source;
+
 		string program_format;
 
         public GCodeServer(Stream commandStream,
@@ -778,12 +778,12 @@ namespace GCodeServer
             return newBuilderState;
         }
 
-		private void BuildAndRun_Excellon(Sequence source)
+		private void BuildAndRun_Excellon(ProgramSource source)
 		{
 			ActionProgram.ActionProgram program;
 			IReadOnlyDictionary<IAction, int> actionLines;
 			string errorMessage;
-            (program, actionLines, errorMessage) = programBuilderExcellon.BuildProgram(Machine.LastState, source);
+            (program, actionLines, errorMessage) = programBuilderExcellon.BuildProgram(Machine.LastState, source.Procedures[source.MainProcedureId]);
 
 			var al = new Dictionary<IAction, (int, int)>();
 			foreach (var action in actionLines.Keys)
@@ -828,21 +828,22 @@ namespace GCodeServer
 							else
 								program_format = "gcode";
 
+							Dictionary<int, Sequence> programs;
 							if (program_format == "gcode")
 							{
-                            	gcode_program = LoadGcode(program.ToArray());
-                            	Dictionary<int, Sequence> programs = gcode_program.Subprograms.ToDictionary(item => item.Key, item => item.Value);
+                            	ProgramSequencer gcode_program = LoadGcode(program.ToArray());
+                            	programs = gcode_program.Subprograms.ToDictionary(item => item.Key, item => item.Value);
                             	programs[0] = gcode_program.MainProgram;
-                            	ProgramSource source = new ProgramSource(programs, 0);
-                            	mainBuilderState = programBuilderGCode.InitNewProgram(source);
-								
+                            	
 							}
 							else if (program_format == "excellon")
 							{
-								excellon_program = new Sequence();
+								Sequence excellon_program = new Sequence();
 								foreach (var line in program)
 									excellon_program.AddLine(new Arguments(line));
+								programs[0] = excellon_program;
 							}
+							program_source = new ProgramSource(programs, 0);
                             break;
                         }
                     case "execute":
@@ -872,6 +873,8 @@ namespace GCodeServer
                         {
                             if (program_format == "gcode")
 							{
+								mainBuilderState = programBuilderGCode.InitNewProgram(program_source);
+
 								// Remove all programs from stack
                             	builderStates.Clear();
 
@@ -880,7 +883,7 @@ namespace GCodeServer
 							}
 							else if (program_format == "excellon")
 							{
-								BuildAndRun_Excellon(excellon_program);
+								BuildAndRun_Excellon(program_source);
 							}
                             break;
                         }

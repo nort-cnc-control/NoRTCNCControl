@@ -14,18 +14,6 @@ using GCodeMachine;
 
 namespace ProgramBuilder.GCode
 {
-	public class ProgramSource
-	{
-		public IReadOnlyDictionary<int, Sequence> Procedures;
-		public int MainProcedureId;
-
-		public ProgramSource(IReadOnlyDictionary<int, Sequence> procedures, int mainProcedureId)
-		{
-			Procedures = procedures;
-			MainProcedureId = mainProcedureId;
-		}
-	}
-
 	public class ProgramBuildingState
 	{
 		public ProgramSource Source;

@@ -17,6 +17,18 @@ using GCodeMachine;
 
 namespace ProgramBuilder
 {
+	public class ProgramSource
+	{
+		public IReadOnlyDictionary<int, Sequence> Procedures;
+		public int MainProcedureId;
+
+		public ProgramSource(IReadOnlyDictionary<int, Sequence> procedures, int mainProcedureId)
+		{
+			Procedures = procedures;
+			MainProcedureId = mainProcedureId;
+		}
+	}
+
     public class ProgramBuilder : ILoggerSource
     {
         private readonly IRTSender rtSender;
