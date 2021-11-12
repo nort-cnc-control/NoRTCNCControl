@@ -13,13 +13,13 @@ using CNCState;
 using Actions.Mills;
 using GCodeMachine;
 
-namespace Excellon
+namespace ProgramBuilder.Excellon
 {
 	public class ProgramBuilder_Excellon : ILoggerSource
 	{
 		private readonly MachineParameters config;
 
-		private readonly ProgramBuilder.ProgramBuilder builder;
+		private readonly ProgramBuilder builder;
 
 		public string Name => "excellon builder";
 
@@ -28,7 +28,7 @@ namespace Excellon
 		private readonly IMachine machine;
 		private readonly IMillManager toolManager;
 
-		public ProgramBuilder_Excellon(ProgramBuilder.ProgramBuilder builder,
+		public ProgramBuilder_Excellon(ProgramBuilder builder,
 									IMachine machine,
 									IMillManager toolManager,
 									MachineParameters config,

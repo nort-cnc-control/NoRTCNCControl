@@ -21,6 +21,7 @@ using PacketSender;
 using ManualFeedMachine;
 using ProgramBuilder;
 using ProgramBuilder.GCode;
+using ProgramBuilder.Excellon;
 
 namespace GCodeServer
 {
@@ -42,6 +43,8 @@ namespace GCodeServer
 
         private ProgramBuilder.ProgramBuilder programBuilder;
 		private ProgramBuilder.GCode.ProgramBuilder_GCode programBuilderGCode;
+		private ProgramBuilder.Excellon.ProgramBuilder_Excellon programBuilderExcellon;
+
         private List<ProgramBuildingState> builderStates;
         private ProgramBuildingState mainBuilderState;
 
@@ -81,6 +84,10 @@ namespace GCodeServer
         private BlockingCollection<JsonObject> commands;
 
         private ConnectionManager connectionManager;
+
+		ProgramSequencer gcode_program;
+		Sequence excellon_program;
+		string program_format;
 
         public GCodeServer(Stream commandStream,
                            Stream responseStream)
@@ -169,6 +176,7 @@ namespace GCodeServer
                                                 tool_drivers);
 
 			programBuilderGCode = new ProgramBuilder_GCode(programBuilder, Machine, toolManager, Config, rtSender, modbusSender);
+			programBuilderExcellon = new ProgramBuilder_Excellon(programBuilder, Machine, toolManager, Config, rtSender, modbusSender);
 
             UploadConfiguration();
             StatusMachine.Start();
@@ -538,19 +546,20 @@ namespace GCodeServer
         }
 
         #region gcode machine methods
-        private void LoadGcode(String[] prg)
+        private ProgramSequencer LoadGcode(String[] prg)
         {
             try
             {
-                sequencer = new ProgramSequencer();
+                var sequencer = new ProgramSequencer();
                 sequencer.SequenceProgram(prg);
+				//Logger.Instance.Info(this, "compile", String.Format("Expected execution time = {0}", time));
+				return sequencer;
             }
             catch (Exception e)
             {
                 Logger.Instance.Error(this, "sequence", String.Format("Exception: {0}", e));
-                return;
-            }
-            //Logger.Instance.Info(this, "compile", String.Format("Expected execution time = {0}", time));
+                return null;
+            }	
         }
         #endregion
 
@@ -745,7 +754,7 @@ namespace GCodeServer
             responseSender.MessageSend(message.ToString());
         }
 
-        private ProgramBuildingState BuildAndRun(ProgramBuildingState builderState)
+        private ProgramBuildingState BuildAndRun_GCode(ProgramBuildingState builderState)
         {
             string errorMsg;
             // send status
@@ -769,6 +778,29 @@ namespace GCodeServer
             return newBuilderState;
         }
 
+		private void BuildAndRun_Excellon(Sequence source)
+		{
+			ActionProgram.ActionProgram program;
+			IReadOnlyDictionary<IAction, int> actionLines;
+			string errorMessage;
+            (program, actionLines, errorMessage) = programBuilderExcellon.BuildProgram(Machine.LastState, source);
+
+			var al = new Dictionary<IAction, (int, int)>();
+			foreach (var action in actionLines.Keys)
+			{
+				al[action] = (0, actionLines[action]);
+			}
+			starts = al;
+
+			if (program != null)
+			{
+				Machine.LoadProgram(program);
+                Machine.Start();
+                SyncCoordinates(Machine.LastState.AxisState.Position);
+                Machine.Continue();
+			}
+		}
+
         public bool Run()
         {
             serverRun = true;
@@ -791,13 +823,26 @@ namespace GCodeServer
                                 program.Add(str);
                             }
 
-                            LoadGcode(program.ToArray());
+							if (command.ContainsKey("format"))
+								program_format = command["format"];
+							else
+								program_format = "gcode";
 
-                            Dictionary<int, Sequence> programs = sequencer.Subprograms.ToDictionary(item => item.Key, item => item.Value);
-                            programs[0] = sequencer.MainProgram;
-                            ProgramSource source = new ProgramSource(programs, 0);
-
-                            mainBuilderState = programBuilderGCode.InitNewProgram(source);
+							if (program_format == "gcode")
+							{
+                            	gcode_program = LoadGcode(program.ToArray());
+                            	Dictionary<int, Sequence> programs = gcode_program.Subprograms.ToDictionary(item => item.Key, item => item.Value);
+                            	programs[0] = gcode_program.MainProgram;
+                            	ProgramSource source = new ProgramSource(programs, 0);
+                            	mainBuilderState = programBuilderGCode.InitNewProgram(source);
+								
+							}
+							else if (program_format == "excellon")
+							{
+								excellon_program = new Sequence();
+								foreach (var line in program)
+									excellon_program.AddLine(new Arguments(line));
+							}
                             break;
                         }
                     case "execute":
@@ -820,29 +865,43 @@ namespace GCodeServer
                             var executeBuilderState = programBuilderGCode.InitNewProgram(source);
                             executeBuilderState.Init(0, 0);
                             builderStates.Add(executeBuilderState);
-                            BuildAndRun(executeBuilderState);
+                            BuildAndRun_GCode(executeBuilderState);
                             break;
                         }
                     case "start":
                         {
-                            // Remove all programs from stack
-                            builderStates.Clear();
+                            if (program_format == "gcode")
+							{
+								// Remove all programs from stack
+                            	builderStates.Clear();
 
-                            mainBuilderState.Init(0, 0);
-                            mainBuilderState = BuildAndRun(mainBuilderState);
+                            	mainBuilderState.Init(0, 0);
+                            	mainBuilderState = BuildAndRun_GCode(mainBuilderState);
+							}
+							else if (program_format == "excellon")
+							{
+								BuildAndRun_Excellon(excellon_program);
+							}
                             break;
                         }
                     case "continue":
                         {
-                            if (builderStates.Count == 0)
-                            {
-                                mainBuilderState = BuildAndRun(mainBuilderState);
-                            }
-                            else
-                            {
-                                int index = builderStates.Count - 1;
-                                builderStates[index] = BuildAndRun(builderStates[index]);
-                            }
+							if (program_format == "gcode")
+							{
+                            	if (builderStates.Count == 0)
+                            	{
+	                                mainBuilderState = BuildAndRun_GCode(mainBuilderState);
+                            	}
+                            	else
+                            	{
+	                                int index = builderStates.Count - 1;
+                                	builderStates[index] = BuildAndRun_GCode(builderStates[index]);
+                            	}
+							}
+							else if (program_format == "excellon")
+							{
+								Machine.Continue();
+							}
                             break;
                         }
                     case "run_finish":

@@ -24,5 +24,6 @@
     <ProjectReference Include="..\..\ManualFeedMachine\ManualFeedMachine.csproj" />
     <ProjectReference Include="..\ProgramBuilder\ProgramBuilder.csproj" />
     <ProjectReference Include="..\ProgramBuilder_GCode\ProgramBuilder_GCode.csproj" />
+	<ProjectReference Include="..\ProgramBuilder_Excellon\Excellon.csproj" />
   </ItemGroup>
 </Project>
