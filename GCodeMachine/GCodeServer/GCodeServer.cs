@@ -895,7 +895,6 @@ namespace GCodeServer
 								mainBuilderState = BuildAndRun_GCode(mainBuilderState);
 							else if (program_format == "excellon")
 								mainBuilderState = BuildAndRun_Excellon(mainBuilderState);
-
 							break;
 						}
 					case "continue":
@@ -914,7 +913,15 @@ namespace GCodeServer
 							}
 							else if (program_format == "excellon")
 							{
-								Machine.Continue();
+								if (builderStates.Count == 0)
+								{
+									mainBuilderState = BuildAndRun_Excellon(mainBuilderState);
+								}
+								else
+								{
+									int index = builderStates.Count - 1;
+									builderStates[index] = BuildAndRun_Excellon(builderStates[index]);
+								}
 							}
 							break;
 						}

@@ -68,9 +68,7 @@ namespace ProgramBuilder.Excellon
 			return builder.ProcessDrillingMove(X, Y, Z, R, Q, program, state);
 		}
 
-		private (CNCState.CNCState, bool) Process(Arguments frame,
-										  ActionProgram.ActionProgram program,
-										  CNCState.CNCState state)
+		private (CNCState.CNCState, bool) Process(Arguments frame, ActionProgram.ActionProgram program, CNCState.CNCState state)
 		{
 			if (frame.SingleOptions.ContainsKey('X') && frame.SingleOptions.ContainsKey('Y'))
 			{
@@ -102,15 +100,13 @@ namespace ProgramBuilder.Excellon
 			state = builder.ProcessDrillingMove(null, null, -1, 10, 10, program, state);
 
 			bool finish = false;
+			builderState.Completed = false;
 
 			while (!finish)
 			{
 				bool stop;
 				if (builderState.CurrentLine >= sequence.Lines.Count)
-				{
-					builderState.Completed = true;
 					break;
-				}
 
 				Logger.Instance.Debug(this, "build", string.Format("processing line {0}", builderState.CurrentLine));
 				
@@ -123,8 +119,13 @@ namespace ProgramBuilder.Excellon
 					var len1 = program.Actions.Count;
 					if (len1 > len0)
 					{
+						Logger.Instance.Debug(this, "build", "has actions");
 						var first = program.Actions[len0].action;
 						actionLines[first] = (builderState.CurrentProcedure, builderState.CurrentLine);
+					}
+					else
+					{	
+						Logger.Instance.Debug(this, "build", "Doesn't have actions");
 					}
 				}
 				catch (Exception e)
@@ -144,8 +145,12 @@ namespace ProgramBuilder.Excellon
 					break;
 			}
 
+			if (builderState.CurrentLine >= sequence.Lines.Count)
+				builderState.Completed = true;
+
 			state = builder.FinishProgram(program, state);
 			return (program, builderState, actionLines, "");
 		}
 	}
 }
+
