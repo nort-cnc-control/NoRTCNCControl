@@ -64,6 +64,7 @@ namespace ProgramBuilder.Excellon
 			decimal? R = GetValue(block.R, state); // Retract
 			decimal? Q = GetValue(block.Q, state); // Pecking
 
+			state.DrillingState.RetractDepth = DrillingState.RetractDepthType.RHeight;
 			return builder.ProcessDrillingMove(X, Y, Z, R, Q, program, state);
 		}
 
