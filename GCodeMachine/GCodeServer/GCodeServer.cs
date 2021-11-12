@@ -79,7 +79,7 @@ namespace GCodeServer
 
 		private int currentProgram, currentLine;
 
-		private ProgramSequencer sequencer;
+		private ProgramSequencer gcode_program;
 
 		private BlockingCollection<JsonObject> commands;
 
@@ -150,7 +150,7 @@ namespace GCodeServer
 
 			ManualFeedMachine = new ManualFeedMachine.ManualFeedMachine(rtSender, Config);
 
-			sequencer = new ProgramSequencer();
+			gcode_program = new ProgramSequencer();
 
 			var newState = new CNCState.CNCState(Config);
 
@@ -463,7 +463,7 @@ namespace GCodeServer
 				{
 					if (currentProgram > 0)
 					{
-						line = sequencer.SubprogramStart[currentProgram] + currentLine;
+						line = gcode_program.SubprogramStart[currentProgram] + currentLine;
 					}
 					else
 					{
@@ -841,7 +841,7 @@ namespace GCodeServer
 							Dictionary<int, Sequence> programs;
 							if (program_format == "gcode")
 							{
-								ProgramSequencer gcode_program = LoadGcode(program.ToArray());
+								gcode_program = LoadGcode(program.ToArray());
 								programs = gcode_program.Subprograms.ToDictionary(item => item.Key, item => item.Value);
 								programs[0] = gcode_program.MainProgram;
 							}
@@ -875,7 +875,7 @@ namespace GCodeServer
 								break;
 							}
 
-							Dictionary<int, Sequence> programs = sequencer.Subprograms.ToDictionary(item => item.Key, item => item.Value);
+							Dictionary<int, Sequence> programs = gcode_program.Subprograms.ToDictionary(item => item.Key, item => item.Value);
 							programs[0] = excommand;
 							ProgramSource source = new ProgramSource(programs, 0);
 
