@@ -513,7 +513,7 @@ namespace ProgramBuilder
             var newstate = state.BuildCopy();
             newstate.SyncToolState.Tool = tool_id;
             newstate.SyncToolState.Enabled = false;
-            program.EnableRTTool(tool_id, state, newstate);
+            program.DisableRTTool(tool_id, state, newstate);
             return newstate;
         }
 
