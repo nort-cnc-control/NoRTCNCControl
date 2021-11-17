@@ -118,6 +118,7 @@ namespace ProgramBuilder.GCode
 				moveType = state.AxisState.MoveType;
 			}
 
+			state.AxisState.MoveType = moveType;
 			switch (moveType)
 			{
 				case AxisState.MType.FastLine:
