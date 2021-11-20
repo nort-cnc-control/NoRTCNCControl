@@ -143,7 +143,7 @@ namespace CNCState
             {
                 Absolute = true,
                 CurrentPlane = Plane.XY,
-                Feed = 100,
+                Feed = 10, // 10 mm/sec
                 CoordinateSystems = new CoordinateSystem[8],
                 CurrentCoordinateSystemIndex = 0,
                 SizeUnits = Units.Millimeters,

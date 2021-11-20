@@ -28,7 +28,10 @@ namespace CNCState
 
         public CNCState(MachineParameters config)
         {
-            AxisState = new AxisState();
+            AxisState = new AxisState
+			{
+				Feed = config.fastfeed/60m,
+			};
             DrillingState = new DrillingState();
             SyncToolState = new SyncToolState();
             toolStates = new Dictionary<int, IToolState>();

@@ -442,7 +442,7 @@ namespace GCodeServer
 				["movement"] = new JsonObject
 				{
 					["status"] = "",
-					["feed"] = state.AxisState.Feed * 60m,
+					["feed"] = state.AxisState.Feed * 60m, // convert from mm/sec to mm/min
 					["command"] = movecmd,
 				},
 				["tools"] = tools,

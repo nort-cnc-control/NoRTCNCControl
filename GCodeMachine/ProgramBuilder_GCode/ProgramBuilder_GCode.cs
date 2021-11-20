@@ -49,7 +49,8 @@ namespace ProgramBuilder.GCode
 			state = state.BuildCopy();
 			if (block.Feed != null)
 			{
-				state.AxisState.Feed = ProgramBuilder.ConvertSizes(GetValue(block.Feed, state).Value, state) / 60.0m; // convert from min to sec
+				state.AxisState.Feed = ProgramBuilder.ConvertSizes(GetValue(block.Feed, state).Value, state) / 60.0m; // convert from mm/min to mm/sec
+				state.AxisState.Feed = Math.Max(state.AxisState.Feed, config.basefeed);
 			}
 			return state;
 		}
