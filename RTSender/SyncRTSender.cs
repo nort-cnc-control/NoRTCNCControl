@@ -110,14 +110,19 @@ namespace RTSender
 
         #endregion events
 
+        object mutex = 0;
+
         public void SendCommand(string command, int cmdIndex)
         {
-            Logger.Instance.Debug(this, "send", "sending command");
-            waitResponse.Reset();
-            rtSender.SendCommand(command, cmdIndex);
-            Logger.Instance.Debug(this, "send", "wait for response");
-            waitResponse.WaitOne();
-            Logger.Instance.Debug(this, "send", "wait: done");
+            lock(mutex)
+            {
+                Logger.Instance.Debug(this, "send", "sending command");
+                waitResponse.Reset();
+                rtSender.SendCommand(command, cmdIndex);
+                Logger.Instance.Debug(this, "send", "wait for response");
+                waitResponse.WaitOne();
+                Logger.Instance.Debug(this, "send", "wait: done");
+            }
         }
 
         public int GetNewIndex()
